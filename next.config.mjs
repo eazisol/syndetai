@@ -1,4 +1,14 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {};
+const nextConfig = {
+  experimental: {
+    appDir: true,
+  },
+  compiler: {
+    emotion: true,
+  },
+  images: {
+    domains: ['localhost'],
+  },
+};
 
 export default nextConfig;
