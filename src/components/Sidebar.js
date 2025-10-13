@@ -86,6 +86,48 @@ const Sidebar = () => {
     loadRoles();
   }, []);
 
+  // const menuItems = [
+  //   // Public (visible to all logged-in users)
+  //   {
+  //     id: 'Library',
+  //     label: 'Library',
+  //     href: '/library',
+  //     icon: '/library.svg',
+  //     inactiveIcon: '/library-inactive.svg'
+  //   },
+  //   {
+  //     id: 'New Request',
+  //     label: 'New Request',
+  //     href: '/new-request',
+  //     icon: '/new-request.svg',
+  //     inactiveIcon: '/new-request-inactive.svg'
+  //   },
+  //   // Admin only
+  //   ...(isAdmin ? [{ 
+  //     id: 'Manage Account', 
+  //     label: 'Manage Account', 
+  //     href: '/manage-account',
+  //     icon: '/settingactive.svg',
+  //     inactiveIcon: '/setting.svg'
+  //   }] : []),
+  //   // Always visible utility
+  //   { 
+  //     id: 'Add Credits', 
+  //     label: `Add Credits (${user.credits})`, 
+  //     href: '/add-credits',
+  //     icon: '/criedtactive.svg',
+  //     inactiveIcon: '/credit.svg'
+  //   },
+  //   // Superadmin only
+  //   ...(isSuperadmin ? [{
+  //     id: 'Superadmin',
+  //     label: 'Superadmin',
+  //     href: '/superadmin',
+  //     icon: '/superadmin.svg',
+  //     inactiveIcon: '/superadmin-inactive.svg'
+  //   }] : [])
+  // ];
+
   const menuItems = [
     // Public (visible to all logged-in users)
     {
@@ -102,32 +144,27 @@ const Sidebar = () => {
       icon: '/new-request.svg',
       inactiveIcon: '/new-request-inactive.svg'
     },
-    // Admin only
-    ...(isAdmin ? [{ 
+    { 
       id: 'Manage Account', 
       label: 'Manage Account', 
       href: '/manage-account',
       icon: '/settingactive.svg',
       inactiveIcon: '/setting.svg'
-    }] : []),
-    // Always visible utility
+    },
     { 
       id: 'Add Credits', 
       label: `Add Credits (${user.credits})`, 
       href: '/add-credits',
       icon: '/criedtactive.svg',
       inactiveIcon: '/credit.svg'
-    },
-    // Superadmin only
-    ...(isSuperadmin ? [{
+    },{
       id: 'Superadmin',
       label: 'Superadmin',
       href: '/superadmin',
       icon: '/superadmin.svg',
       inactiveIcon: '/superadmin-inactive.svg'
-    }] : [])
+    }
   ];
-
   return (
     <div className="sidebar">
        {/* Logo */}
