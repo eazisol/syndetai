@@ -122,8 +122,7 @@ const PreviousSubmissions = () => {
                 <th>REQUESTED BY</th>
                 <th>STATUS</th>
                 <th>BATCH DATE</th>
-                <th>QUEUE POSITION</th>
-                <th>ACTIONS</th>
+                <th>REPORT</th>
               </tr>
             </thead>
             <tbody>
@@ -135,42 +134,23 @@ const PreviousSubmissions = () => {
                   <td>{submission.app_users?.email || submission.app_users?.username || '-'}</td>
                   <td>
                
-                      {submission.status=='Completed'? submission.status: '-'}
+                      {submission.status=='Completed'? submission.status: ''}
                    
                   </td>
                   <td>{submission.batch_date || submission.created_at?.split('T')[0] || '-'}</td>
-                  <td>{submission.queue_position || 0}</td>
                   <td>
-                    <div className="action-buttons">
-                      {submission.report_url ? (
-                        <>
-                          {/* <button
-                            onClick={() => handleView(submission.id)}
-                            className="action-btn"
-                            title="View Report"
-                          >
-                            <Eye className="action-icon" />
-                          </button> */}
-                           <a 
-                          className="link-button" 
-                          href={s.report_url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                        >
-                         <Eye className="action-icon" />
-                        </a>
-                          <button
-                            onClick={() => handleDownload(submission.id)}
-                            className="action-btn"
-                            title="Download Report"
-                          >
-                            <Download className="action-icon" />
-                          </button>
-                        </>
-                      ) : (
-                        <div >-</div>
-                      )}
-                    </div>
+                    {submission.report_url ? (
+                      <a 
+                        className="link-button" 
+                        href={submission.report_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                      >
+                        <Eye className="action-icon" />
+                      </a>
+                    ) : (
+                      <span></span>
+                    )}
                   </td>
                 </tr>
               )})}

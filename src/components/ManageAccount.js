@@ -269,7 +269,8 @@ const ManageAccount = () => {
       <div className="borderBottom" style={{ marginTop: '3%' }} />
       <div className="invite-section" style={{ marginTop: '3%' }}>
         <h2 className="section-title">Invite a New User</h2>
-        <form onSubmit={handleInviteSubmit} className="invite-form">
+        <form onSubmit={()=>{}} className="invite-form">
+        {/* <form onSubmit={handleInviteSubmit} className="invite-form"> */}
           <div className="row g-0 g-lg-5">
             <div className="col-12 col-md-6 col-lg-4">
               <CustomInputField

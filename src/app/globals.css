@@ -475,7 +475,7 @@ body {
 }
 
 .submissions-table th {
-  padding: 12px 16px;
+  padding: 8px 10px;
   text-align: left;
   color: var(--placeholder-color);
   border-bottom: 1px solid var(--border-color);
@@ -493,7 +493,7 @@ body {
 }
 
 .submissions-table td {
-  padding: 12px 16px;
+  padding: 8px 10px;
   border-bottom: 1px solid var(--border-color);
   border-right: 1px solid var(--border-color);
   color: var(--placeholder-color);
@@ -861,10 +861,10 @@ body {
 }
 
 .Toastify__progress-bar {
-  display: none !important;
+  /* display: none !important; */
 }
 .Toastify__progress-bar--bg{
-  display: none !important;
+  display: transparent !important;
 }
 .Toastify__toast-container {
   z-index: 9999 !important;
@@ -882,7 +882,9 @@ body {
   padding: 50px 25px;
 
 }
-
+.superadmin-report{
+  margin-bottom: 0% !important;
+}
 .modal-title {
   color: var(--primary-color);
   font-weight: 400;

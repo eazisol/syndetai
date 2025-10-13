@@ -10,7 +10,7 @@ import Sidebar from '../../components/Sidebar';
 import ConfirmModal from '../../components/ConfirmModal';
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
-import { Eye, Download } from 'lucide-react';
+import { Eye, Download, Plus } from 'lucide-react';
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -40,7 +40,7 @@ function SuperadminPage() {
 
       if (error) {
         console.error('Error fetching organisations:', error);
-      
+
         return;
       }
 
@@ -50,7 +50,7 @@ function SuperadminPage() {
       }
     } catch (error) {
       console.error('Error fetching organisations:', error);
-    
+
     } finally {
       setIsLoadingOrgs(false);
     }
@@ -66,9 +66,9 @@ function SuperadminPage() {
     if (selectedOrgId && organisations.length > 0) {
       const found = organisations.find(o => o.id === selectedOrgId);
       if (found) {
-        setOrgForm({ 
-          name: found.name || '', 
-          type: found.type || '', 
+        setOrgForm({
+          name: found.name || '',
+          type: found.type || '',
           credits: String(found.credits || 0)
         });
         setShowOrgForm(true);
@@ -93,9 +93,9 @@ function SuperadminPage() {
       setSelectedOrgId(value);
       setShowOrgForm(true);
       const found = organisations.find(o => o.id === value);
-      if (found) setOrgForm({ 
-        name: found.name || '', 
-        type: found.type || '', 
+      if (found) setOrgForm({
+        name: found.name || '',
+        type: found.type || '',
         credits: String(found.credits || 0)
       });
     }
@@ -116,10 +116,10 @@ function SuperadminPage() {
     e.preventDefault();
     const creditsNum = Number(orgForm.credits || 0);
     if (!orgForm.name || !orgForm.type || Number.isNaN(creditsNum)) {
-      toast.error('Please fill all fields correctly', { 
-        autoClose: 4000, 
-        pauseOnHover: false, 
-        pauseOnFocusLoss: false 
+      toast.error('Please fill all fields correctly', {
+        autoClose: 4000,
+        pauseOnHover: false,
+        pauseOnFocusLoss: false
       });
       return;
     }
@@ -216,15 +216,15 @@ function SuperadminPage() {
 
       if (error) {
         console.error('Error fetching users:', error);
-    
-       
+
+
         return;
       }
 
       setOrgUsers(data || []);
     } catch (error) {
       console.error('Error fetching users:', error);
-    
+
     } finally {
       setIsLoadingUsers(false);
     }
@@ -237,7 +237,7 @@ function SuperadminPage() {
 
   const toggleAdmin = async (userId) => {
     if (!selectedOrgId) return;
-    
+
     try {
       const user = orgUsers.find(u => u.id === userId);
       if (!user) return;
@@ -275,7 +275,7 @@ function SuperadminPage() {
 
   const removeUser = async (userId) => {
     if (!selectedOrgId) return;
-    
+
     try {
       const { error } = await supabase
         .from('app_users')
@@ -330,10 +330,10 @@ function SuperadminPage() {
   const handleInvite = async (e) => {
     e.preventDefault();
     if (!selectedOrgId) {
-      toast.error('Select an organisation first', { 
-        autoClose: 4000, 
-        pauseOnHover: false, 
-        pauseOnFocusLoss: false 
+      toast.error('Select an organisation first', {
+        autoClose: 4000,
+        pauseOnHover: false,
+        pauseOnFocusLoss: false
       });
       return;
     }
@@ -422,14 +422,14 @@ function SuperadminPage() {
 
       if (error) {
         console.error('Error fetching submissions:', error);
-      
+
         return;
       }
 
       setOrgSubmissions(data || []);
     } catch (error) {
       console.error('Error fetching submissions:', error);
-    
+
     } finally {
       setIsLoadingSubmissions(false);
     }
@@ -440,259 +440,269 @@ function SuperadminPage() {
     fetchOrgSubmissions(selectedOrgId);
   }, [selectedOrgId]);
 
-  // Filters for submissions
-  const [filters, setFilters] = useState({ company: '', website: '', email: '' });
+  // Single filter (Company Name only)
+  const [companyFilter, setCompanyFilter] = useState('');
   const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters(prev => ({ ...prev, [name]: value }));
+    setCompanyFilter(e.target.value || '');
   };
 
   const filteredSubmissions = useMemo(() => {
-    return orgSubmissions.filter(s => {
-      const companyMatch = !filters.company || 
-        (s.company_name && s.company_name.toLowerCase().includes(filters.company.toLowerCase()));
-      const websiteMatch = !filters.website || 
-        (s.company_url && s.company_url.toLowerCase().includes(filters.website.toLowerCase()));
-      const emailMatch = !filters.email || 
-        (s.app_users?.email && s.app_users.email.toLowerCase().includes(filters.email.toLowerCase()));
-      
-      return companyMatch && websiteMatch && emailMatch;
-    });
-  }, [orgSubmissions, filters]);
+    const query = companyFilter.trim().toLowerCase();
+    if (!query) return orgSubmissions;
+    return orgSubmissions.filter(s =>
+      s.company_name && s.company_name.toLowerCase().includes(query)
+    );
+  }, [orgSubmissions, companyFilter]);
 
   return (
     <>
-    <div className="app">
-      <MobileHeader />
-      <div className="app-content">
-        <div className="desktop-sidebar">
-          <Sidebar />
-        </div>
-        <div className="main-content">
-          <div className="container-page">
-            <h2 className="section-title">Superadmin Panel</h2>
-
-      {/* Manage Organisations */}
-      <div className="card-block">
-        <div className="d-flex justify-content-between align-items-center mb-3">
-          <h3 className="subsection-title mb-0">Manage Organisations</h3>
-          <CustomButton onClick={handleAddNewOrganization} className="btn-primary add-org">
-            Add New Organization
-          </CustomButton>
-        </div>
-
-        <div className="row g-0 g-lg-4">
-          <div className="col-12 col-lg-4">
-            <label className="input-label">Select Organisation</label>
-            <select
-              className="org-select"
-              value={selectedOrgId !== null && selectedOrgId !== undefined ? selectedOrgId : 'NEW'}
-              onChange={handleSelectOrganisation}
-            >
-              {organisations.map(o => (
-                <option key={o.id} value={o.id}>{o.name}</option>
-              ))}
-              <option value="NEW">-- New Organisation --</option>
-            </select>
+      <div className="app">
+        <MobileHeader />
+        <div className="app-content">
+          <div className="desktop-sidebar">
+            <Sidebar />
           </div>
+          <div className="main-content">
+            <div className="container-page">
+              <h2 className="section-title">Superadmin Panel</h2>
 
-          <div className="col-12 col-lg-6">
-            {showOrgForm && (
-              <form onSubmit={handleSaveOrganisation} className="row g-0 g-lg-2">
-                <div className="col-12 col-md-6">
-                  <CustomInputField name="name" placeholder="Organisation Name" value={orgForm.name} onChange={handleOrgFormChange} />
+              {/* Manage Organisations */}
+              <div className="card-block">
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <h3 className="subsection-title mb-0">Manage Organisations</h3>
                 </div>
-                <div className="col-12 col-md-6">
-                  <CustomInputField name="type" placeholder="Organisation Type" value={orgForm.type} onChange={handleOrgFormChange} />
-                </div>
-                <div className="col-12 col-md-6">
-                  <CustomInputField name="credits" type="number" placeholder="Credits" value={orgForm.credits} onChange={handleOrgFormChange} />
-                </div>
-                <div className="col-12 d-flex justify-content-end">
-                  <CustomButton type="submit" className='btn-submit-manage-org'>{selectedOrgId ? 'Update Organisation' : 'Create Organisation'}</CustomButton>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      </div>
-<div className='borderBottom mt-3 mb-3'/>
-      {/* Users in Organisation */}
-      <div className="card-block">
-        <div className="d-flex justify-content-between align-items-center mb-3">
-          <h3 className="subsection-title mb-0">Users in Organisation</h3>
-          <CustomButton onClick={() => setShowInviteForm(!showInviteForm)} className="btn-primary">
-            Invite User
-          </CustomButton>
-        </div>
 
-        <div className="table-container">
-          <table className="submissions-table">
-            <thead>
-              <tr>
-                <th>USERNAME</th>
-                <th>EMAIL</th>
-                <th>ADMIN</th>
-                <th>ACTIONS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoadingUsers ? (
-                <tr>
-                  <td colSpan="4" style={{ padding: '20px', textAlign: 'center' }}>
-                    Loading users...
-                  </td>
-                </tr>
-              ) : orgUsers.length === 0 ? (
-                <tr>
-                  <td colSpan="4" style={{ padding: '20px', textAlign: 'center' }}>
-                    No users found for this organisation
-                  </td>
-                </tr>
-              ) : (
-                orgUsers.map((user) => (
-                  <tr key={user.id}>
-                    <td>{user.username || '-'}</td>
-                    <td>{user.email || '-'}</td>
-                    <td>
-                      <input 
-                        type="checkbox" 
-                        checked={user.is_admin} 
-                        onChange={() => toggleAdmin(user.id)} 
-                        className="admin-checkbox" 
-                      />
-                    </td>
-                    <td>
-                      <button 
-                        onClick={() => openConfirmDeleteUser(user)} 
-                        className="delete-btn-manage" 
-                        title="Delete User"
+                <div className="row g-0 g-lg-4">
+                  <div className="col-12 col-lg-4">
+                    <label className="input-label d-flex align-items-center mt-1">
+                      <span>Select Organisation</span>
+                      <button
+                        type="button"
+                        className="p-0 ms-2"
+                        title="Create new organisation"
+                        aria-label="Create new organisation"
+                        onClick={handleAddNewOrganization}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          border: 'none',
+                          background: '#e9f2ff',
+                          color: '#0d6efd',
+                          width: 21,
+                          height: 21,
+                          borderRadius: 50,
+                          cursor: 'pointer'
+                        }}
                       >
-                        Delete
+                        <Plus size={16} />
                       </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                    </label>
+                    <div className="d-flex align-items-center">
+                      <select
+                        className="org-select"
+                        value={selectedOrgId !== null && selectedOrgId !== undefined ? selectedOrgId : 'NEW'}
+                        onChange={handleSelectOrganisation}
+                        style={{ flex: 1 }}
+                      >
+                        {organisations.map(o => (
+                          <option key={o.id} value={o.id}>{o.name}</option>
+                        ))}
+                        <option value="NEW">-- New Organisation --</option>
+                      </select>
+                    </div>
+                  </div>
 
-        {/* Invite New User */}
-        {showInviteForm && (
-          <div className="invite-section" style={{ marginTop: '3%' }}>
-            <h3 className="subsection-title mb-2">Invite a New User</h3>
-            <form onSubmit={handleInvite} className="invite-form">
-              <div className="row g-0 g-lg-4 mb-0">
-                <div className="col-12 col-md-4">
-                  <CustomInputField name="username" placeholder="Username" value={inviteForm.username} onChange={handleInviteChange} />
-                </div>
-                <div className="col-12 col-md-4">
-                  <CustomInputField name="email" type="email" placeholder="Email" value={inviteForm.email} onChange={handleInviteChange} />
-                </div>
-                <div className="col-12 col-md-2 d-flex align-items-center">
-                  <label className="checkbox-label">
-                    <input type="checkbox" name="isAdmin" checked={inviteForm.isAdmin} onChange={handleInviteChange} />
-                    <span style={{ marginLeft: 8 }}>Admin</span>
-                  </label>
-                </div>
-                <div className="col-12 col-md-2 d-flex align-items-end" style={{marginLeft:"-29px"}}>
-                  <CustomButton type="submit">Send Invite</CustomButton>
+                  <div className="col-12 col-lg-6">
+                    {showOrgForm && (
+                      <form onSubmit={handleSaveOrganisation} className="row g-0 g-lg-2">
+                        <div className="col-12 col-md-6">
+                          <CustomInputField name="name" placeholder="Organisation Name" value={orgForm.name} onChange={handleOrgFormChange} />
+                        </div>
+                        <div className="col-12 col-md-6">
+                          <CustomInputField name="type" placeholder="Organisation Type" value={orgForm.type} onChange={handleOrgFormChange} />
+                        </div>
+                        <div className="col-12 col-md-6">
+                          <CustomInputField name="credits" type="number" placeholder="Credits" value={orgForm.credits} onChange={handleOrgFormChange} />
+                        </div>
+                        <div className="col-12 d-flex justify-content-end">
+                          <CustomButton type="submit" className='btn-submit-manage-org'>{selectedOrgId ? 'Update Organisation' : 'Create Organisation'}</CustomButton>
+                        </div>
+                      </form>
+                    )}
+                  </div>
                 </div>
               </div>
-            </form>
-          </div>
-        )}
-      </div>
+              <div className='borderBottom mt-3 mb-3' />
+              {/* Users in Organisation */}
+              <div className="card-block">
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <h3 className="subsection-title mb-0">Users in Organisation</h3>
+                  <CustomButton onClick={() => setShowInviteForm(!showInviteForm)} className="btn-primary">
+                    Invite User
+                  </CustomButton>
+                </div>
 
-      {/* Report Submissions */}
-      <div className="card-block superadmin-reports mt-4">
-        <h3 className="subsection-title mb-2">Report Submissions</h3>
-
-        <div className="row g-0 g-lg-3" style={{ marginBottom: 12 }}>
-          <div className="col-12 col-md-3">
-            <CustomInputField name="company" placeholder="Filter by Company" value={filters.company} onChange={handleFilterChange} />
-          </div>
-          <div className="col-12 col-md-3">
-            <CustomInputField name="website" placeholder="Filter by Website" value={filters.website} onChange={handleFilterChange} />
-          </div>
-          <div className="col-12 col-md-3">
-            <CustomInputField name="email" placeholder="Filter by Email" value={filters.email} onChange={handleFilterChange} />
-          </div>
-        </div>
-
-        <div className="table-container">
-          <table className="submissions-table">
-            <thead>
-              <tr>
-                <th>COMPANY</th>
-                <th>WEBSITE</th>
-                <th>REQUESTED BY</th>
-                <th>STATUS</th>
-                <th>BATCH DATE</th>
-                <th>QUEUE POSITION</th>
-                <th>REPORT</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoadingSubmissions ? (
-                <tr>
-                  <td colSpan="7" style={{ padding: '20px', textAlign: 'center' }}>
-                    Loading submissions...
-                  </td>
-                </tr>
-              ) : filteredSubmissions.length === 0 ? (
-                <tr>
-                  <td colSpan="7" style={{ padding: '20px', textAlign: 'center' }}>
-                    {orgSubmissions.length === 0 ? 'No submissions found for this organisation' : 'No submissions match the current filters'}
-                  </td>
-                </tr>
-              ) : (
-                filteredSubmissions.map((s) => (
-                  <tr key={s.id}>
-                    <td>{s.company_name || '-'}</td>
-                    <td>{s.company_url || '-'}</td>
-                    <td>{s.app_users?.email || s.app_users?.username || '-'}</td>
-                    <td>
-                      <span>
-                        {s.status === 'Completed' ? s.status : '-'}
-                      </span>
-                    </td>
-                    <td>{s.batch_date || s.created_at?.split('T')[0] || '-'}</td>
-                    <td>{s.queue_position || '-'}</td>
-                    <td>
-                      {s.report_url ? (
-                        <a 
-                          className="link-button" 
-                          href={s.report_url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                        >
-                         <Eye className="action-icon" />
-                        </a>
-                     
+                <div className="table-container">
+                  <table className="submissions-table">
+                    <thead>
+                      <tr>
+                        <th>USERNAME</th>
+                        <th>EMAIL</th>
+                        <th>ADMIN</th>
+                        <th>ACTIONS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {isLoadingUsers ? (
+                        <tr>
+                          <td colSpan="4" style={{ padding: '20px', textAlign: 'center' }}>
+                            Loading users...
+                          </td>
+                        </tr>
+                      ) : orgUsers.length === 0 ? (
+                        <tr>
+                          <td colSpan="4" style={{ padding: '20px', textAlign: 'center' }}>
+                            No users found for this organisation
+                          </td>
+                        </tr>
                       ) : (
-                        <span>-</span>
+                        orgUsers.map((user) => (
+                          <tr key={user.id}>
+                            <td>{user.username || '-'}</td>
+                            <td>{user.email || '-'}</td>
+                            <td>
+                              <input
+                                type="checkbox"
+                                checked={user.is_admin}
+                                onChange={() => toggleAdmin(user.id)}
+                                className="admin-checkbox"
+                              />
+                            </td>
+                            <td>
+                              <button
+                                onClick={() => openConfirmDeleteUser(user)}
+                                className="delete-btn-manage"
+                                title="Delete User"
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          </tr>
+                        ))
                       )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Invite New User */}
+                {showInviteForm && (
+                  <div className="invite-section" style={{ marginTop: '3%' }}>
+                    <h3 className="subsection-title mb-2">Invite a New User</h3>
+                    <form onSubmit={handleInvite} className="invite-form">
+                      <div className="row g-0 g-lg-4 mb-0">
+                        <div className="col-12 col-md-4">
+                          <CustomInputField name="username" placeholder="Username" value={inviteForm.username} onChange={handleInviteChange} />
+                        </div>
+                        <div className="col-12 col-md-4">
+                          <CustomInputField name="email" type="email" placeholder="Email" value={inviteForm.email} onChange={handleInviteChange} />
+                        </div>
+                        <div className="col-12 col-md-2 d-flex align-items-center">
+                          <label className="checkbox-label">
+                            <input type="checkbox" name="isAdmin" checked={inviteForm.isAdmin} onChange={handleInviteChange} />
+                            <span style={{ marginLeft: 8 }}>Admin</span>
+                          </label>
+                        </div>
+                        <div className="col-12 col-md-2 d-flex align-items-end" style={{ marginLeft: "-29px" }}>
+                          <CustomButton type="submit">Send Invite</CustomButton>
+                        </div>
+                      </div>
+                    </form>
+                  </div>
+                )}
+              </div>
+
+              {/* Report Submissions */}
+              <div className="card-block superadmin-reports mt-4">
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <h3 className="subsection-title superadmin-report">Report Submissions</h3>
+                  <div style={{ maxWidth: 360 }}>
+                    <CustomInputField name="company" placeholder="Filter by Company" value={companyFilter} onChange={handleFilterChange} />
+                  </div>
+                </div>
+
+
+
+                <div className="table-container">
+                  <table className="submissions-table">
+                    <thead>
+                      <tr>
+                        <th>COMPANY</th>
+                        <th>WEBSITE</th>
+                        <th>REQUESTED BY</th>
+                        <th>STATUS</th>
+                        <th>BATCH DATE</th>
+                        <th>REPORT</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {isLoadingSubmissions ? (
+                        <tr>
+                          <td colSpan="7" style={{ padding: '20px', textAlign: 'center' }}>
+                            Loading submissions...
+                          </td>
+                        </tr>
+                      ) : filteredSubmissions.length === 0 ? (
+                        <tr>
+                          <td colSpan="7" style={{ padding: '20px', textAlign: 'center' }}>
+                            {orgSubmissions.length === 0 ? 'No submissions found for this organisation' : 'No submissions match the current filters'}
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredSubmissions.map((s) => (
+                          <tr key={s.id}>
+                            <td>{s.company_name || '-'}</td>
+                            <td>{s.company_url || '-'}</td>
+                            <td>{s.app_users?.email || s.app_users?.username || '-'}</td>
+                            <td>
+                              <span>
+                                {s.status === 'Completed' ? s.status : ''}
+                              </span>
+                            </td>
+                            <td>{s.batch_date || s.created_at?.split('T')[0] || '-'}</td>
+                            <td>
+                              {s.report_url ? (
+                                <a
+                                  className="link-button"
+                                  href={s.report_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <Eye className="action-icon" />
+                                </a>
+
+                              ) : (
+                                <span></span>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    </div>
-    <ConfirmModal
-      open={confirmState.open}
-      title={`Delete ${confirmState.name}?`}
-      onConfirm={confirmDelete}
-      onCancel={closeConfirm}
-    />
-  </>
+      <ConfirmModal
+        open={confirmState.open}
+        title={`Delete ${confirmState.name}?`}
+        onConfirm={confirmDelete}
+        onCancel={closeConfirm}
+      />
+    </>
   );
 }
 

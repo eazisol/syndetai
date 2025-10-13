@@ -162,7 +162,8 @@ const RequestNewReport = () => {
     <div className="request-section">
   
       <div className="request-form-container">
-        <form onSubmit={handleSubmit} className="request-form">
+        <form onSubmit={()=>{}} className="request-form">
+        {/* <form onSubmit={handleSubmit} className="request-form"> */}
         <h2 className="section-title text-center mb-5">Request New Report</h2>
           <div className="row g-3">
             <div className="col-12 col-md-6">
