@@ -42,7 +42,7 @@ const LoginScreen = ({ onLogin }) => {
           toast.success('Magic link sent! Please check your email.');
           setEmail('');
           // Redirect to library page
-          router.push('/library');
+          // router.push('/library');
         }
       } catch (error) {
         console.error('Login error:', error);
