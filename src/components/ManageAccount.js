@@ -19,12 +19,13 @@ async function ensureSupabase() {
 }
 
 const ManageAccount = () => {
-  const { users, addUser, removeUser } = useApp();
+  const { users, addUser, removeUser, userData } = useApp();
   const [orgUsers, setOrgUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInviting, setIsInviting] = useState(false);
   
-  // Organization ID
-  const organizationId = '1aa7dc0d-e404-45cf-b3e9-02f44151913f';
+  // Get Organization ID from user data
+  const organizationId = userData?.organisation_id;
   
   const [inviteForm, setInviteForm] = useState({
     username: '',
@@ -44,13 +45,13 @@ const ManageAccount = () => {
         .eq('is_active', true);
   
       if (error) {
-        console.error('Supabase error:', error);
+        console.log('Supabase error:', error);
         return [];
       }
       
       return data || [];
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.log('Error fetching users:', error);
       return [];
     } finally {
       setIsLoading(false);
@@ -58,17 +59,22 @@ const ManageAccount = () => {
   };
 
   useEffect(() => {
-    const loadUsers = async () => {
-      const data = await fetchUsersData(organizationId);
-      setOrgUsers(data);
-    };
-    loadUsers();
+    if (organizationId) {
+      const loadUsers = async () => {
+        let id='1aa7dc0d-e404-45cf-b3e9-02f44151913f'
+        const data = await fetchUsersData(id);
+        // const data = await fetchUsersData(organizationId);
+        setOrgUsers(data);
+      };
+      loadUsers();
+    }
   }, [organizationId]);
 
   const handleInviteSubmit = async (e) => {
     e.preventDefault();
-    if (!inviteForm.username || !inviteForm.email) return;
+    if (!inviteForm.username || !inviteForm.email || !organizationId) return;
 
+    setIsInviting(true);
     try {
       // 1) Send magic link (simple call as requested)
       const client = await ensureSupabase();
@@ -135,6 +141,8 @@ const ManageAccount = () => {
         pauseOnHover: false,
         pauseOnFocusLoss: false
       });
+    } finally {
+      setIsInviting(false);
     }
   };
 
@@ -318,7 +326,13 @@ const ManageAccount = () => {
               />
             </div>
             <div className="col-12 col-md-12 col-lg-4 d-flex align-items-end justify-content-center justify-content-md-start">
-              <CustomButton type="submit" className='manage-account-button'>
+              <CustomButton 
+                type="submit" 
+                className='manage-account-button'
+                loading={isInviting}
+                loadingText="Sending..."
+                disabled={isInviting}
+              >
                 Send Invite
               </CustomButton>
             </div>

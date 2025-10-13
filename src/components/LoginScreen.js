@@ -12,13 +12,101 @@ const LoginScreen = ({ onLogin }) => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [showResend, setShowResend] = useState(false);
+  const [session, setSession] = useState(null);
+  const [checkingSession, setCheckingSession] = useState(true);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  // Handle URL parameters for expired tokens and successful authentication
+  useEffect(() => {
+    if (!mounted) return;
+
+    const url = new URL(window.location.href);
+    const hash = url.hash;
+    
+    // Check for expired token error
+    const hasExpiredToken = hash.includes('error_code=otp_expired') || 
+                           hash.includes('error_code=expired_token');
+    
+    if (hasExpiredToken) {
+      setShowResend(true);
+      toast.error('Your login link has expired. You can request a new one below.', {
+        autoClose: 5000,
+        pauseOnHover: false,
+        pauseOnFocusLoss: false
+      });
+      return;
+    }
+
+    // Check for successful authentication token
+    const hasAccessToken = hash.includes('access_token=');
+    if (hasAccessToken) {
+      // Extract token from hash
+      const hashParams = new URLSearchParams(hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+      
+      if (accessToken && refreshToken) {
+        // Set session and redirect to library
+        setSession({ access_token: accessToken, refresh_token: refreshToken });
+        toast.success('Login successful! Redirecting...');
+        setTimeout(() => {
+          router.push('/library');
+        }, 1000);
+      }
+    }
+  }, [mounted, router]);
+
+  // Check existing session on component mount
+  useEffect(() => {
+    const checkSession = async () => {
+      if (!mounted) return;
+      
+      try {
+        const { getSupabase } = await import('../supabaseClient');
+        const supabase = getSupabase();
+        const { data } = await supabase.auth.getSession();
+        
+        if (data.session) {
+          setSession(data.session);
+          // If user is already authenticated, redirect to library
+          router.push('/library');
+        }
+      } catch (error) {
+        console.error('Error checking session:', error);
+        toast.error('Error checking authentication status. Please try again.', {
+          autoClose: 4000,
+          pauseOnHover: false,
+          pauseOnFocusLoss: false
+        });
+      } finally {
+        setCheckingSession(false);
+      }
+    };
+    
+    checkSession();
+  }, [mounted, router]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Prevent submission if component is not mounted or checking session
+    if (!mounted || checkingSession) {
+      return;
+    }
+    
+    if (!email.trim()) {
+      toast.error('Please enter your email address.', {
+        autoClose: 4000,
+        pauseOnHover: false,
+        pauseOnFocusLoss: false
+      });
+      return;
+    }
+    
     if (email && !isLoading) {
       setIsLoading(true);
       
@@ -37,16 +125,27 @@ const LoginScreen = ({ onLogin }) => {
 
         if (error) {
           console.error('Login error:', error);
-          toast.error('Login failed. Please try again.');
+          toast.error('Login failed. Please try again.', {
+            autoClose: 4000,
+            pauseOnHover: false,
+            pauseOnFocusLoss: false
+          });
         } else {
-          toast.success('Magic link sent! Please check your email.');
+          toast.success('Magic link sent! Please check your email.', {
+            autoClose: 4000,
+            pauseOnHover: false,
+            pauseOnFocusLoss: false
+          });
           setEmail('');
-          // Redirect to library page
-          router.push('/library');
+          setShowResend(false);
         }
       } catch (error) {
         console.error('Login error:', error);
-        toast.error('Login failed. Please try again.');
+        toast.error('Login failed. Please try again.', {
+          autoClose: 4000,
+          pauseOnHover: false,
+          pauseOnFocusLoss: false
+        });
       } finally {
         setIsLoading(false);
       }
@@ -57,9 +156,8 @@ const LoginScreen = ({ onLogin }) => {
     setEmail(e.target.value);
   };
 
-  if (!mounted) {
-    return null;
-  }
+  // Always render the same structure to prevent hydration mismatch
+  // Use CSS or conditional content within the same structure instead
 
   return (
     <div className="login-container">
@@ -95,7 +193,7 @@ const LoginScreen = ({ onLogin }) => {
             />
           </div>
 
-          {/* Email Input */}
+          {/* Always render the form structure to prevent hydration mismatch */}
           <form onSubmit={handleSubmit} className="login-form-content">
             <CustomInputField
               type="email"
@@ -104,6 +202,7 @@ const LoginScreen = ({ onLogin }) => {
               value={email}
               onChange={handleEmailChange}
               className="login-email-input"
+              disabled={!mounted || checkingSession}
               required
             />
 
@@ -111,9 +210,9 @@ const LoginScreen = ({ onLogin }) => {
             <CustomButton 
               type="submit" 
               className='login-button' 
-              disabled={isLoading}
+              disabled={isLoading || !mounted || checkingSession}
             >
-              {isLoading ? 'Logging in...' : 'Login'}
+              {(!mounted || checkingSession) ? 'Loading...' : (isLoading ? 'Sending...' : 'Login')}
             </CustomButton>
           </form>
         

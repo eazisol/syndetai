@@ -5,15 +5,15 @@ import CustomInputField from './CustomInputField';
 // Supabase will be imported dynamically to avoid build-time env requirement
 
 const PreviousSubmissions = () => {
-  const { searchQuery, setSearchQuery } = useApp();
+  const { searchQuery, setSearchQuery ,userData} = useApp();
   const [libraryData, setLibraryData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  
-  // User ID for fetching library data
-  const userId = '3839564b-a0f0-4816-8de8-dae60fc4ed7f';
+  // Get User ID from user data
+  const userId = userData?.id;
 
   // Fetch library data from Supabase
   const fetchLibraryData = async (userId) => {
+    
     try {
       setIsLoading(true);
       
@@ -38,7 +38,7 @@ const PreviousSubmissions = () => {
         .order('created_at', { ascending: false });
   
       if (error) {
-        console.error('Supabase error:', error);
+        console.log('Supabase error:', error);
         return [];
       }
       
@@ -53,12 +53,16 @@ const PreviousSubmissions = () => {
 
   // Fetch library data on component mount
   useEffect(() => {
-    const loadLibraryData = async () => {
-      const data = await fetchLibraryData(userId);
-      setLibraryData(data);
-    };
-    loadLibraryData();
-  }, [userId]);
+    if (userData?.id) {
+      const loadLibraryData = async () => {
+        let id='0c4cf856-0569-4d90-9214-72dc94f8a48d'
+        const data = await fetchLibraryData(id);
+        // const data = await fetchLibraryData(userData?.id);
+        setLibraryData(data);
+      };
+      loadLibraryData();
+    }
+  }, [userData?.id]);
 
   // Filter submissions based on search query
   const filteredSubmissions = libraryData.filter(submission =>

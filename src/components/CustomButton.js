@@ -8,17 +8,19 @@ const CustomButton = ({
   onClick, 
   className = '',
   disabled = false,
+  loading = false,
+  loadingText = 'Loading...',
   ...props 
 }) => {
   return (
     <button
       type={type}
       onClick={onClick}
-      disabled={disabled}
-      className={`custom-button ${className}`}
+      disabled={disabled || loading}
+      className={`custom-button ${className} ${loading ? 'loading' : ''}`}
       {...props}
     >
-      {children}
+      {loading ? loadingText : children}
     </button>
   );
 };

@@ -9,6 +9,7 @@ import CustomButton from './CustomButton';
 const AddCredits = () => {
     const { user } = useApp();
     const [credits, setCredits] = useState(10);
+    const [isProcessing, setIsProcessing] = useState(false);
     const [paymentForm, setPaymentForm] = useState({
         cardNumber: '',
         expiryDate: '',
@@ -64,7 +65,7 @@ const AddCredits = () => {
         });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
         // Validate required fields
@@ -95,12 +96,23 @@ const AddCredits = () => {
             return;
         }
 
-        // Process payment
-        const subtotal = credits * 2; // $2 per credit
-        const vat = subtotal * 0.2; // 20% VAT
-        const total = subtotal + vat;
+        setIsProcessing(true);
+        
+        try {
+            // Simulate payment processing
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Process payment
+            const subtotal = credits * 2; // $2 per credit
+            const vat = subtotal * 0.2; // 20% VAT
+            const total = subtotal + vat;
 
-        alert(`Payment processed! Total: $${total.toFixed(2)} for ${credits} credits`);
+            alert(`Payment processed! Total: $${total.toFixed(2)} for ${credits} credits`);
+        } catch (error) {
+            alert('Payment failed. Please try again.');
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
     const subtotal = credits * 2;
@@ -242,7 +254,13 @@ const AddCredits = () => {
                             </div>
                         </div>
                         <div className='pay-button-container'>
-                            <CustomButton type="submit" className="pay-button">
+                            <CustomButton 
+                                type="submit" 
+                                className="pay-button"
+                                loading={isProcessing}
+                                loadingText="Processing..."
+                                disabled={isProcessing}
+                            >
                                 Pay
                             </CustomButton>
                         </div>

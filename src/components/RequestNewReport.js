@@ -9,7 +9,7 @@ import { toast } from 'react-toastify';
 import { v4 as uuidv4 } from 'uuid';
 
 const RequestNewReport = () => {
-  const { user, updateCredits } = useApp();
+  const { user, updateCredits,userData } = useApp();
   const [formData, setFormData] = useState({
     company: '',
     website: ''
@@ -17,9 +17,9 @@ const RequestNewReport = () => {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Organization ID and User ID
-  const organizationId = '1aa7dc0d-e404-45cf-b3e9-02f44151913f';
-  const userId = '3839564b-a0f0-4816-8de8-dae60fc4ed7f';
+  // Get Organization ID and User ID from user data
+  const organizationId = userData?.organisation_id;
+  const userId = userData?.id;
 
   // Calculate credits needed
   const creditsNeeded = selectedFiles.length > 0 ? 15 : 10;
@@ -38,8 +38,17 @@ const RequestNewReport = () => {
       return;
     }
 
+    if (!organizationId || !userId) {
+      toast.error('User organization or ID not found. Please try logging in again.', {
+        autoClose: 4000,
+        pauseOnHover: false,
+        pauseOnFocusLoss: false
+      });
+      return;
+    }
+
     if (!hasEnoughCredits) {
-      toast.error(`Insufficient credits. You need ${creditsNeeded} credits but have ${user.credits}`, {
+      toast.error(`Insufficient credits. You need ${creditsNeeded} credits but have ${userData?.credits}`, {
         autoClose: 4000,
         pauseOnHover: false,
         pauseOnFocusLoss: false
@@ -62,7 +71,7 @@ const RequestNewReport = () => {
             id: uuidv4(),
             company_name: formData.company,
             company_url: formData.website,
-            user_id: userId,
+            user_id: userData?.id,
             status: 'pending',
             batch_date: new Date().toISOString().split('T')[0],
             queue_position: 0,
@@ -74,7 +83,7 @@ const RequestNewReport = () => {
         .select();
 
       if (error) {
-        console.error('Supabase error:', error);
+        // console.error('Supabase error:', error);
         toast.error('Failed to submit request', {
           autoClose: 4000,
           pauseOnHover: false,
@@ -88,19 +97,21 @@ const RequestNewReport = () => {
 
       // Upload files if any are selected
       if (selectedFiles.length > 0) {
+        console.log("🚀 ~ handleSubmit ~ selectedFiles:", selectedFiles)
         try {
           const uploadPromises = selectedFiles.map(async (file, index) => {
             const fileExt = file.name.split('.').pop();
             const fileName = `${submissionId}_${index}.${fileExt}`;
-            
+            console.log("file name", fileName)
             const { error: uploadError } = await supabase.storage
-              .from('submissions')
+              .from('reports')
               .upload(fileName, file);
 
             if (uploadError) {
-              console.error('File upload error:', uploadError);
+              console.log('File upload error:', uploadError);
               throw uploadError;
             }
+            console.log("🚀 ~ handleSubmit ~ fileName:", fileName)
 
             return fileName;
           });
@@ -108,17 +119,17 @@ const RequestNewReport = () => {
           await Promise.all(uploadPromises);
           console.log('All files uploaded successfully');
         } catch (uploadError) {
-          console.error('Error uploading files:', uploadError);
-          toast.error('Request submitted but files failed to upload', {
-            autoClose: 4000,
-            pauseOnHover: false,
-            pauseOnFocusLoss: false
-          });
+          console.log('Error uploading files:', uploadError);
+          // toast.error('Request submitted but files failed to upload', {
+          //   autoClose: 4000,
+          //   pauseOnHover: false,
+          //   pauseOnFocusLoss: false
+          // });
         }
       }
 
       // Update user credits
-      const newCredits = user.credits - creditsNeeded;
+      const newCredits = userData?.credits - creditsNeeded;
       updateCredits(newCredits);
 
       // Show success message
@@ -242,7 +253,7 @@ const RequestNewReport = () => {
                       fontWeight: '600',
                       color: hasEnoughCredits ? '#28a745' : '#dc3545'
                     }}>
-                      {user.credits} credits
+                      {userData?.credits} credits
                     </p>
                   </div>
                 </div>

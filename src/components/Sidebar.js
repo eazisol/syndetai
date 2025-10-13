@@ -7,7 +7,7 @@ import Image from 'next/image';
 // Avoid top-level import to keep build safe on prerender; import dynamically where needed
 
 const Sidebar = () => {
-  const { user } = useApp();
+  const { userData,user } = useApp();
   const pathname = usePathname();
   const router = useRouter();
   const [isAdmin, setIsAdmin] = useState(false);
@@ -24,6 +24,7 @@ const Sidebar = () => {
       try {
         localStorage.removeItem('is_admin');
         localStorage.removeItem('is_superadmin');
+        localStorage.removeItem('organisation_id');
       } catch {}
       router.push('/login');
     }
@@ -50,7 +51,7 @@ const Sidebar = () => {
       // First: look up by auth id
       let { data, error } = await supabase
         .from('app_users')
-        .select('id, email, is_admin, is_superadmin')
+        .select('id, email, is_admin, is_superadmin, organisation_id')
         .eq('id', userId)
         .maybeSingle();
 
@@ -58,7 +59,7 @@ const Sidebar = () => {
       if (!data && userEmail) {
         const byEmail = await supabase
           .from('app_users')
-          .select('id, email, is_admin, is_superadmin')
+          .select('id, email, is_admin, is_superadmin, organisation_id')
           .eq('email', userEmail)
           .maybeSingle();
         if (!byEmail.error) {
@@ -73,6 +74,7 @@ const Sidebar = () => {
         try {
           localStorage.setItem('is_admin', String(Boolean(data.is_admin)));
           localStorage.setItem('is_superadmin', String(Boolean(data.is_superadmin)));
+          localStorage.setItem('organisation_id', data.organisation_id || '');
         } catch {}
       } else {
         setIsAdmin(false);
@@ -80,53 +82,12 @@ const Sidebar = () => {
         try {
           localStorage.removeItem('is_admin');
           localStorage.removeItem('is_superadmin');
+          localStorage.removeItem('organisation_id');
         } catch {}
       }
     };
     loadRoles();
   }, []);
-
-  // const menuItems = [
-  //   // Public (visible to all logged-in users)
-  //   {
-  //     id: 'Library',
-  //     label: 'Library',
-  //     href: '/library',
-  //     icon: '/library.svg',
-  //     inactiveIcon: '/library-inactive.svg'
-  //   },
-  //   {
-  //     id: 'New Request',
-  //     label: 'New Request',
-  //     href: '/new-request',
-  //     icon: '/new-request.svg',
-  //     inactiveIcon: '/new-request-inactive.svg'
-  //   },
-  //   // Admin only
-  //   ...(isAdmin ? [{ 
-  //     id: 'Manage Account', 
-  //     label: 'Manage Account', 
-  //     href: '/manage-account',
-  //     icon: '/settingactive.svg',
-  //     inactiveIcon: '/setting.svg'
-  //   }] : []),
-  //   // Always visible utility
-  //   { 
-  //     id: 'Add Credits', 
-  //     label: `Add Credits (${user.credits})`, 
-  //     href: '/add-credits',
-  //     icon: '/criedtactive.svg',
-  //     inactiveIcon: '/credit.svg'
-  //   },
-  //   // Superadmin only
-  //   ...(isSuperadmin ? [{
-  //     id: 'Superadmin',
-  //     label: 'Superadmin',
-  //     href: '/superadmin',
-  //     icon: '/superadmin.svg',
-  //     inactiveIcon: '/superadmin-inactive.svg'
-  //   }] : [])
-  // ];
 
   const menuItems = [
     // Public (visible to all logged-in users)
@@ -144,27 +105,32 @@ const Sidebar = () => {
       icon: '/new-request.svg',
       inactiveIcon: '/new-request-inactive.svg'
     },
-    { 
+    // Admin only
+    ...(isAdmin ? [{ 
       id: 'Manage Account', 
       label: 'Manage Account', 
       href: '/manage-account',
       icon: '/settingactive.svg',
       inactiveIcon: '/setting.svg'
-    },
+    }] : []),
+    // Always visible utility
     { 
       id: 'Add Credits', 
-      label: `Add Credits (${user.credits})`, 
+      label: `Add Credits`, 
       href: '/add-credits',
       icon: '/criedtactive.svg',
       inactiveIcon: '/credit.svg'
-    },{
+    },
+    // Superadmin only
+    ...(isSuperadmin ? [{
       id: 'Superadmin',
       label: 'Superadmin',
       href: '/superadmin',
       icon: '/superadmin.svg',
       inactiveIcon: '/superadmin-inactive.svg'
-    }
+    }] : [])
   ];
+
   return (
     <div className="sidebar">
        {/* Logo */}
@@ -206,7 +172,7 @@ const Sidebar = () => {
       <div style={{ padding: '35px 16px' }}>
 
       <div className="user-info">
-        <span className="user-email">{user.email}</span>
+        <span className="user-email">{userData?.email}</span>
         <button className="logout-button" style={{border:"none",backgroundColor:"transparent"}}onClick={handleLogout} title="Logout">
           <Image 
             src="/Vector.svg" 
