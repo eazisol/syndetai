@@ -2,12 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Eye, Download } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import CustomInputField from './CustomInputField';
-import { createClient } from '@supabase/supabase-js';
-
-// Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Supabase will be imported dynamically to avoid build-time env requirement
 
 const PreviousSubmissions = () => {
   const { searchQuery, setSearchQuery } = useApp();
@@ -22,6 +17,7 @@ const PreviousSubmissions = () => {
     try {
       setIsLoading(true);
       
+      const { supabase } = await import('../supabaseClient');
       const { data, error } = await supabase
         .from('submissions')
         .select(`

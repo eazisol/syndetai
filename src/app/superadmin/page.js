@@ -8,13 +8,9 @@ import { toast } from 'react-toastify';
 import MobileHeader from '../../components/MobileHeader';
 import Sidebar from '../../components/Sidebar';
 import ConfirmModal from '../../components/ConfirmModal';
-import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import { Eye, Download, Plus } from 'lucide-react';
-// Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Supabase client will be imported dynamically where used to avoid build-time env requirement
 
 function SuperadminPage() {
   const { submissions } = useApp();
@@ -33,6 +29,7 @@ function SuperadminPage() {
   const fetchOrganisations = async () => {
     try {
       setIsLoadingOrgs(true);
+      const { supabase } = await import('../../supabaseClient');
       const { data, error } = await supabase
         .from('organisations')
         .select('*')
@@ -125,6 +122,7 @@ function SuperadminPage() {
     }
 
     try {
+      const { supabase } = await import('../../supabaseClient');
       if (selectedOrgId == null) {
         // Create new organisation
         const { data, error } = await supabase
@@ -207,6 +205,7 @@ function SuperadminPage() {
 
     try {
       setIsLoadingUsers(true);
+      const { supabase } = await import('../../supabaseClient');
       const { data, error } = await supabase
         .from('app_users')
         .select('id, email, username, is_admin, is_active')
@@ -239,6 +238,7 @@ function SuperadminPage() {
     if (!selectedOrgId) return;
 
     try {
+      const { supabase } = await import('../../supabaseClient');
       const user = orgUsers.find(u => u.id === userId);
       if (!user) return;
 
@@ -277,6 +277,7 @@ function SuperadminPage() {
     if (!selectedOrgId) return;
 
     try {
+      const { supabase } = await import('../../supabaseClient');
       const { error } = await supabase
         .from('app_users')
         .update({ is_active: false })
@@ -347,6 +348,7 @@ function SuperadminPage() {
     }
 
     try {
+      const { supabase } = await import('../../supabaseClient');
       const { data, error } = await supabase
         .from('app_users')
         .insert([
@@ -402,6 +404,7 @@ function SuperadminPage() {
 
     try {
       setIsLoadingSubmissions(true);
+      const { supabase } = await import('../../supabaseClient');
       const { data, error } = await supabase
         .from('submissions')
         .select(`
@@ -517,10 +520,10 @@ function SuperadminPage() {
                     {showOrgForm && (
                       <form onSubmit={handleSaveOrganisation} className="row g-0 g-lg-2">
                         <div className="col-12 col-md-6">
-                          <CustomInputField name="name" placeholder="Organisation Name" value={orgForm.name} onChange={handleOrgFormChange} />
+                          <CustomInputField name="name" placeholder="Organisation Name" className='org-input' value={orgForm.name} onChange={handleOrgFormChange} />
                         </div>
                         <div className="col-12 col-md-6">
-                          <CustomInputField name="type" placeholder="Organisation Type" value={orgForm.type} onChange={handleOrgFormChange} />
+                          <CustomInputField name="type" placeholder="Organisation Type" className='org-input' value={orgForm.type} onChange={handleOrgFormChange} />
                         </div>
                         <div className="col-12 col-md-6">
                           <CustomInputField name="credits" type="number" placeholder="Credits" value={orgForm.credits} onChange={handleOrgFormChange} />

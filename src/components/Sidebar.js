@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useApp } from '../context/AppContext';
 import Image from 'next/image';
-import { supabase } from '../supabaseClient';
+// Avoid top-level import to keep build safe on prerender; import dynamically where needed
 
 const Sidebar = () => {
   const { user } = useApp();
@@ -15,6 +15,7 @@ const Sidebar = () => {
 
   const handleLogout = async () => {
     try {
+      const { supabase } = await import('../supabaseClient');
       await supabase.auth.signOut();
     } catch (e) {
       // no-op; navigate regardless
@@ -37,6 +38,7 @@ const Sidebar = () => {
         if (cachedSuper !== null) setIsSuperadmin(cachedSuper === 'true');
       } catch {}
 
+      const { supabase } = await import('../supabaseClient');
       const { data: authData, error: authError } = await supabase.auth.getUser();
       if (authError || !authData?.user) return;
 
