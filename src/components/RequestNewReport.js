@@ -6,13 +6,7 @@ import ImageUpload from './ImageUpload';
 import CustomInputField from './CustomInputField';
 import CustomButton from './CustomButton';
 import { toast } from 'react-toastify';
-import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
-
-// Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 const RequestNewReport = () => {
   const { user, updateCredits } = useApp();
@@ -29,7 +23,8 @@ const RequestNewReport = () => {
 
   // Calculate credits needed
   const creditsNeeded = selectedFiles.length > 0 ? 15 : 10;
-  const hasEnoughCredits = user.credits >= creditsNeeded;
+  const hasEnoughCredits = 45 >= creditsNeeded;
+  // const hasEnoughCredits = user.credits >= creditsNeeded;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -55,6 +50,9 @@ const RequestNewReport = () => {
     setIsSubmitting(true);
 
     try {
+      // Dynamically import Supabase client
+      const { supabase } = await import('../supabaseClient');
+      
       // Create new report in Supabase using the provided user ID
       const { data, error } = await supabase
         .from('submissions')
@@ -82,6 +80,40 @@ const RequestNewReport = () => {
           pauseOnFocusLoss: false
         });
         return;
+      }
+
+      const submissionId = data[0].id;
+      console.log('Submission created:', submissionId);
+
+      // Upload files if any are selected
+      if (selectedFiles.length > 0) {
+        try {
+          const uploadPromises = selectedFiles.map(async (file, index) => {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${submissionId}_${index}.${fileExt}`;
+            
+            const { error: uploadError } = await supabase.storage
+              .from('submissions')
+              .upload(fileName, file);
+
+            if (uploadError) {
+              console.error('File upload error:', uploadError);
+              throw uploadError;
+            }
+
+            return fileName;
+          });
+
+          await Promise.all(uploadPromises);
+          console.log('All files uploaded successfully');
+        } catch (uploadError) {
+          console.error('Error uploading files:', uploadError);
+          toast.error('Request submitted but files failed to upload', {
+            autoClose: 4000,
+            pauseOnHover: false,
+            pauseOnFocusLoss: false
+          });
+        }
       }
 
       // Update user credits

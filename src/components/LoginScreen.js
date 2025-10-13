@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import CustomInputField from './CustomInputField';
@@ -11,31 +11,54 @@ const LoginScreen = ({ onLogin }) => {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (email && !isLoading) {
       setIsLoading(true);
-      toast.success(`Magic link sent to`, {
-        autoClose: 4000,
-        pauseOnHover: false,
-        pauseOnFocusLoss: false
-      });
-      // Show toast briefly, then navigate
-      setTimeout(() => {
-        setIsLoading(false);
-        if (onLogin) {
-          onLogin();
+      
+      try {
+        // Dynamically import Supabase only on client side
+        const { supabase } = await import('../supabaseClient');
+        
+        // Call Supabase auth function
+        const { error } = await supabase.auth.signInWithOtp({
+          email: email,
+          options: {
+            shouldCreateUser: true,
+          }
+        });
+
+        if (error) {
+          console.error('Login error:', error);
+          toast.error('Login failed. Please try again.');
         } else {
-          router.push('/library');
+          toast.success('Magic link sent! Please check your email.');
+          setEmail('');
+          // Redirect to library page
+          // router.push('/library');
         }
-      }, 1200);
+      } catch (error) {
+        console.error('Login error:', error);
+        toast.error('Login failed. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
   const handleEmailChange = (e) => {
     setEmail(e.target.value);
   };
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <div className="login-container">
@@ -83,13 +106,13 @@ const LoginScreen = ({ onLogin }) => {
               required
             />
 
-            {/* Send Magic Link Button */}
+            {/* Login Button */}
             <CustomButton 
               type="submit" 
               className='login-button' 
               disabled={isLoading}
             >
-              {isLoading ? 'Sending...' : 'Send Magic Link'}
+              {isLoading ? 'Logging in...' : 'Login'}
             </CustomButton>
           </form>
         

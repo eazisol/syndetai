@@ -127,29 +127,38 @@ const PreviousSubmissions = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredSubmissions.map((submission) => (
+              {filteredSubmissions.map((submission) => {
+                return(
                 <tr key={submission.id}>
                   <td>{submission.company_name || '-'}</td>
                   <td>{submission.company_url || '-'}</td>
                   <td>{submission.app_users?.email || submission.app_users?.username || '-'}</td>
                   <td>
-                    <span >
+               
                       {submission.status=='Completed'? submission.status: '-'}
-                    </span>
+                   
                   </td>
                   <td>{submission.batch_date || submission.created_at?.split('T')[0] || '-'}</td>
-                  <td>{submission.queue_position || '-'}</td>
+                  <td>{submission.queue_position || 0}</td>
                   <td>
                     <div className="action-buttons">
-                      {submission.status === 'Completed' ? (
+                      {submission.report_url ? (
                         <>
-                          <button
+                          {/* <button
                             onClick={() => handleView(submission.id)}
                             className="action-btn"
                             title="View Report"
                           >
                             <Eye className="action-icon" />
-                          </button>
+                          </button> */}
+                           <a 
+                          className="link-button" 
+                          href={s.report_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                        >
+                         <Eye className="action-icon" />
+                        </a>
                           <button
                             onClick={() => handleDownload(submission.id)}
                             className="action-btn"
@@ -159,12 +168,12 @@ const PreviousSubmissions = () => {
                           </button>
                         </>
                       ) : (
-                        <span style={{ color: '#5F6368', fontSize: '12px' }}>Pending</span>
+                        <div >-</div>
                       )}
                     </div>
                   </td>
                 </tr>
-              ))}
+              )})}
             </tbody>
           </table>
         )}

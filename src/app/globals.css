@@ -404,7 +404,9 @@ body {
   background: var(--nav-active-color);
   z-index: 1;
 }
-
+.add-org{
+  width: 166px !important;
+}
 /* Superadmin Report Submissions table fixed height with internal scroll */
 .superadmin-reports .table-container {
   max-height: 50vh;

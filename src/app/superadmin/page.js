@@ -7,9 +7,10 @@ import CustomButton from '../../components/CustomButton';
 import { toast } from 'react-toastify';
 import MobileHeader from '../../components/MobileHeader';
 import Sidebar from '../../components/Sidebar';
+import ConfirmModal from '../../components/ConfirmModal';
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
-
+import { Eye, Download } from 'lucide-react';
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -22,6 +23,7 @@ function SuperadminPage() {
   const [organisations, setOrganisations] = useState([]);
   const [selectedOrgId, setSelectedOrgId] = useState(null);
   const [isLoadingOrgs, setIsLoadingOrgs] = useState(false);
+  const [showOrgForm, setShowOrgForm] = useState(false);
 
   const selectedOrganisation = useMemo(() => {
     return organisations.find(o => o.id === selectedOrgId) || null;
@@ -38,11 +40,7 @@ function SuperadminPage() {
 
       if (error) {
         console.error('Error fetching organisations:', error);
-        toast.error('Failed to fetch organisations', {
-          autoClose: 4000,
-          pauseOnHover: false,
-          pauseOnFocusLoss: false
-        });
+      
         return;
       }
 
@@ -52,11 +50,7 @@ function SuperadminPage() {
       }
     } catch (error) {
       console.error('Error fetching organisations:', error);
-      toast.error('Failed to fetch organisations', {
-        autoClose: 4000,
-        pauseOnHover: false,
-        pauseOnFocusLoss: false
-      });
+    
     } finally {
       setIsLoadingOrgs(false);
     }
@@ -67,29 +61,50 @@ function SuperadminPage() {
     fetchOrganisations();
   }, []);
 
+  // Load selected organization data when organizations are loaded and selectedOrgId is set
+  useEffect(() => {
+    if (selectedOrgId && organisations.length > 0) {
+      const found = organisations.find(o => o.id === selectedOrgId);
+      if (found) {
+        setOrgForm({ 
+          name: found.name || '', 
+          type: found.type || '', 
+          credits: String(found.credits || 0)
+        });
+        setShowOrgForm(true);
+      }
+    }
+  }, [selectedOrgId, organisations]);
+
   // Org form
   const [orgForm, setOrgForm] = useState({
     name: '',
     type: '',
     credits: '',
-    active: true,
   });
 
   const handleSelectOrganisation = (e) => {
     const value = e.target.value;
     if (value === 'NEW') {
       setSelectedOrgId(null);
-      setOrgForm({ name: '', type: '', credits: '', active: true });
+      setOrgForm({ name: '', type: '', credits: '' });
+      setShowOrgForm(true);
     } else {
       setSelectedOrgId(value);
+      setShowOrgForm(true);
       const found = organisations.find(o => o.id === value);
       if (found) setOrgForm({ 
-        name: found.name, 
-        type: found.type, 
-        credits: String(found.credits), 
-        active: found.active 
+        name: found.name || '', 
+        type: found.type || '', 
+        credits: String(found.credits || 0)
       });
     }
+  };
+
+  const handleAddNewOrganization = () => {
+    setSelectedOrgId(null);
+    setOrgForm({ name: '', type: '', credits: '' });
+    setShowOrgForm(true);
   };
 
   const handleOrgFormChange = (e) => {
@@ -120,7 +135,6 @@ function SuperadminPage() {
               name: orgForm.name,
               type: orgForm.type,
               credits: creditsNum,
-              active: orgForm.active,
               created_at: new Date().toISOString()
             }
           ])
@@ -149,8 +163,7 @@ function SuperadminPage() {
           .update({
             name: orgForm.name,
             type: orgForm.type,
-            credits: creditsNum,
-            active: orgForm.active
+            credits: creditsNum
           })
           .eq('id', selectedOrgId);
 
@@ -183,6 +196,7 @@ function SuperadminPage() {
   // Users for selected organisation with Supabase integration
   const [orgUsers, setOrgUsers] = useState([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [confirmState, setConfirmState] = useState({ open: false, entityId: null, name: '' });
 
   // Fetch users for selected organisation
   const fetchOrgUsers = async (orgId) => {
@@ -202,22 +216,15 @@ function SuperadminPage() {
 
       if (error) {
         console.error('Error fetching users:', error);
-        toast.error('Failed to fetch users', {
-          autoClose: 4000,
-          pauseOnHover: false,
-          pauseOnFocusLoss: false
-        });
+    
+       
         return;
       }
 
       setOrgUsers(data || []);
     } catch (error) {
       console.error('Error fetching users:', error);
-      toast.error('Failed to fetch users', {
-        autoClose: 4000,
-        pauseOnHover: false,
-        pauseOnFocusLoss: false
-      });
+    
     } finally {
       setIsLoadingUsers(false);
     }
@@ -301,7 +308,21 @@ function SuperadminPage() {
     }
   };
 
+  const openConfirmDeleteUser = (user) => {
+    setConfirmState({ open: true, entityId: user.id, name: user?.username || user.username || 'User' });
+  };
+
+  const closeConfirm = () => setConfirmState({ open: false, entityId: null, name: '' });
+
+  const confirmDelete = async () => {
+    if (confirmState.entityId) {
+      await removeUser(confirmState.entityId);
+    }
+    closeConfirm();
+  };
+
   const [inviteForm, setInviteForm] = useState({ username: '', email: '', isAdmin: false });
+  const [showInviteForm, setShowInviteForm] = useState(false);
   const handleInviteChange = (e) => {
     const { name, value, type, checked } = e.target;
     setInviteForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
@@ -356,6 +377,7 @@ function SuperadminPage() {
         pauseOnFocusLoss: false
       });
       setInviteForm({ username: '', email: '', isAdmin: false });
+      setShowInviteForm(false); // Hide the form after successful invitation
       fetchOrgUsers(selectedOrgId); // Refresh users
     } catch (error) {
       console.error('Error inviting user:', error);
@@ -400,22 +422,14 @@ function SuperadminPage() {
 
       if (error) {
         console.error('Error fetching submissions:', error);
-        toast.error('Failed to fetch submissions', {
-          autoClose: 4000,
-          pauseOnHover: false,
-          pauseOnFocusLoss: false
-        });
+      
         return;
       }
 
       setOrgSubmissions(data || []);
     } catch (error) {
       console.error('Error fetching submissions:', error);
-      toast.error('Failed to fetch submissions', {
-        autoClose: 4000,
-        pauseOnHover: false,
-        pauseOnFocusLoss: false
-      });
+    
     } finally {
       setIsLoadingSubmissions(false);
     }
@@ -447,6 +461,7 @@ function SuperadminPage() {
   }, [orgSubmissions, filters]);
 
   return (
+    <>
     <div className="app">
       <MobileHeader />
       <div className="app-content">
@@ -459,7 +474,12 @@ function SuperadminPage() {
 
       {/* Manage Organisations */}
       <div className="card-block">
-        <h3 className="subsection-title">Manage Organisations</h3>
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <h3 className="subsection-title mb-0">Manage Organisations</h3>
+          <CustomButton onClick={handleAddNewOrganization} className="btn-primary add-org">
+            Add New Organization
+          </CustomButton>
+        </div>
 
         <div className="row g-0 g-lg-4">
           <div className="col-12 col-lg-4">
@@ -477,33 +497,34 @@ function SuperadminPage() {
           </div>
 
           <div className="col-12 col-lg-6">
-            <form onSubmit={handleSaveOrganisation} className="row g-0 g-lg-2">
-              <div className="col-12 col-md-6">
-                <CustomInputField name="name" placeholder="Organisation Name" value={orgForm.name} onChange={handleOrgFormChange} />
-              </div>
-              <div className="col-12 col-md-6">
-                <CustomInputField name="type" placeholder="Organisation Type" value={orgForm.type} onChange={handleOrgFormChange} />
-              </div>
-              <div className="col-12 col-md-6">
-                <CustomInputField name="credits" type="number" placeholder="Credits" value={orgForm.credits} onChange={handleOrgFormChange} />
-              </div>
-              <div className="col-12 col-md-6 d-flex align-items-center ml-3">
-                <label className="checkbox-label">
-                  <input type="checkbox" name="active" checked={orgForm.active} onChange={handleOrgFormChange} />
-                  <span style={{ marginLeft: 8 }}>Active</span>
-                </label>
-              </div>
-              <div className="col-12 d-flex justify-content-end">
-                <CustomButton type="submit" className='btn-submit-manage-org'>{selectedOrgId ? 'Update Organisation' : 'Create Organisation'}</CustomButton>
-              </div>
-            </form>
+            {showOrgForm && (
+              <form onSubmit={handleSaveOrganisation} className="row g-0 g-lg-2">
+                <div className="col-12 col-md-6">
+                  <CustomInputField name="name" placeholder="Organisation Name" value={orgForm.name} onChange={handleOrgFormChange} />
+                </div>
+                <div className="col-12 col-md-6">
+                  <CustomInputField name="type" placeholder="Organisation Type" value={orgForm.type} onChange={handleOrgFormChange} />
+                </div>
+                <div className="col-12 col-md-6">
+                  <CustomInputField name="credits" type="number" placeholder="Credits" value={orgForm.credits} onChange={handleOrgFormChange} />
+                </div>
+                <div className="col-12 d-flex justify-content-end">
+                  <CustomButton type="submit" className='btn-submit-manage-org'>{selectedOrgId ? 'Update Organisation' : 'Create Organisation'}</CustomButton>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       </div>
 <div className='borderBottom mt-3 mb-3'/>
       {/* Users in Organisation */}
       <div className="card-block">
-        <h3 className="subsection-title mb-2">Users in Organisation</h3>
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <h3 className="subsection-title mb-0">Users in Organisation</h3>
+          <CustomButton onClick={() => setShowInviteForm(!showInviteForm)} className="btn-primary">
+            Invite User
+          </CustomButton>
+        </div>
 
         <div className="table-container">
           <table className="submissions-table">
@@ -543,7 +564,7 @@ function SuperadminPage() {
                     </td>
                     <td>
                       <button 
-                        onClick={() => removeUser(user.id)} 
+                        onClick={() => openConfirmDeleteUser(user)} 
                         className="delete-btn-manage" 
                         title="Delete User"
                       >
@@ -558,28 +579,30 @@ function SuperadminPage() {
         </div>
 
         {/* Invite New User */}
-        <div className="invite-section" style={{ marginTop: '3%' }}>
-          <h3 className="subsection-title mb-2">Invite a New User</h3>
-          <form onSubmit={handleInvite} className="invite-form">
-            <div className="row g-0 g-lg-4 mb-0">
-              <div className="col-12 col-md-4">
-                <CustomInputField name="username" placeholder="Username" value={inviteForm.username} onChange={handleInviteChange} />
+        {showInviteForm && (
+          <div className="invite-section" style={{ marginTop: '3%' }}>
+            <h3 className="subsection-title mb-2">Invite a New User</h3>
+            <form onSubmit={handleInvite} className="invite-form">
+              <div className="row g-0 g-lg-4 mb-0">
+                <div className="col-12 col-md-4">
+                  <CustomInputField name="username" placeholder="Username" value={inviteForm.username} onChange={handleInviteChange} />
+                </div>
+                <div className="col-12 col-md-4">
+                  <CustomInputField name="email" type="email" placeholder="Email" value={inviteForm.email} onChange={handleInviteChange} />
+                </div>
+                <div className="col-12 col-md-2 d-flex align-items-center">
+                  <label className="checkbox-label">
+                    <input type="checkbox" name="isAdmin" checked={inviteForm.isAdmin} onChange={handleInviteChange} />
+                    <span style={{ marginLeft: 8 }}>Admin</span>
+                  </label>
+                </div>
+                <div className="col-12 col-md-2 d-flex align-items-end" style={{marginLeft:"-29px"}}>
+                  <CustomButton type="submit">Send Invite</CustomButton>
+                </div>
               </div>
-              <div className="col-12 col-md-4">
-                <CustomInputField name="email" type="email" placeholder="Email" value={inviteForm.email} onChange={handleInviteChange} />
-              </div>
-              <div className="col-12 col-md-2 d-flex align-items-center">
-                <label className="checkbox-label">
-                  <input type="checkbox" name="isAdmin" checked={inviteForm.isAdmin} onChange={handleInviteChange} />
-                  <span style={{ marginLeft: 8 }}>Admin</span>
-                </label>
-              </div>
-              <div className="col-12 col-md-2 d-flex align-items-end" style={{marginLeft:"-29px"}}>
-                <CustomButton type="submit">Send Invite</CustomButton>
-              </div>
-            </div>
-          </form>
-        </div>
+            </form>
+          </div>
+        )}
       </div>
 
       {/* Report Submissions */}
@@ -638,15 +661,16 @@ function SuperadminPage() {
                     <td>{s.batch_date || s.created_at?.split('T')[0] || '-'}</td>
                     <td>{s.queue_position || '-'}</td>
                     <td>
-                      {s.status === 'Completed' && s.report_url ? (
+                      {s.report_url ? (
                         <a 
                           className="link-button" 
                           href={s.report_url} 
                           target="_blank" 
                           rel="noopener noreferrer"
                         >
-                          View Report
+                         <Eye className="action-icon" />
                         </a>
+                     
                       ) : (
                         <span>-</span>
                       )}
@@ -662,6 +686,13 @@ function SuperadminPage() {
       </div>
     </div>
     </div>
+    <ConfirmModal
+      open={confirmState.open}
+      title={`Delete ${confirmState.name}?`}
+      onConfirm={confirmDelete}
+      onCancel={closeConfirm}
+    />
+  </>
   );
 }
 

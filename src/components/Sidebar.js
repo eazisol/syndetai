@@ -1,23 +1,89 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useApp } from '../context/AppContext';
 import Image from 'next/image';
+import { supabase } from '../supabaseClient';
 
 const Sidebar = () => {
   const { user } = useApp();
   const pathname = usePathname();
   const router = useRouter();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperadmin, setIsSuperadmin] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      // no-op; navigate regardless
+    } finally {
+      try {
+        localStorage.removeItem('is_admin');
+        localStorage.removeItem('is_superadmin');
+      } catch {}
+      router.push('/login');
+    }
+  };
+
+  useEffect(() => {
+    const loadRoles = async () => {
+      // Hydrate from cache immediately to avoid flicker on refresh
+      try {
+        const cachedAdmin = localStorage.getItem('is_admin');
+        const cachedSuper = localStorage.getItem('is_superadmin');
+        if (cachedAdmin !== null) setIsAdmin(cachedAdmin === 'true');
+        if (cachedSuper !== null) setIsSuperadmin(cachedSuper === 'true');
+      } catch {}
+
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError || !authData?.user) return;
+
+      const userId = authData.user.id;
+      const userEmail = authData.user.email;
+
+      // First: look up by auth id
+      let { data, error } = await supabase
+        .from('app_users')
+        .select('id, email, is_admin, is_superadmin')
+        .eq('id', userId)
+        .maybeSingle();
+
+      // Fallback: look up by email if not found
+      if (!data && userEmail) {
+        const byEmail = await supabase
+          .from('app_users')
+          .select('id, email, is_admin, is_superadmin')
+          .eq('email', userEmail)
+          .maybeSingle();
+        if (!byEmail.error) {
+          data = byEmail.data ?? null;
+        }
+      }
+
+      // Apply flags
+      if (data) {
+        setIsAdmin(Boolean(data.is_admin));
+        setIsSuperadmin(Boolean(data.is_superadmin));
+        try {
+          localStorage.setItem('is_admin', String(Boolean(data.is_admin)));
+          localStorage.setItem('is_superadmin', String(Boolean(data.is_superadmin)));
+        } catch {}
+      } else {
+        setIsAdmin(false);
+        setIsSuperadmin(false);
+        try {
+          localStorage.removeItem('is_admin');
+          localStorage.removeItem('is_superadmin');
+        } catch {}
+      }
+    };
+    loadRoles();
+  }, []);
 
   const menuItems = [
-    // { 
-    //   id: 'Dashboard', 
-    //   label: 'Dashboard', 
-    //   href: '/',
-    //   icon: '/dashboard.svg',
-    //   inactiveIcon: '/dashbaordinactive.svg'
-    // },
+    // Public (visible to all logged-in users)
     {
       id: 'Library',
       label: 'Library',
@@ -32,14 +98,15 @@ const Sidebar = () => {
       icon: '/new-request.svg',
       inactiveIcon: '/new-request-inactive.svg'
     },
-  
-    { 
+    // Admin only
+    ...(isAdmin ? [{ 
       id: 'Manage Account', 
       label: 'Manage Account', 
       href: '/manage-account',
       icon: '/settingactive.svg',
       inactiveIcon: '/setting.svg'
-    },
+    }] : []),
+    // Always visible utility
     { 
       id: 'Add Credits', 
       label: `Add Credits (${user.credits})`, 
@@ -47,13 +114,14 @@ const Sidebar = () => {
       icon: '/criedtactive.svg',
       inactiveIcon: '/credit.svg'
     },
-    {
+    // Superadmin only
+    ...(isSuperadmin ? [{
       id: 'Superadmin',
       label: 'Superadmin',
       href: '/superadmin',
       icon: '/superadmin.svg',
       inactiveIcon: '/superadmin-inactive.svg'
-    }
+    }] : [])
   ];
 
   return (
@@ -96,13 +164,15 @@ const Sidebar = () => {
       {/* User Info */}
       <div className="user-info">
         <span className="user-email">{user.email}</span>
-        <Image 
-          src="/Vector.svg" 
-          alt="Logout icon" 
-          width={16}
-          height={16}
-          className="logout-icon"
-        />
+        <button className="logout-button" style={{border:"none",backgroundColor:"transparent"}}onClick={handleLogout} title="Logout">
+          <Image 
+            src="/Vector.svg" 
+            alt="Logout" 
+            width={16}
+            height={16}
+            className="logout-icon"
+          />
+        </button>
       </div>
     </div>
   );
