@@ -7,13 +7,16 @@ import CustomInputField from './CustomInputField';
 import CustomButton from './CustomButton';
 import ConfirmModal from './ConfirmModal';
 import { toast } from 'react-toastify';
-import { createClient } from '@supabase/supabase-js';
+// Supabase will be imported dynamically to avoid SSR env issues
 import { v4 as uuidv4 } from 'uuid';
 
-// Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+let supabase = null;
+async function ensureSupabase() {
+  if (supabase) return supabase;
+  const { getSupabase } = await import('../supabaseClient');
+  supabase = getSupabase();
+  return supabase;
+}
 
 const ManageAccount = () => {
   const { users, addUser, removeUser } = useApp();
@@ -33,7 +36,8 @@ const ManageAccount = () => {
     try {
       setIsLoading(true);
       
-      const { data, error } = await supabase
+      const client = await ensureSupabase();
+      const { data, error } = await client
         .from('app_users')
         .select('id, email, username, is_admin, is_active')
         .eq('organisation_id', orgId)
@@ -64,54 +68,74 @@ const ManageAccount = () => {
 
   const handleInviteSubmit = async (e) => {
     e.preventDefault();
-    if (inviteForm.username && inviteForm.email) {
-      try {
-        // Add user to Supabase
-        const { data, error } = await supabase
-          .from('app_users')
-          .insert([
-            {
-              id: uuidv4(), // Generate UUID for the id
-              username: inviteForm.username,
-              email: inviteForm.email,
-              is_admin: true,
-              is_active: true,
-              organisation_id: organizationId
-            }
-          ])
-          .select();
-        
-        if (error) {
-          console.error('Supabase error:', error);
-          toast.error('Failed to invite user', {
-            autoClose: 4000,
-            pauseOnHover: false,
-            pauseOnFocusLoss: false
-          });
+    if (!inviteForm.username || !inviteForm.email) return;
 
-          
-          return;
-        }
-        
-        // Add to local state
-        if (data && data[0]) {
-          setOrgUsers(prev => [...prev, data[0]]);
-        }
-        
-        setInviteForm({ username: '', email: '' });
-        toast.success('User invited successfully', {
+    try {
+      // 1) Send magic link (simple call as requested)
+      const client = await ensureSupabase();
+      const { error: otpError } = await client.auth.signInWithOtp({ email: inviteForm.email.trim() });
+      if (otpError) {
+        toast.error(otpError.message || 'Failed to send invite', {
           autoClose: 4000,
           pauseOnHover: false,
           pauseOnFocusLoss: false
         });
-      } catch (error) {
-        console.error('Error inviting user:', error);
-        toast.error('Failed to invite user', {
+        return;
+      }
+
+      // 2) Save to pending_invites
+      const { error: insertError } = await client
+        .from('pending_invites')
+        .insert([{
+          email: inviteForm.email.trim(),
+          username: inviteForm.username.trim(),
+          organisation_id: organizationId,
+          invited_at: new Date().toISOString()
+        }]);
+      if (insertError) {
+       
+        toast.error('Invite sent but logging failed', {
           autoClose: 4000,
           pauseOnHover: false,
           pauseOnFocusLoss: false
         });
       }
+
+      // 3) Also create an entry in app_users so admins can manage immediately
+      try {
+        const newUserRow = {
+          id: uuidv4(),
+          username: inviteForm.username.trim(),
+          email: inviteForm.email.trim(),
+          is_admin: true,
+          is_active: true,
+          organisation_id: organizationId
+        };
+        const { data: newUser, error: userErr } = await client
+          .from('app_users')
+          .insert([newUserRow])
+          .select('id, email, username, is_admin, is_active')
+          .maybeSingle();
+        if (!userErr && newUser) {
+          setOrgUsers(prev => [newUser, ...prev]);
+        }
+      } catch {}
+
+      toast.success('Invite sent successfully.', {
+        autoClose: 4000,
+        pauseOnHover: false,
+        pauseOnFocusLoss: false
+      });
+
+      // Reset form
+      setInviteForm({ username: '', email: '' });
+    } catch (error) {
+      console.error('Error inviting user:', error);
+      toast.error('Failed to send invite', {
+        autoClose: 4000,
+        pauseOnHover: false,
+        pauseOnFocusLoss: false
+      });
     }
   };
 
@@ -136,7 +160,8 @@ const ManageAccount = () => {
         const removed = orgUsers.find(u => u.id === confirmState.userId);
         
         // Update user in Supabase to set is_active = false
-        const { error } = await supabase
+        const client = await ensureSupabase();
+        const { error } = await client
           .from('app_users')
           .update({ is_active: false })
           .eq('id', confirmState.userId);
@@ -173,7 +198,8 @@ const ManageAccount = () => {
       const newAdminStatus = !user.is_admin;
       
       // Update admin status in Supabase
-      const { error } = await supabase
+      const client = await ensureSupabase();
+      const { error } = await client
         .from('app_users')
         .update({ is_admin: newAdminStatus })
         .eq('id', userId);

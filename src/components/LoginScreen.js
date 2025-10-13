@@ -24,7 +24,8 @@ const LoginScreen = ({ onLogin }) => {
       
       try {
         // Dynamically import Supabase only on client side
-        const { supabase } = await import('../supabaseClient');
+        const { getSupabase } = await import('../supabaseClient');
+        const supabase = getSupabase();
         
         // Call Supabase auth function
         const { error } = await supabase.auth.signInWithOtp({

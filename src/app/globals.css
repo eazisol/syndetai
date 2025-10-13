@@ -175,7 +175,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 30px 16px;
+  
   margin-top: auto;
   position: sticky;
   bottom: 0;
@@ -882,9 +882,16 @@ body {
   padding: 50px 25px;
 
 }
-.superadmin-report{
+.org-input{
+  width: 150px !important;
+}
+.org-input-credits{
+  width: 100px !important;
+}
+  .superadmin-report{
   margin-bottom: 0% !important;
 }
+  
 .modal-title {
   color: var(--primary-color);
   font-weight: 400;
@@ -1947,7 +1954,7 @@ body {
   pointer-events: none;
 }
 .btn-submit-manage-org{
-  width: 169px !important;
+  width: 190px !important;
 }
 
 .shape-4 {

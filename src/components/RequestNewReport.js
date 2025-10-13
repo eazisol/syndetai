@@ -51,7 +51,8 @@ const RequestNewReport = () => {
 
     try {
       // Dynamically import Supabase client
-      const { supabase } = await import('../supabaseClient');
+      const { getSupabase } = await import('../supabaseClient');
+      const supabase = getSupabase();
       
       // Create new report in Supabase using the provided user ID
       const { data, error } = await supabase

@@ -15,7 +15,8 @@ const Sidebar = () => {
 
   const handleLogout = async () => {
     try {
-      const { supabase } = await import('../supabaseClient');
+      const { getSupabase } = await import('../supabaseClient');
+      const supabase = getSupabase();
       await supabase.auth.signOut();
     } catch (e) {
       // no-op; navigate regardless
@@ -38,7 +39,8 @@ const Sidebar = () => {
         if (cachedSuper !== null) setIsSuperadmin(cachedSuper === 'true');
       } catch {}
 
-      const { supabase } = await import('../supabaseClient');
+      const { getSupabase } = await import('../supabaseClient');
+      const supabase = getSupabase();
       const { data: authData, error: authError } = await supabase.auth.getUser();
       if (authError || !authData?.user) return;
 
@@ -164,6 +166,8 @@ const Sidebar = () => {
       </nav>
 
       {/* User Info */}
+      <div style={{ padding: '35px 16px' }}>
+
       <div className="user-info">
         <span className="user-email">{user.email}</span>
         <button className="logout-button" style={{border:"none",backgroundColor:"transparent"}}onClick={handleLogout} title="Logout">
@@ -175,6 +179,9 @@ const Sidebar = () => {
             className="logout-icon"
           />
         </button>
+      </div>
+      <div className="user-credits" style={{   color: '#5F6368', fontSize: 12 }}>Credits: {user.credits}</div>
+
       </div>
     </div>
   );

@@ -29,7 +29,8 @@ function SuperadminPage() {
   const fetchOrganisations = async () => {
     try {
       setIsLoadingOrgs(true);
-      const { supabase } = await import('../../supabaseClient');
+      const { getSupabase } = await import('../../supabaseClient');
+      const supabase = getSupabase();
       const { data, error } = await supabase
         .from('organisations')
         .select('*')
@@ -122,7 +123,8 @@ function SuperadminPage() {
     }
 
     try {
-      const { supabase } = await import('../../supabaseClient');
+      const { getSupabase } = await import('../../supabaseClient');
+      const supabase = getSupabase();
       if (selectedOrgId == null) {
         // Create new organisation
         const { data, error } = await supabase
@@ -205,7 +207,8 @@ function SuperadminPage() {
 
     try {
       setIsLoadingUsers(true);
-      const { supabase } = await import('../../supabaseClient');
+      const { getSupabase } = await import('../../supabaseClient');
+      const supabase = getSupabase();
       const { data, error } = await supabase
         .from('app_users')
         .select('id, email, username, is_admin, is_active')
@@ -238,7 +241,8 @@ function SuperadminPage() {
     if (!selectedOrgId) return;
 
     try {
-      const { supabase } = await import('../../supabaseClient');
+      const { getSupabase } = await import('../../supabaseClient');
+      const supabase = getSupabase();
       const user = orgUsers.find(u => u.id === userId);
       if (!user) return;
 
@@ -277,7 +281,8 @@ function SuperadminPage() {
     if (!selectedOrgId) return;
 
     try {
-      const { supabase } = await import('../../supabaseClient');
+      const { getSupabase } = await import('../../supabaseClient');
+      const supabase = getSupabase();
       const { error } = await supabase
         .from('app_users')
         .update({ is_active: false })
@@ -348,7 +353,8 @@ function SuperadminPage() {
     }
 
     try {
-      const { supabase } = await import('../../supabaseClient');
+      const { getSupabase } = await import('../../supabaseClient');
+      const supabase = getSupabase();
       const { data, error } = await supabase
         .from('app_users')
         .insert([
@@ -404,7 +410,8 @@ function SuperadminPage() {
 
     try {
       setIsLoadingSubmissions(true);
-      const { supabase } = await import('../../supabaseClient');
+      const { getSupabase } = await import('../../supabaseClient');
+      const supabase = getSupabase();
       const { data, error } = await supabase
         .from('submissions')
         .select(`
@@ -475,9 +482,9 @@ function SuperadminPage() {
                   <h3 className="subsection-title mb-0">Manage Organisations</h3>
                 </div>
 
-                <div className="row g-0 g-lg-4">
-                  <div className="col-12 col-lg-4">
-                    <label className="input-label d-flex align-items-center mt-1">
+                <div className="row g-3 g-lg-6 align-items-center">
+                  <div className="col-12 col-lg-3">
+                    <label className="input-label d-flex align-items-center">
                       <span>Select Organisation</span>
                       <button
                         type="button"
@@ -516,19 +523,19 @@ function SuperadminPage() {
                     </div>
                   </div>
 
-                  <div className="col-12 col-lg-6">
+                  <div className="col-12 col-lg-7 d-flex align-items-center" style={{marginBottom:"-2%"}}>
                     {showOrgForm && (
-                      <form onSubmit={handleSaveOrganisation} className="row g-0 g-lg-2">
-                        <div className="col-12 col-md-6">
+                        <form onSubmit={handleSaveOrganisation} className="row gy-3 gx-4 gx-lg-5 align-items-center">
+                         <div className="col-12 col-md-3">
                           <CustomInputField name="name" placeholder="Organisation Name" className='org-input' value={orgForm.name} onChange={handleOrgFormChange} />
                         </div>
-                        <div className="col-12 col-md-6">
+                         <div className="col-12 col-md-3">
                           <CustomInputField name="type" placeholder="Organisation Type" className='org-input' value={orgForm.type} onChange={handleOrgFormChange} />
                         </div>
-                        <div className="col-12 col-md-6">
-                          <CustomInputField name="credits" type="number" placeholder="Credits" value={orgForm.credits} onChange={handleOrgFormChange} />
+                          <div className="col-12 col-md-2">
+                           <CustomInputField name="credits" className='org-input-credits' placeholder="Credits" value={orgForm.credits} onChange={handleOrgFormChange} />
                         </div>
-                        <div className="col-12 d-flex justify-content-end">
+                          <div className="col-12 col-md-4 d-flex justify-content-end">
                           <CustomButton type="submit" className='btn-submit-manage-org'>{selectedOrgId ? 'Update Organisation' : 'Create Organisation'}</CustomButton>
                         </div>
                       </form>

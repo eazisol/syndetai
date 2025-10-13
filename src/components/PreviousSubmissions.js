@@ -17,7 +17,8 @@ const PreviousSubmissions = () => {
     try {
       setIsLoading(true);
       
-      const { supabase } = await import('../supabaseClient');
+      const { getSupabase } = await import('../supabaseClient');
+      const supabase = getSupabase();
       const { data, error } = await supabase
         .from('submissions')
         .select(`
