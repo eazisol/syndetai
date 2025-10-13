@@ -57,7 +57,6 @@ const ManageAccount = () => {
     }
   };
 
-  // Fetch organization users on component mount
   useEffect(() => {
     const loadUsers = async () => {
       const data = await fetchUsersData(organizationId);
