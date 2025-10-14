@@ -10,8 +10,7 @@ import { toast } from 'react-toastify';
 import { v4 as uuidv4 } from 'uuid';
 
 const RequestNewReport = () => {
-  const { user, updateCredits,userData } = useApp();
-  console.log("🚀 ~ RequestNewReport ~ userData:", userData)
+  const { user, updateCredits,userData, refreshUserData } = useApp();
   const [formData, setFormData] = useState({
     company: '',
     website: ''
@@ -19,18 +18,14 @@ const RequestNewReport = () => {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Get Organization ID and User ID from user data
   const organizationId = localStorage.getItem('organisation_id');
-  console.log("🚀 ~ RequestNewReport ~ organizationId:", organizationId)
   const userId = userData?.id;
-  console.log("🚀 ~ RequestNewReport ~ userId:", userId)
 
   
 
   // Calculate credits needed
   const creditsNeeded = selectedFiles.length > 0 ? 15 : 10;
-  const hasEnoughCredits = 45 >= creditsNeeded;
-  // const hasEnoughCredits = user.credits >= creditsNeeded;
+  const hasEnoughCredits = (userData?.organisation?.credits || 0) >= creditsNeeded;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -68,6 +63,33 @@ const RequestNewReport = () => {
       // Dynamically import Supabase client
       const { getSupabase } = await import('../supabaseClient');
       const supabase = getSupabase();
+
+      // Check organisation has enough credits on server
+      const { data: orgRow, error: orgErr } = await supabase
+        .from('organisations')
+        .select('credits')
+        .eq('id', organizationId)
+        .maybeSingle();
+
+      if (orgErr) {
+        console.log('Error fetching organisation credits:', orgErr);
+        toast.error('Could not verify credits. Please try again.', {
+          autoClose: 4000,
+          pauseOnHover: false,
+          pauseOnFocusLoss: false
+        });
+        return;
+      }
+
+      const currentCredits = Number(orgRow?.credits) || 0;
+      if (currentCredits < creditsNeeded) {
+        toast.error(`Insufficient credits. Need ${creditsNeeded}, available ${currentCredits}.`, {
+          autoClose: 4000,
+          pauseOnHover: false,
+          pauseOnFocusLoss: false
+        });
+        return;
+      }
       
       // Ensure app_users row exists for this user to satisfy FK on submissions
       try {
@@ -191,9 +213,22 @@ const RequestNewReport = () => {
         }
       }
 
-      // Update user credits
-      const newCredits = userData?.credits - creditsNeeded;
-      updateCredits(newCredits);
+      // Deduct credits from organisation after successful submission/upload
+      try {
+        const updatedCredits = currentCredits - creditsNeeded;
+        const { error: decErr } = await supabase
+          .from('organisations')
+          .update({ credits: updatedCredits })
+          .eq('id', organizationId);
+        if (decErr) {
+          console.log('Failed to deduct organisation credits:', decErr);
+        }
+      } catch (decEx) {
+        console.log('Credits deduction exception:', decEx);
+      }
+
+      // Refresh user/organisation data so UI updates without reload
+      try { await refreshUserData?.(); } catch {}
 
       // Show success message
       toast.success(`Request submitted for ${formData.company}!`, {
@@ -345,7 +380,7 @@ const RequestNewReport = () => {
               <CustomButton 
                 type="submit" 
                 className="submit-btn form-button w-100"
-                disabled={!hasEnoughCredits || isSubmitting}
+                disabled={isSubmitting}
               >
                 {isSubmitting ? 'Submitting...' : `Submit Request`}
               </CustomButton>

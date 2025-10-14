@@ -54,7 +54,7 @@ export const AppProvider = ({ children }) => {
       }
 
       if (user) {
-        // Fetch user details from app_users table including organization_id
+        // Fetch user details from app_users table including organisation_id
         const { data: userDetails, error: userError } = await supabase
           .from('app_users')
           .select('id, email, username, is_admin, is_superadmin, organisation_id')
@@ -65,11 +65,24 @@ export const AppProvider = ({ children }) => {
           console.log('Error fetching user details:', userError);
         }
 
-        // Combine auth user data with app_users data
+        let organisation = null;
+        if (userDetails?.organisation_id) {
+          const { data: orgRow, error: orgError } = await supabase
+            .from('organisations')
+            .select('*')
+            .eq('id', userDetails.organisation_id)
+            .maybeSingle();
+          if (orgError) {
+            console.log('Error fetching organisation:', orgError);
+          } else {
+            organisation = orgRow || null;
+          }
+        }
         const combinedUserData = {
           ...user,
           ...userDetails,
-          organisation_id: userDetails?.organisation_id || null
+          organisation_id: userDetails?.organisation_id || null,
+          organisation
         };
 
         setUserData(combinedUserData);
@@ -79,7 +92,21 @@ export const AppProvider = ({ children }) => {
     }
   }
   useEffect(() => {
-    getUserData()
+    // Initial load
+    getUserData();
+    // Keep user data in sync with auth state (login/logout/refresh)
+    const supabase = getSupabase();
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        getUserData();
+      }
+      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        setUserData(null);
+      }
+    });
+    return () => {
+      authListener?.subscription?.unsubscribe?.();
+    }
   }, [])
     // Simple functions
   const addSubmission = (newSubmission) => {
@@ -102,6 +129,7 @@ export const AppProvider = ({ children }) => {
     user,
       users,
     userData,
+    refreshUserData: getUserData,
     submissions,
     searchQuery,
     activePage,

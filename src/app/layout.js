@@ -24,6 +24,13 @@ const outfit = Outfit({
 export const metadata = {
   title: "SyndetAI",
   description: "SyndetAI",
+  icons: {
+    icon: [
+      { url: "/images/Logomark.png", type: "image/png" },
+      { url: "/vercel.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico" }
+    ]
+  }
 };
 
 export default function RootLayout({ children }) {

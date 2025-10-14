@@ -13,6 +13,7 @@ import { sendInviteAndCreatePendingInvite } from '../../lib/invite';
 import { Eye, Download, Plus } from 'lucide-react';
 // Supabase client will be imported dynamically where used to avoid build-time env requirement
 import Image from 'next/image';
+import Protected from '../../components/Protected';
 function SuperadminPage() {
   const { submissions } = useApp();
 
@@ -455,7 +456,7 @@ function SuperadminPage() {
   }, [orgSubmissions, companyFilter]);
 
   return (
-    <>
+    <Protected requireSuperadmin>
       <div className="app">
         <MobileHeader />
         <div className="app-content">
@@ -719,7 +720,7 @@ function SuperadminPage() {
         onConfirm={confirmDelete}
         onCancel={closeConfirm}
       />
-    </>
+    </Protected>
   );
 }
 

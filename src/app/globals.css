@@ -165,7 +165,9 @@ body {
   letter-spacing: 0%;
 
 }
-
+.ElementsApp .InputElement{
+color: var(--primary-color) !important;
+}
 .nav-icon .nav-item.active .nav-text {
   color: var(--primary-color);
 }

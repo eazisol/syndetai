@@ -183,7 +183,7 @@ const Sidebar = () => {
           />
         </button>
       </div>
-      <div className="user-credits" style={{   color: '#5F6368', fontSize: 12 }}>Credits: {user.credits}</div>
+      <div className="user-credits" style={{   color: '#5F6368', fontSize: 12 }}>Credits: {userData?.organisation?.credits}</div>
 
       </div>
     </div>

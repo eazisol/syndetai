@@ -5,15 +5,33 @@ import { useApp } from '../context/AppContext';
 import CustomInputField from './CustomInputField';
 import Image from 'next/image';
 import CustomButton from './CustomButton';
+import { Elements, useStripe, useElements, CardNumberElement, CardExpiryElement, CardCvcElement } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
+import { toast } from 'react-toastify';
 
-const AddCredits = () => {
-    const { user } = useApp();
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
+
+const InnerAddCredits = () => {
+    const { user,userData, refreshUserData } = useApp();
+    const stripe = useStripe();
+    const elements = useElements();
     const [credits, setCredits] = useState(10);
     const [isProcessing, setIsProcessing] = useState(false);
+    const elementOptions = {
+        style: {
+            base: {
+                fontSize: '16px',
+                color: '#1f2937',
+                fontFamily: 'inherit',
+                '::placeholder': { color: '#9ca3af' },
+                ':-webkit-autofill': { color: '#1f2937' }
+            },
+            invalid: {
+                color: '#ef4444'
+            }
+        }
+    };
     const [paymentForm, setPaymentForm] = useState({
-        cardNumber: '',
-        expiryDate: '',
-        cvc: '',
         cardholderName: '',
         country: 'United States',
         zip: ''
@@ -33,28 +51,7 @@ const AddCredits = () => {
         // Validation for different fields
         let validatedValue = value;
 
-        if (name === 'cardNumber') {
-            // Remove non-digits and limit to 16 characters
-            validatedValue = value.replace(/\D/g, '').slice(0, 16);
-            // Format as groups of 4 digits
-            validatedValue = validatedValue.replace(/(\d{4})(?=\d)/g, '$1 ');
-        } else if (name === 'expiryDate') {
-            // Format as MM/YY
-            validatedValue = value.replace(/\D/g, '').slice(0, 4);
-            if (validatedValue.length >= 2) {
-                validatedValue = validatedValue.slice(0, 2) + '/' + validatedValue.slice(2);
-            }
-            // Validate month (01-12)
-            if (validatedValue.length >= 2) {
-                const month = parseInt(validatedValue.slice(0, 2));
-                if (month > 12) {
-                    validatedValue = '12/' + validatedValue.slice(3);
-                }
-            }
-        } else if (name === 'cvc') {
-            // Limit to 4 digits (for Amex)
-            validatedValue = value.replace(/\D/g, '').slice(0, 4);
-        } else if (name === 'zip') {
+        if (name === 'zip') {
             // Limit to 10 characters
             validatedValue = value.slice(0, 10);
         }
@@ -68,49 +65,140 @@ const AddCredits = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Validate required fields
-        const { cardNumber, expiryDate, cvc, cardholderName, zip } = paymentForm;
-
-        if (!cardNumber || cardNumber.replace(/\s/g, '').length < 16) {
-            alert('Please enter a valid card number');
-            return;
-        }
-
-        if (!expiryDate || expiryDate.length < 5) {
-            alert('Please enter expiry date (MM/YY)');
-            return;
-        }
-
-        if (!cvc || cvc.length < 3) {
-            alert('Please enter a valid CVC');
-            return;
-        }
+        // Validate required fields (visual form fields)
+        const { cardholderName, zip } = paymentForm;
 
         if (!cardholderName.trim()) {
-            alert('Please enter cardholder name');
+            console.log('Please enter cardholder name');
+            return;
+        }
+        if (!zip.trim()) {
+            console.log('Please enter ZIP code');
             return;
         }
 
-        if (!zip.trim()) {
-            alert('Please enter ZIP code');
+        if (!stripe || !elements) {
+            console.log('Stripe not initialized yet');
             return;
         }
 
         setIsProcessing(true);
-        
-        try {
-            // Simulate payment processing
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            
-            // Process payment
-            const subtotal = credits * 2; // $2 per credit
-            const vat = subtotal * 0.2; // 20% VAT
-            const total = subtotal + vat;
 
-            alert(`Payment processed! Total: $${total.toFixed(2)} for ${credits} credits`);
+        try {
+            const organisationId = typeof window !== 'undefined' ? localStorage.getItem('organisation_id') : null;
+            const piRes = await fetch('/api/payments/create-intent', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ credits, organisationId })
+            });
+
+            if (!piRes.ok) {
+                console.log('Payment initialization failed');
+                setIsProcessing(false);
+                return;
+            }
+
+            const { clientSecret } = await piRes.json();
+            if (!clientSecret) {
+                console.log('Missing clientSecret from server');
+                setIsProcessing(false);
+                return;
+            }
+
+            const card = elements.getElement(CardNumberElement);
+            if (!card) {
+                console.log('CardNumberElement not ready');
+                setIsProcessing(false);
+                return;
+            }
+
+            const confirmResult = await stripe.confirmCardPayment(clientSecret, {
+                payment_method: {
+                    card,
+                    billing_details: {
+                        name: cardholderName,
+                        address: { postal_code: zip }
+                    }
+                }
+            });
+
+            if (confirmResult.paymentIntent?.status === 'succeeded') {
+                const paymentIntentId = confirmResult.paymentIntent?.id;
+                console.log('Payment succeeded:', paymentIntentId);
+                try {
+                    const organisationId = typeof window !== 'undefined' ? localStorage.getItem('organisation_id') : null;
+                    if (!organisationId) {
+                        console.log('Missing organisation_id in localStorage; skipping transaction insert');
+                    } else {
+                        const { getSupabase } = await import('../supabaseClient');
+                        const supabase = getSupabase();
+                        const { data: insertData, error: insertError } = await supabase
+                            .from('transactions')
+                            .insert([
+                                {
+                                    organisation_id: organisationId,
+                                    credits_added: credits,
+                                    payment_provider: 'stripe',
+                                    payment_intent: paymentIntentId
+                                }
+                            ])
+                            .select();
+                        if (insertError) {
+                            console.log('Failed to insert transaction:', insertError);
+                        } else {
+                            console.log('Transaction recorded:', insertData);
+                            // After recording transaction, increment organisation credits
+                            try {
+                                // Fetch current credits
+                                const { data: orgRow, error: orgFetchErr } = await supabase
+                                    .from('organisations')
+                                    .select('credits')
+                                    .eq('id', organisationId)
+                                    .maybeSingle();
+                                if (orgFetchErr) {
+                                    console.log('Failed to fetch organisation credits:', orgFetchErr);
+                                } else {
+                                    const currentCredits = Number(orgRow?.credits) || 0;
+                                    const updatedCredits = currentCredits + Number(credits || 0);
+                                    const { error: orgUpdateErr } = await supabase
+                                        .from('organisations')
+                                        .update({ credits: updatedCredits })
+                                        .eq('id', organisationId);
+                                    if (orgUpdateErr) {
+                                        console.log('Failed to update organisation credits:', orgUpdateErr);
+                                    } else {
+                                        console.log('Organisation credits updated to:', updatedCredits);
+                                        // Refresh context so Sidebar and screens update immediately
+                                        try { await refreshUserData?.(); } catch {}
+                                    }
+                                }
+                            } catch (orgErr) {
+                                console.log('Organisation credits update exception:', orgErr);
+                            }
+                        }
+                    }
+                } catch (dbErr) {
+                    console.log('Transaction insert exception:', dbErr);
+                }
+                // Clear elements and inputs
+                try {
+                    elements.getElement(CardNumberElement)?.clear();
+                    elements.getElement(CardExpiryElement)?.clear();
+                    elements.getElement(CardCvcElement)?.clear();
+                } catch { }
+                setCredits(0);
+                setPaymentForm({ cardholderName: '', country: 'United States', zip: '' });
+                toast.success('Payment successful');
+                setIsProcessing(false);
+                return;
+            }
+
+            console.log('Payment status:', confirmResult.paymentIntent?.status);
+            toast.error('Payment not completed');
+            setIsProcessing(false);
         } catch (error) {
-            alert('Payment failed. Please try again.');
-        } finally {
+            console.log('Payment exception:', error);
+            toast.error('Payment failed');
             setIsProcessing(false);
         }
     };
@@ -124,7 +212,7 @@ const AddCredits = () => {
             <div className="credits-layout">
                 {/* Left Column - Add Credits */}
                 <div className="credits-column col-12">
-                    <h2 className="section-title">Add Credits ({user.credits})</h2>
+                    <h2 className="section-title">Add Credits ({userData?.organisation?.credits})</h2>
 
                     <div className="credits-subsection">
                         <h3 className="subsection-title">NUMBER OF CREDITS</h3>
@@ -162,48 +250,29 @@ const AddCredits = () => {
                 {/* Right Column - Payment Details */}
                 <div className="payment-column col-12">
                     <h2 className="section-title">Payment Details</h2>
-
                     <form onSubmit={handleSubmit} className="payment-form">
                         <div className="form-subsection">
                             <h3 className="subsection-title">CARD INFORMATION</h3>
-                            <div className="card-input-group">
-                                <CustomInputField
-                                    type="text"
-                                    name="cardNumber"
-                                    placeholder="1234 1234 1234 1234"
-                                    value={paymentForm.cardNumber}
-                                    onChange={handlePaymentChange}
-                                    className="card-number-input"
-                                    rightIcon={<Image src="/cards.svg" alt="" width={100} height={40} />}
-                                    required
-                                />
-
+                            <div className="card-input-group position-relative">
+                                <div className="card-number-input" style={{
+                                    width: '100%', padding: '10px 12px', backgroundColor: '#DEE3E9',color:"#0044EE !important", borderTopLeftRadius: '25px !important', borderTopRightRadius: '25px !important'
+                                }}>
+                                    <CardNumberElement options={elementOptions} style={{color:"#0044EE !important"}}/>
+                                </div>
+                                <div className="right-icon position-absolute top-0 end-0 ">
+                                    <Image src="/cards.svg" alt="" width={100} height={40} style={{marginRight:"10px"}} />
+                                </div>
                             </div>
                             <div className="expiry-cvc-group row g-2">
                                 <div className="col-6">
-                                    <CustomInputField
-                                        type="text"
-                                        name="expiryDate"
-                                        placeholder="MM/YY"
-                                        value={paymentForm.expiryDate}
-                                        onChange={handlePaymentChange}
-                                        className="expiry-input"
-                                        maxLength="5"
-                                        required
-                                    />
+                                    <div className="expiry-input" style={{ width: '100%', padding: '10px 12px' ,backgroundColor: '#DEE3E9',borderBottomLeftRadius: '25px !important'}}>
+                                        <CardExpiryElement options={elementOptions} style={{color:"#0044EE !important"}}/>
+                                    </div>
                                 </div>
                                 <div className="col-6">
-                                    <CustomInputField
-                                        type="text"
-                                        name="cvc"
-                                        placeholder="CVC"
-                                        value={paymentForm.cvc}
-                                        onChange={handlePaymentChange}
-                                        className="cvc-input"
-                                        maxLength="4"
-                                        rightIcon={<Image src="/cvc.svg" alt="" width={24} height={16} />}
-                                        required
-                                    />
+                                    <div className="cvc-input" style={{ width: '100%', padding: '10px 12px' ,backgroundColor: '#DEE3E9',borderBottomRightRadius: '25px !important'}}>
+                                        <CardCvcElement options={elementOptions} style={{color:"#0044EE !important"}}/>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -254,8 +323,8 @@ const AddCredits = () => {
                             </div>
                         </div>
                         <div className='pay-button-container'>
-                            <CustomButton 
-                                type="submit" 
+                            <CustomButton
+                                type="submit"
                                 className="pay-button"
                                 loading={isProcessing}
                                 loadingText="Processing..."
@@ -278,4 +347,12 @@ const AddCredits = () => {
     );
 };
 
+// Wrapper to provide Stripe Elements without changing routes/pages
+const AddCredits = () => {
+    return (
+        <Elements stripe={stripePromise}>
+            <InnerAddCredits />
+        </Elements>
+    );
+};
 export default AddCredits;

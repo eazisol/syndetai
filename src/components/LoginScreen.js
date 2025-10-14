@@ -159,72 +159,81 @@ const LoginScreen = ({ onLogin }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Prevent submission if component is not mounted or checking session
-    if (!mounted || checkingSession) {
-      return;
-    }
-    
+  
+    if (!mounted || checkingSession) return;
+  
     if (!email.trim()) {
       toast.error('Please enter your email address.', {
         autoClose: 4000,
         pauseOnHover: false,
-        pauseOnFocusLoss: false
+        pauseOnFocusLoss: false,
       });
       return;
     }
-    
+  
     if (email && !isLoading) {
       setIsLoading(true);
-      
+  
       try {
-        // Dynamically import Supabase only on client side
         const { getSupabase } = await import('../supabaseClient');
         const supabase = getSupabase();
-        
-        // Call Supabase auth function
-        const { error } = await supabase.auth.signInWithOtp({
-          email: email,
-          options: {
-            shouldCreateUser: true,
-          }
-        });
-
-        if (error) {
-          console.error('Login error:', error);
-          toast.error('Login failed. Please try again.', {
+  
+        // 🔍 Step 1: Check if email exists in app_users table
+        const { data, error: userError } = await supabase
+          .from('app_users')
+          .select('email')
+          .eq('email', email);
+  
+        if (userError) {
+          console.error('User lookup error:', userError);
+          toast.error('Error checking user. Please try again.');
+          return;
+        }
+  
+        // 🔒 Step 2: If user not found
+        if (!data || data.length === 0) {
+          toast.error('No user found with this email address.', {
             autoClose: 4000,
             pauseOnHover: false,
-            pauseOnFocusLoss: false
+            pauseOnFocusLoss: false,
           });
+          return;
+        }
+  
+        // ✅ Step 3: Email exists, send magic link
+        const { error } = await supabase.auth.signInWithOtp({
+          email,
+          options: {
+            shouldCreateUser: false, // since user already exists
+          },
+        });
+  
+        if (error) {
+          console.error('Login error:', error);
+          toast.error('Login failed. Please try again.');
         } else {
           toast.success('Magic link sent! Please check your email.', {
             autoClose: 4000,
             pauseOnHover: false,
-            pauseOnFocusLoss: false
+            pauseOnFocusLoss: false,
           });
           setEmail('');
           setShowResend(false);
         }
       } catch (error) {
         console.error('Login error:', error);
-        toast.error('Login failed. Please try again.', {
-          autoClose: 4000,
-          pauseOnHover: false,
-          pauseOnFocusLoss: false
-        });
+        toast.error('Login failed. Please try again.');
       } finally {
         setIsLoading(false);
       }
     }
   };
+  
 
   const handleEmailChange = (e) => {
     setEmail(e.target.value);
   };
 
-  // Always render the same structure to prevent hydration mismatch
-  // Use CSS or conditional content within the same structure instead
 
   return (
     <div className="login-container">
