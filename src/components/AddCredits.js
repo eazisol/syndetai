@@ -250,7 +250,8 @@ const InnerAddCredits = () => {
                 {/* Right Column - Payment Details */}
                 <div className="payment-column col-12">
                     <h2 className="section-title">Payment Details</h2>
-                    <form onSubmit={handleSubmit} className="payment-form">
+                    <form onSubmit={()=>{}} className="payment-form">
+                    {/* <form onSubmit={handleSubmit} className="payment-form"> */}
                         <div className="form-subsection">
                             <h3 className="subsection-title">CARD INFORMATION</h3>
                             <div className="card-input-group position-relative">
