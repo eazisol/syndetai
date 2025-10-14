@@ -5,11 +5,13 @@ import { useApp } from '../context/AppContext';
 import ImageUpload from './ImageUpload';
 import CustomInputField from './CustomInputField';
 import CustomButton from './CustomButton';
+import UploadTest from './UploadTest';
 import { toast } from 'react-toastify';
 import { v4 as uuidv4 } from 'uuid';
 
 const RequestNewReport = () => {
   const { user, updateCredits,userData } = useApp();
+  console.log("🚀 ~ RequestNewReport ~ userData:", userData)
   const [formData, setFormData] = useState({
     company: '',
     website: ''
@@ -18,8 +20,12 @@ const RequestNewReport = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Get Organization ID and User ID from user data
-  const organizationId = userData?.organisation_id;
+  const organizationId = localStorage.getItem('organisation_id');
+  console.log("🚀 ~ RequestNewReport ~ organizationId:", organizationId)
   const userId = userData?.id;
+  console.log("🚀 ~ RequestNewReport ~ userId:", userId)
+
+  
 
   // Calculate credits needed
   const creditsNeeded = selectedFiles.length > 0 ? 15 : 10;
@@ -63,6 +69,39 @@ const RequestNewReport = () => {
       const { getSupabase } = await import('../supabaseClient');
       const supabase = getSupabase();
       
+      // Ensure app_users row exists for this user to satisfy FK on submissions
+      try {
+        const { data: existingUser, error: existingErr } = await supabase
+          .from('app_users')
+          .select('id')
+          .eq('id', userId)
+          .maybeSingle();
+
+        if (!existingUser && !existingErr) {
+          // Get auth user to retrieve email if not in userData
+          let emailToUse = userData?.email || null;
+          if (!emailToUse) {
+            const { data: authData } = await supabase.auth.getUser();
+            emailToUse = authData?.user?.email || null;
+          }
+          const fallbackUsername = emailToUse ? emailToUse.split('@')[0] : 'user';
+
+          await supabase.from('app_users').insert([
+            {
+              id: userId,
+              email: emailToUse,
+              username: fallbackUsername,
+              is_admin: false,
+              is_superadmin: false,
+              organisation_id: organizationId
+            }
+          ]);
+        }
+      } catch (provisionErr) {
+        console.log('Error ensuring app_users row exists:', provisionErr);
+        // Continue; insert may still fail and be handled below
+      }
+      
       // Create new report in Supabase using the provided user ID
       const { data, error } = await supabase
         .from('submissions')
@@ -93,25 +132,21 @@ const RequestNewReport = () => {
       }
 
       const submissionId = data[0].id;
-      console.log('Submission created:', submissionId);
 
       // Upload files if any are selected
       if (selectedFiles.length > 0) {
-        console.log("🚀 ~ handleSubmit ~ selectedFiles:", selectedFiles)
         try {
           const uploadPromises = selectedFiles.map(async (file, index) => {
             const fileExt = file.name.split('.').pop();
             const fileName = `${submissionId}_${index}.${fileExt}`;
-            console.log("file name", fileName)
             const { error: uploadError } = await supabase.storage
-              .from('reports')
+              .from('new_report_images')
               .upload(fileName, file);
 
             if (uploadError) {
               console.log('File upload error:', uploadError);
               throw uploadError;
             }
-            console.log("🚀 ~ handleSubmit ~ fileName:", fileName)
 
             return fileName;
           });
@@ -144,7 +179,7 @@ const RequestNewReport = () => {
       setSelectedFiles([]);
 
     } catch (error) {
-      console.error('Error submitting request:', error);
+      console.log('Error submitting request:', error);
       toast.error('Failed to submit request', {
         autoClose: 4000,
         pauseOnHover: false,
@@ -172,10 +207,12 @@ const RequestNewReport = () => {
 
   return (
     <div className="request-section">
-  
+      {/* Temporary debug component - remove after fixing the issue */}
+      {/* <UploadTest /> */}
+      
       <div className="request-form-container">
-        <form onSubmit={()=>{}} className="request-form">
-        {/* <form onSubmit={handleSubmit} className="request-form"> */}
+        {/* <form onSubmit={()=>{}} className="request-form"> */}
+        <form onSubmit={handleSubmit} className="request-form">
         <h2 className="section-title text-center mb-5">Request New Report</h2>
           <div className="row g-3">
             <div className="col-12 col-md-6">

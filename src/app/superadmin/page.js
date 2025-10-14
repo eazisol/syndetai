@@ -9,6 +9,7 @@ import MobileHeader from '../../components/MobileHeader';
 import Sidebar from '../../components/Sidebar';
 import ConfirmModal from '../../components/ConfirmModal';
 import { v4 as uuidv4 } from 'uuid';
+import { sendInviteAndCreatePendingInvite } from '../../lib/invite';
 import { Eye, Download, Plus } from 'lucide-react';
 // Supabase client will be imported dynamically where used to avoid build-time env requirement
 
@@ -355,23 +356,13 @@ function SuperadminPage() {
     try {
       const { getSupabase } = await import('../../supabaseClient');
       const supabase = getSupabase();
-      const { data, error } = await supabase
-        .from('app_users')
-        .insert([
-          {
-            id: uuidv4(),
-            username: inviteForm.username,
-            email: inviteForm.email,
-            is_admin: inviteForm.isAdmin,
-            is_active: true,
-            organisation_id: selectedOrgId
-          }
-        ])
-        .select();
-
+      const { error } = await sendInviteAndCreatePendingInvite(supabase, {
+        email: inviteForm.email,
+        username: inviteForm.username,
+        organisationId: selectedOrgId
+      });
       if (error) {
-        console.error('Error inviting user:', error);
-        toast.error('Failed to invite user', {
+        toast.error(error.message || 'Failed to invite user', {
           autoClose: 4000,
           pauseOnHover: false,
           pauseOnFocusLoss: false
@@ -379,14 +370,13 @@ function SuperadminPage() {
         return;
       }
 
-      toast.success('User invited successfully', {
+      toast.success('Invite sent successfully', {
         autoClose: 4000,
         pauseOnHover: false,
         pauseOnFocusLoss: false
       });
       setInviteForm({ username: '', email: '', isAdmin: false });
       setShowInviteForm(false); // Hide the form after successful invitation
-      fetchOrgUsers(selectedOrgId); // Refresh users
     } catch (error) {
       console.error('Error inviting user:', error);
       toast.error('Failed to invite user', {
@@ -672,7 +662,20 @@ function SuperadminPage() {
                         filteredSubmissions.map((s) => (
                           <tr key={s.id}>
                             <td>{s.company_name || '-'}</td>
-                            <td>{s.company_url || '-'}</td>
+                            <td>
+                              {s.company_url && s.company_url !== '-' ? (
+                                <a 
+                                  href={s.company_url.startsWith('http') ? s.company_url : `https://${s.company_url}`}
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="website-link"
+                                >
+                                  {s.company_url}
+                                </a>
+                              ) : (
+                                '-'
+                              )}
+                            </td>
                             <td>{s.app_users?.email || s.app_users?.username || '-'}</td>
                             <td>
                               <span>

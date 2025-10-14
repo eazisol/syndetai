@@ -60,6 +60,73 @@ const LoginScreen = ({ onLogin }) => {
     }
   }, [mounted, router]);
 
+  // On first authenticated session, register user in app_users from pending_invites
+  useEffect(() => {
+    const handleFirstLogin = async () => {
+      try {
+        const { getSupabase } = await import('../supabaseClient');
+        const supabase = getSupabase();
+
+        const { data: authData } = await supabase.auth.getUser();
+        const user = authData?.user;
+        if (!user) return;
+
+        // Check if already present in app_users
+        const { data: existingUser, error: existingErr } = await supabase
+          .from('app_users')
+          .select('id')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (existingErr) {
+          console.error('Error checking app_users:', existingErr.message || existingErr);
+          return;
+        }
+        if (existingUser) return;
+
+        // Find pending invite by email
+        const { data: invite, error: inviteErr } = await supabase
+          .from('pending_invites')
+          .select('organisation_id, username')
+          .eq('email', user.email)
+          .maybeSingle();
+
+        if (inviteErr) {
+          console.error('Error checking pending_invites:', inviteErr.message || inviteErr);
+          return;
+        }
+        if (!invite) return;
+
+        const username = invite.username || (user.email ? user.email.split('@')[0] : 'user');
+
+        const { error: insertErr } = await supabase.from('app_users').insert([
+          {
+            id: user.id,
+            email: user.email,
+            username,
+            is_admin: false,
+            is_superadmin: false,
+            organisation_id: invite.organisation_id,
+            is_active:true
+          }
+        ]);
+
+        if (insertErr) {
+          console.error('Error inserting into app_users:', insertErr.message || insertErr);
+          return;
+        }
+
+        await supabase.from('pending_invites').delete().eq('email', user.email);
+      } catch (e) {
+        console.error('First login setup failed:', e);
+      }
+    };
+
+    if (session) {
+      handleFirstLogin();
+    }
+  }, [session]);
+
   // Check existing session on component mount
   useEffect(() => {
     const checkSession = async () => {

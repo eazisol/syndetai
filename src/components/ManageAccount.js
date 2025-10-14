@@ -9,6 +9,7 @@ import ConfirmModal from './ConfirmModal';
 import { toast } from 'react-toastify';
 // Supabase will be imported dynamically to avoid SSR env issues
 import { v4 as uuidv4 } from 'uuid';
+import { sendInviteAndCreatePendingInvite } from '../lib/invite';
 
 let supabase = null;
 async function ensureSupabase() {
@@ -61,9 +62,9 @@ const ManageAccount = () => {
   useEffect(() => {
     if (organizationId) {
       const loadUsers = async () => {
-        let id='1aa7dc0d-e404-45cf-b3e9-02f44151913f'
-        const data = await fetchUsersData(id);
-        // const data = await fetchUsersData(organizationId);
+        // let id='1aa7dc0d-e404-45cf-b3e9-02f44151913f'
+        // const data = await fetchUsersData(id);
+        const data = await fetchUsersData(organizationId);
         setOrgUsers(data);
       };
       loadUsers();
@@ -76,56 +77,20 @@ const ManageAccount = () => {
 
     setIsInviting(true);
     try {
-      // 1) Send magic link (simple call as requested)
       const client = await ensureSupabase();
-      const { error: otpError } = await client.auth.signInWithOtp({ email: inviteForm.email.trim() });
-      if (otpError) {
-        toast.error(otpError.message || 'Failed to send invite', {
+      const { error } = await sendInviteAndCreatePendingInvite(client, {
+        email: inviteForm.email,
+        username: inviteForm.username,
+        organisationId: organizationId
+      });
+      if (error) {
+        toast.error(error.message || 'Failed to send invite', {
           autoClose: 4000,
           pauseOnHover: false,
           pauseOnFocusLoss: false
         });
         return;
       }
-
-      // 2) Save to pending_invites
-      const { error: insertError } = await client
-        .from('pending_invites')
-        .insert([{
-          email: inviteForm.email.trim(),
-          username: inviteForm.username.trim(),
-          organisation_id: organizationId,
-          invited_at: new Date().toISOString()
-        }]);
-      if (insertError) {
-       
-        toast.error('Invite sent but logging failed', {
-          autoClose: 4000,
-          pauseOnHover: false,
-          pauseOnFocusLoss: false
-        });
-      }
-
-      // 3) Also create an entry in app_users so admins can manage immediately
-      try {
-        const newUserRow = {
-          id: uuidv4(),
-          username: inviteForm.username.trim(),
-          email: inviteForm.email.trim(),
-          is_admin: true,
-          is_active: true,
-          organisation_id: organizationId
-        };
-        const { data: newUser, error: userErr } = await client
-          .from('app_users')
-          .insert([newUserRow])
-          .select('id, email, username, is_admin, is_active')
-          .maybeSingle();
-        if (!userErr && newUser) {
-          setOrgUsers(prev => [newUser, ...prev]);
-        }
-      } catch {}
-
       toast.success('Invite sent successfully.', {
         autoClose: 4000,
         pauseOnHover: false,
@@ -302,8 +267,8 @@ const ManageAccount = () => {
       <div className="borderBottom" style={{ marginTop: '3%' }} />
       <div className="invite-section" style={{ marginTop: '3%' }}>
         <h2 className="section-title">Invite a New User</h2>
-        <form onSubmit={()=>{}} className="invite-form">
-        {/* <form onSubmit={handleInviteSubmit} className="invite-form"> */}
+        {/* <form onSubmit={()=>{}} className="invite-form"> */}
+        <form onSubmit={handleInviteSubmit} className="invite-form">
           <div className="row g-0 g-lg-5">
             <div className="col-12 col-md-6 col-lg-4">
               <CustomInputField

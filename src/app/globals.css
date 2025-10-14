@@ -187,7 +187,8 @@ body {
   font-size: 14px;
   line-height: 100%;
   letter-spacing: 0%;
-
+  max-width: 202px;
+  word-wrap: break-word;
 }
 
 .logout-icon {
@@ -526,6 +527,55 @@ body {
 
 .submissions-table tr:hover {
   background-color: var(--input-color);
+}
+
+/* Website link styling in submissions table */
+.website-link {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 100%;
+  letter-spacing: 0%;
+  transition: color 0.2s ease;
+}
+
+.website-link:hover {
+  color: var(--primary-color);
+  text-decoration: underline;
+  opacity: 0.8;
+}
+
+.website-link:visited {
+  color: var(--primary-color);
+}
+
+/* Action buttons container for view and download */
+.action-buttons {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.action-separator {
+  width: 1px;
+  height: 20px;
+  background-color: var(--border-color);
+  opacity: 0.6;
+}
+
+.download-button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.download-button:hover {
+  opacity: 0.7;
 }
 
 .status {

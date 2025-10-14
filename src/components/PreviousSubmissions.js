@@ -8,15 +8,10 @@ const PreviousSubmissions = () => {
   const { searchQuery, setSearchQuery ,userData} = useApp();
   const [libraryData, setLibraryData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  // Get User ID from user data
   const userId = userData?.id;
-
-  // Fetch library data from Supabase
   const fetchLibraryData = async (userId) => {
-    
     try {
       setIsLoading(true);
-      
       const { getSupabase } = await import('../supabaseClient');
       const supabase = getSupabase();
       const { data, error } = await supabase
@@ -36,35 +31,30 @@ const PreviousSubmissions = () => {
         `)
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
-  
       if (error) {
         console.log('Supabase error:', error);
         return [];
-      }
-      
+      } 
       return data || [];
     } catch (error) {
-      console.error('Error fetching library data:', error);
+      console.log('Error fetching library data:', error);
       return [];
     } finally {
       setIsLoading(false);
     }
   };
-
-  // Fetch library data on component mount
   useEffect(() => {
     if (userData?.id) {
       const loadLibraryData = async () => {
-        let id='0c4cf856-0569-4d90-9214-72dc94f8a48d'
-        const data = await fetchLibraryData(id);
-        // const data = await fetchLibraryData(userData?.id);
+        // let id='0c4cf856-0569-4d90-9214-72dc94f8a48d'
+        // const data = await fetchLibraryData(id);
+        const data = await fetchLibraryData(userData?.id);
         setLibraryData(data);
       };
       loadLibraryData();
     }
   }, [userData?.id]);
 
-  // Filter submissions based on search query
   const filteredSubmissions = libraryData.filter(submission =>
     submission.company_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     submission.company_url?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -72,14 +62,27 @@ const PreviousSubmissions = () => {
     submission.app_users?.username?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleView = (id) => {
-    console.log('View submission:', id);
-    // Add view functionality here
-  };
+  const handleDownload = async (reportUrl, companyName) => {
+    try {
+      if (!reportUrl) {
+        console.log('No report URL available for download');
+        return;
+      }
 
-  const handleDownload = (id) => {
-    console.log('Download submission:', id);
-    // Add download functionality here
+      const link = document.createElement('a');
+      link.href = reportUrl;
+      link.download = `${companyName || 'report'}_${new Date().toISOString().split('T')[0]}.pdf`;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      console.log('Download initiated for:', companyName);
+    } catch (error) {
+      console.log('Error downloading report:', error);
+    }
   };
 
   return (
@@ -103,13 +106,13 @@ const PreviousSubmissions = () => {
       <div className="table-container">
         {isLoading ? (
           <div style={{ padding: '20px', textAlign: 'center' }}>
-            <p>Loading library data...</p>
+            <p>Loading reports...</p>
           </div>
         ) : filteredSubmissions.length === 0 ? (
           <div style={{ padding: '40px', textAlign: 'center' }}>
             <p style={{ color: '#5F6368', fontSize: '14px' }}>
               {libraryData.length === 0 
-                ? 'No reports found for this organization' 
+                ? 'No reports found' 
                 : 'No reports match your search criteria'
               }
             </p>
@@ -131,7 +134,20 @@ const PreviousSubmissions = () => {
                 return(
                 <tr key={submission.id}>
                   <td>{submission.company_name || '-'}</td>
-                  <td>{submission.company_url || '-'}</td>
+                  <td>
+                    {submission.company_url && submission.company_url !== '-' ? (
+                      <a 
+                        href={submission.company_url.startsWith('http') ? submission.company_url : `https://${submission.company_url}`}
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="website-link"
+                      >
+                        {submission.company_url}
+                      </a>
+                    ) : (
+                      '-'
+                    )}
+                  </td>
                   <td>{submission.app_users?.email || submission.app_users?.username || '-'}</td>
                   <td>
                
@@ -141,14 +157,26 @@ const PreviousSubmissions = () => {
                   <td>{submission.batch_date || submission.created_at?.split('T')[0] || '-'}</td>
                   <td>
                     {submission.report_url ? (
-                      <a 
-                        className="link-button" 
-                        href={submission.report_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                      >
-                        <Eye className="action-icon" />
-                      </a>
+                      <div className="action-buttons">
+                        <a 
+                          className="link-button" 
+                          href={submission.report_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          title="View Report"
+                        >
+                          <Eye className="action-icon" />
+                        </a>
+                        <div className="action-separator"></div>
+                        <button
+                          className="link-button download-button"
+                          onClick={() => handleDownload(submission.report_url, submission.company_name)}
+                          title="Download Report"
+                          style={{marginLeft: '7%'}}
+                        >
+                          <Download className="action-icon" />
+                        </button>
+                      </div>
                     ) : (
                       <span></span>
                     )}

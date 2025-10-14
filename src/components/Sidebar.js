@@ -169,7 +169,7 @@ const Sidebar = () => {
       </nav>
 
       {/* User Info */}
-      <div style={{ padding: '35px 16px' }}>
+      <div style={{ padding: '35px 0px' }}>
 
       <div className="user-info">
         <span className="user-email">{userData?.email}</span>

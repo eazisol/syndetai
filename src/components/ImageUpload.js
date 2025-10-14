@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Upload, X } from 'lucide-react';
 
 const ALLOWED_EXTENSIONS = ['pdf','docx','xlsx','csv','txt','pptx','png','jpg','jpeg'];
@@ -12,6 +12,14 @@ const ImageUpload = ({ onImageSelect, onImageRemove, selectedFiles = [] }) => {
   const [files, setFiles] = useState(selectedFiles);
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
+
+  // Keep local state in sync when parent resets selectedFiles (e.g., after submit)
+  useEffect(() => {
+    setFiles(selectedFiles || []);
+    if ((selectedFiles?.length || 0) === 0 && fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, [selectedFiles]);
 
   const handleDragOver = useCallback((e) => {
     e.preventDefault();
