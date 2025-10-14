@@ -12,7 +12,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { sendInviteAndCreatePendingInvite } from '../../lib/invite';
 import { Eye, Download, Plus } from 'lucide-react';
 // Supabase client will be imported dynamically where used to avoid build-time env requirement
-
+import Image from 'next/image';
 function SuperadminPage() {
   const { submissions } = useApp();
 
@@ -487,11 +487,11 @@ function SuperadminPage() {
                           alignItems: 'center',
                           justifyContent: 'center',
                           border: 'none',
-                          background: '#e9f2ff',
-                          color: '#0d6efd',
-                          width: 21,
-                          height: 21,
-                          borderRadius: 50,
+                          background: '#0044EE',
+                          color: 'white',
+                          width: 27,
+                          height: 20,
+                          borderRadius: '80px',
                           cursor: 'pointer'
                         }}
                       >
@@ -513,19 +513,19 @@ function SuperadminPage() {
                     </div>
                   </div>
 
-                  <div className="col-12 col-lg-7 d-flex align-items-center" style={{marginBottom:"-2%"}}>
+                  <div className="col-12 col-lg-7 d-flex align-items-center" style={{ marginBottom: "-2%" }}>
                     {showOrgForm && (
-                        <form onSubmit={handleSaveOrganisation} className="row gy-3 gx-4 gx-lg-5 align-items-center">
-                         <div className="col-12 col-md-3">
+                      <form onSubmit={handleSaveOrganisation} className="row gy-3 gx-4 gx-lg-5 align-items-center">
+                        <div className="col-12 col-md-3">
                           <CustomInputField name="name" placeholder="Organisation Name" className='org-input' value={orgForm.name} onChange={handleOrgFormChange} />
                         </div>
-                         <div className="col-12 col-md-3">
+                        <div className="col-12 col-md-3">
                           <CustomInputField name="type" placeholder="Organisation Type" className='org-input' value={orgForm.type} onChange={handleOrgFormChange} />
                         </div>
-                          <div className="col-12 col-md-2">
-                           <CustomInputField name="credits" className='org-input-credits' placeholder="Credits" value={orgForm.credits} onChange={handleOrgFormChange} />
+                        <div className="col-12 col-md-2">
+                          <CustomInputField name="credits" className='org-input-credits' placeholder="Credits" value={orgForm.credits} onChange={handleOrgFormChange} />
                         </div>
-                          <div className="col-12 col-md-4 d-flex justify-content-end">
+                        <div className="col-12 col-md-4 d-flex justify-content-end">
                           <CustomButton type="submit" className='btn-submit-manage-org'>{selectedOrgId ? 'Update Organisation' : 'Create Organisation'}</CustomButton>
                         </div>
                       </form>
@@ -549,8 +549,8 @@ function SuperadminPage() {
                       <tr>
                         <th>USERNAME</th>
                         <th>EMAIL</th>
-                        <th>ADMIN</th>
-                        <th>ACTIONS</th>
+                        <th style={{ textAlign: 'center' }}>ADMIN</th>
+                        <th style={{ textAlign: 'center' }}>ACTIONS</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -571,7 +571,7 @@ function SuperadminPage() {
                           <tr key={user.id}>
                             <td>{user.username || '-'}</td>
                             <td>{user.email || '-'}</td>
-                            <td>
+                            <td style={{ textAlign: 'center' }}>
                               <input
                                 type="checkbox"
                                 checked={user.is_admin}
@@ -579,14 +579,18 @@ function SuperadminPage() {
                                 className="admin-checkbox"
                               />
                             </td>
-                            <td>
-                              <button
-                                onClick={() => openConfirmDeleteUser(user)}
-                                className="delete-btn-manage"
-                                title="Delete User"
-                              >
-                                Delete
-                              </button>
+
+                            <td style={{ textAlign: 'center' }}>
+                              <div className="action-buttons position-check" style={{ justifyContent: 'center' }}>
+                                <button
+                                  onClick={() => openConfirmDeleteUser(user)}
+                                  className="delete-btn-manage"
+                                  title="Delete User"
+                                >
+                                  <Image src="/delete.svg" alt="Delete User" width={16} height={16} className="action-icon" />
+
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))
@@ -640,9 +644,9 @@ function SuperadminPage() {
                         <th>COMPANY</th>
                         <th>WEBSITE</th>
                         <th>REQUESTED BY</th>
-                        <th>STATUS</th>
-                        <th>BATCH DATE</th>
-                        <th>REPORT</th>
+                        <th style={{ textAlign: 'center' }}>STATUS</th>
+                        <th style={{ textAlign: 'center' }}>BATCH DATE</th>
+                        <th style={{ textAlign: 'center' }}>REPORT</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -664,9 +668,9 @@ function SuperadminPage() {
                             <td>{s.company_name || '-'}</td>
                             <td>
                               {s.company_url && s.company_url !== '-' ? (
-                                <a 
+                                <a
                                   href={s.company_url.startsWith('http') ? s.company_url : `https://${s.company_url}`}
-                                  target="_blank" 
+                                  target="_blank"
                                   rel="noopener noreferrer"
                                   className="website-link"
                                 >
@@ -677,13 +681,13 @@ function SuperadminPage() {
                               )}
                             </td>
                             <td>{s.app_users?.email || s.app_users?.username || '-'}</td>
-                            <td>
+                            <td style={{ textAlign: 'center' }}>
                               <span>
-                                {s.status === 'Completed' ? s.status : ''}
+                                {s.status || '-'}
                               </span>
                             </td>
-                            <td>{s.batch_date || s.created_at?.split('T')[0] || '-'}</td>
-                            <td>
+                            <td style={{ textAlign: 'center' }}>{s.batch_date || s.created_at?.split('T')[0] || '-'}</td>
+                            <td style={{ textAlign: 'center' }}>
                               {s.report_url ? (
                                 <a
                                   className="link-button"

@@ -138,17 +138,45 @@ const RequestNewReport = () => {
         try {
           const uploadPromises = selectedFiles.map(async (file, index) => {
             const fileExt = file.name.split('.').pop();
-            const fileName = `${submissionId}_${index}.${fileExt}`;
+            const storedFileName = `${submissionId}_${index}.${fileExt}`;
+            const bucket = 'new_report_images';
+
             const { error: uploadError } = await supabase.storage
-              .from('new_report_images')
-              .upload(fileName, file);
+              .from(bucket)
+              .upload(storedFileName, file);
 
             if (uploadError) {
               console.log('File upload error:', uploadError);
               throw uploadError;
             }
 
-            return fileName;
+            // Build a public URL for the uploaded file
+            const { data: publicUrlData } = supabase
+              .storage
+              .from(bucket)
+              .getPublicUrl(storedFileName);
+
+            const fileUrl = publicUrlData?.publicUrl || null;
+
+            // Insert a record into documents table
+            try {
+              await supabase
+                .from('documents')
+                .insert([
+                  {
+                    // id will be default uuid if table has default
+                    submission_id: submissionId,
+                    file_url: fileUrl,
+                    file_name: file.name,
+                    uploaded_at: new Date().toISOString()
+                  }
+                ]);
+            } catch (docErr) {
+              console.log('Error inserting document row:', docErr);
+              // Continue without blocking the whole request
+            }
+
+            return storedFileName;
           });
 
           await Promise.all(uploadPromises);

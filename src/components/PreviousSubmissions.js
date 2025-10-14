@@ -124,9 +124,9 @@ const PreviousSubmissions = () => {
                 <th>COMPANY</th>
                 <th>WEBSITE</th>
                 <th>REQUESTED BY</th>
-                <th>STATUS</th>
-                <th>BATCH DATE</th>
-                <th>REPORT</th>
+                <th style={{ textAlign: 'center' }}>STATUS</th>
+                <th style={{ textAlign: 'center' }}>BATCH DATE</th>
+                <th style={{ textAlign: 'center' }}>REPORT</th>
               </tr>
             </thead>
             <tbody>
@@ -149,13 +149,11 @@ const PreviousSubmissions = () => {
                     )}
                   </td>
                   <td>{submission.app_users?.email || submission.app_users?.username || '-'}</td>
-                  <td>
-               
-                      {submission.status=='Completed'? submission.status: ''}
-                   
+                  <td style={{ textAlign: 'center' }}>
+                      {submission.status || '-'}
                   </td>
-                  <td>{submission.batch_date || submission.created_at?.split('T')[0] || '-'}</td>
-                  <td>
+                  <td style={{ textAlign: 'center' }}>{submission.batch_date || submission.created_at?.split('T')[0] || '-'}</td>
+                  <td style={{ textAlign: 'center' }}>
                     {submission.report_url ? (
                       <div className="action-buttons">
                         <a 

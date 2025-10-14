@@ -7,7 +7,6 @@ import CustomInputField from './CustomInputField';
 import CustomButton from './CustomButton';
 import ConfirmModal from './ConfirmModal';
 import { toast } from 'react-toastify';
-// Supabase will be imported dynamically to avoid SSR env issues
 import { v4 as uuidv4 } from 'uuid';
 import { sendInviteAndCreatePendingInvite } from '../lib/invite';
 
@@ -230,8 +229,8 @@ const ManageAccount = () => {
               <tr> 
                 <th>USERNAME</th>
                 <th>EMAIL</th> 
-                <th>ADMIN</th>
-                <th>ACTIONS</th>
+                <th className='text-center'>ADMIN</th>
+                <th className='text-center'>ACTIONS</th>
               </tr>
             </thead>
             <tbody>
@@ -239,20 +238,29 @@ const ManageAccount = () => {
                 <tr key={user.id}>
                   <td>{user.username}</td>
                   <td>{user.email}</td>
-                  <td>
+                  <td className='text-center'>
                     <input 
                       type="checkbox" 
                       checked={user.is_admin}
                       onChange={() => toggleAdmin(user.id)}
                       className="admin-checkbox"
+                      disabled={user.id === userData?.id}
+                      aria-disabled={user.id === userData?.id}
+                      title={user.id === userData?.id ? 'You cannot change your own admin status' : 'Toggle admin status'}
+                      style={{ cursor: user.id === userData?.id ? 'not-allowed' : 'pointer' }}
                     />
                   </td>
-                  <td>
-                    <div className="action-buttons position-check">
+                  <td style={{ textAlign: 'center' }}>
+                    <div className="action-buttons position-check" style={{ justifyContent: 'center' }}>
                       <button 
-                        onClick={() => openConfirm(user)}
+                        onClick={(e) => {
+                          if (user.id === userData?.id) { e.preventDefault(); e.stopPropagation(); return; }
+                          openConfirm(user);
+                        }}
                         className="delete-btn-manage" 
-                        title="Delete User"
+                        title={user.id === userData?.id ? 'You cannot delete yourself' : 'Delete User'}
+                        aria-disabled={user.id === userData?.id}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, opacity: user.id === userData?.id ? 0.5 : 1, cursor: user.id === userData?.id ? 'not-allowed' : 'pointer' }}
                       >
                         <Image src="/delete.svg" alt="Delete User" width={16} height={16} className="action-icon" />
                       </button>
