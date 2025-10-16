@@ -15,7 +15,7 @@ import { Eye, Download, Plus } from 'lucide-react';
 import Image from 'next/image';
 import Protected from '../../components/Protected';
 function SuperadminPage() {
-  const { submissions } = useApp();
+  const { submissions, refreshUserData } = useApp();
 
   // Organisations state with Supabase integration
   const [organisations, setOrganisations] = useState([]);
@@ -83,6 +83,9 @@ function SuperadminPage() {
     credits: '',
   });
 
+  // Loading state for organization operations
+  const [isUpdatingOrg, setIsUpdatingOrg] = useState(false);
+
   const handleSelectOrganisation = (e) => {
     const value = e.target.value;
     if (value === 'NEW') {
@@ -124,6 +127,7 @@ function SuperadminPage() {
       return;
     }
 
+    setIsUpdatingOrg(true);
     try {
       const { getSupabase } = await import('../../supabaseClient');
       const supabase = getSupabase();
@@ -159,13 +163,17 @@ function SuperadminPage() {
         fetchOrganisations(); // Refresh the list
         setSelectedOrgId(data[0].id);
       } else {
-        // Update existing organisation
+        // Update existing organisation - add credits instead of replacing
+        const currentOrg = organisations.find(o => o.id === selectedOrgId);
+        const currentCredits = currentOrg?.credits || 0;
+        const newCredits = currentCredits + creditsNum;
+        
         const { error } = await supabase
           .from('organisations')
           .update({
             name: orgForm.name,
             type: orgForm.type,
-            credits: creditsNum
+            credits: newCredits
           })
           .eq('id', selectedOrgId);
 
@@ -184,6 +192,7 @@ function SuperadminPage() {
           pauseOnFocusLoss: false
         });
         fetchOrganisations(); // Refresh the list
+        refreshUserData(); // Refresh user data for real-time sidebar update
       }
     } catch (error) {
       console.error('Error saving organisation:', error);
@@ -192,6 +201,8 @@ function SuperadminPage() {
         pauseOnHover: false,
         pauseOnFocusLoss: false
       });
+    } finally {
+      setIsUpdatingOrg(false);
     }
   };
 
@@ -527,7 +538,13 @@ function SuperadminPage() {
                           <CustomInputField name="credits" className='org-input-credits' placeholder="Credits" value={orgForm.credits} onChange={handleOrgFormChange} />
                         </div>
                         <div className="col-12 col-md-4 d-flex justify-content-end">
-                          <CustomButton type="submit" className='btn-submit-manage-org'>{selectedOrgId ? 'Update Organisation' : 'Create Organisation'}</CustomButton>
+                          <CustomButton 
+                            type="submit" 
+                            className='btn-submit-manage-org'
+                            disabled={isUpdatingOrg}
+                          >
+                            {isUpdatingOrg ? 'Updating...' : (selectedOrgId ? 'Update Organisation' : 'Create Organisation')}
+                          </CustomButton>
                         </div>
                       </form>
                     )}
