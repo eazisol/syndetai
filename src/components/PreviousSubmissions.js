@@ -5,7 +5,7 @@ import CustomInputField from './CustomInputField';
 // Supabase will be imported dynamically to avoid build-time env requirement
 
 const PreviousSubmissions = () => {
-  const { searchQuery, setSearchQuery ,userData} = useApp();
+  const { searchQuery, setSearchQuery, userData } = useApp();
   const [libraryData, setLibraryData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const userId = userData?.id;
@@ -34,7 +34,7 @@ const PreviousSubmissions = () => {
       if (error) {
         console.log('Supabase error:', error);
         return [];
-      } 
+      }
       return data || [];
     } catch (error) {
       console.log('Error fetching library data:', error);
@@ -69,16 +69,22 @@ const PreviousSubmissions = () => {
         return;
       }
 
+      const response = await fetch(reportUrl);
+      if (!response.ok) {
+        console.log('Failed to fetch file for download');
+        return;
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+
       const link = document.createElement('a');
-      link.href = reportUrl;
+      link.href = url;
       link.download = `${companyName || 'report'}_${new Date().toISOString().split('T')[0]}.pdf`;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+      window.URL.revokeObjectURL(url);
+
       console.log('Download initiated for:', companyName);
     } catch (error) {
       console.log('Error downloading report:', error);
@@ -111,8 +117,8 @@ const PreviousSubmissions = () => {
         ) : filteredSubmissions.length === 0 ? (
           <div style={{ padding: '40px', textAlign: 'center' }}>
             <p style={{ color: '#5F6368', fontSize: '14px' }}>
-              {libraryData.length === 0 
-                ? 'No reports found' 
+              {libraryData.length === 0
+                ? 'No reports found'
                 : 'No reports match your search criteria'
               }
             </p>
@@ -131,56 +137,43 @@ const PreviousSubmissions = () => {
             </thead>
             <tbody>
               {filteredSubmissions.map((submission) => {
-                return(
-                <tr key={submission.id}>
-                  <td>{submission.company_name || '-'}</td>
-                  <td>
-                    {submission.company_url && submission.company_url !== '-' ? (
-                      <a 
-                        href={submission.company_url.startsWith('http') ? submission.company_url : `https://${submission.company_url}`}
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="website-link"
-                      >
-                        {submission.company_url}
-                      </a>
-                    ) : (
-                      '-'
-                    )}
-                  </td>
-                  <td>{submission.app_users?.email || submission.app_users?.username || '-'}</td>
-                  <td style={{ textAlign: 'center' }}>
-                      {submission.status || '-'}
-                  </td>
-                  <td style={{ textAlign: 'center' }}>{submission.batch_date || submission.created_at?.split('T')[0] || '-'}</td>
-                  <td style={{ textAlign: 'center' }}>
-                    {submission.report_url ? (
-                      <div className="action-buttons">
-                        <a 
-                          className="link-button" 
-                          href={submission.report_url} 
-                          target="_blank" 
+                let link = "https://tnsqnyriumdgaugkgxun.supabase.co/storage/v1/object/public/documents/6441a892-8a2c-4ed4-8c3a-c3739fd88c28.pdf"
+                return (
+                  <tr key={submission.id}>
+                    <td>{submission.company_name || '-'}</td>
+                    <td>
+                      {submission.company_url && submission.company_url !== '-' ? (
+                        <a
+                          href={submission.company_url.startsWith('http') ? submission.company_url : `https://${submission.company_url}`}
+                          target="_blank"
                           rel="noopener noreferrer"
-                          title="View Report"
+                          className="website-link"
                         >
+                          {submission.company_url}
+                        </a>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                    <td>{submission.app_users?.email || submission.app_users?.username || '-'}</td>
+                    <td style={{ textAlign: 'center' }}>
+                      {submission.status || '-'}
+                    </td>
+                    <td style={{ textAlign: 'center' }}>{submission.batch_date || submission.created_at?.split('T')[0] || '-'}</td>
+                    <td style={{ textAlign: 'center' }}>
+                      {submission?.report_url && <div className="action-buttons" style={{ justifyContent: 'center' }}>
+                        <a className="link-button" href={submission?.report_url} target="_blank" rel="noopener noreferrer" title="View Report">
                           <Eye className="action-icon" />
                         </a>
                         <div className="action-separator"></div>
-                        <button
-                          className="link-button download-button"
-                          onClick={() => handleDownload(submission.report_url, submission.company_name)}
-                          title="Download Report"
-                          style={{marginLeft: '7%'}}
-                        >
+                        <button className="link-button download-button" onClick={() => handleDownload(submission?.report_url, submission.company_name)} title="Download Report">
                           <Download className="action-icon" />
                         </button>
-                      </div>
-                    ) : (
-                      <span></span>
-                    )}
-                  </td>
-                </tr>
-              )})}
+                      </div>}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         )}

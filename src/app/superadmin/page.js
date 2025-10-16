@@ -16,6 +16,24 @@ import Image from 'next/image';
 import Protected from '../../components/Protected';
 function SuperadminPage() {
   const { submissions, refreshUserData } = useApp();
+  const handleDownload = async (reportUrl, companyName) => {
+    try {
+      if (!reportUrl) return;
+      const response = await fetch(reportUrl);
+      if (!response.ok) return;
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${companyName || 'report'}_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      console.log('Download failed', e);
+    }
+  };
 
   // Organisations state with Supabase integration
   const [organisations, setOrganisations] = useState([]);
@@ -707,15 +725,25 @@ function SuperadminPage() {
                             <td style={{ textAlign: 'center' }}>{s.batch_date || s.created_at?.split('T')[0] || '-'}</td>
                             <td style={{ textAlign: 'center' }}>
                               {s.report_url ? (
-                                <a
-                                  className="link-button"
-                                  href={s.report_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >
-                                  <Eye className="action-icon" />
-                                </a>
-
+                                <div className="action-buttons" style={{ justifyContent: 'center' }}>
+                                  <a
+                                    className="link-button"
+                                    href={s.report_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title="View Report"
+                                  >
+                                    <Eye className="action-icon" />
+                                  </a>
+                                  <div className="action-separator"></div>
+                                  <button
+                                    className="link-button download-button"
+                                    onClick={() => handleDownload(s.report_url, s.company_name)}
+                                    title="Download Report"
+                                  >
+                                    <Download className="action-icon" />
+                                  </button>
+                                </div>
                               ) : (
                                 <span></span>
                               )}

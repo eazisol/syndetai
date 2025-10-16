@@ -8,6 +8,7 @@ import CustomButton from './CustomButton';
 import UploadTest from './UploadTest';
 import { toast } from 'react-toastify';
 import { v4 as uuidv4 } from 'uuid';
+import ConfirmModal from './ConfirmModal';
 
 const RequestNewReport = () => {
   const { user, updateCredits,userData, refreshUserData } = useApp();
@@ -17,6 +18,7 @@ const RequestNewReport = () => {
   });
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   
   const organizationId = localStorage.getItem('organisation_id');
   const userId = userData?.id;
@@ -27,9 +29,7 @@ const RequestNewReport = () => {
   const creditsNeeded = selectedFiles.length > 0 ? 15 : 10;
   const hasEnoughCredits = (userData?.organisation?.credits || 0) >= creditsNeeded;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
+  const submitReport = async () => {
     if (!formData.company || !formData.website) {
       toast.error('Please fill in all required fields', {
         autoClose: 4000,
@@ -250,7 +250,38 @@ const RequestNewReport = () => {
       });
     } finally {
       setIsSubmitting(false);
+      setConfirmOpen(false);
     }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    // Pre-checks before opening confirmation
+    if (!formData.company || !formData.website) {
+      toast.error('Please fill in all required fields', {
+        autoClose: 4000,
+        pauseOnHover: false,
+        pauseOnFocusLoss: false
+      });
+      return;
+    }
+    if (!organizationId || !userId) {
+      toast.error('User organization or ID not found. Please try logging in again.', {
+        autoClose: 4000,
+        pauseOnHover: false,
+        pauseOnFocusLoss: false
+      });
+      return;
+    }
+    if (!hasEnoughCredits) {
+      toast.error(`Insufficient credits. You need ${creditsNeeded} credits but have ${(userData?.organisation?.credits || 0)}`, {
+        autoClose: 4000,
+        pauseOnHover: false,
+        pauseOnFocusLoss: false
+      });
+      return;
+    }
+    setConfirmOpen(true);
   };
 
   const handleImageSelect = (files) => {
@@ -292,7 +323,7 @@ const RequestNewReport = () => {
             
             <div className="col-12 col-md-6">
               <CustomInputField
-                type="url"
+                type="text"
                 name="website"
                 placeholder="Company website"
                 value={formData.website}
@@ -388,6 +419,44 @@ const RequestNewReport = () => {
           </div>
         </form>
       </div>
+      <ConfirmModal
+        open={confirmOpen}
+        title={`Submit report?`}
+        description={
+          <div>
+            <p style={{ color: 'var(--placeholder-color)', textAlign: 'center', marginBottom: 12 }}>
+              This action will deduct credits from your organisation.
+            </p>
+            <div style={{
+              background: 'var(--nav-active-color)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 12,
+              padding: 12,
+              // maxWidth: 385,
+              margin: '0 auto'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ color: 'var(--placeholder-color)' }}>Credits required</span>
+                <span style={{ fontWeight: 600 }}>{creditsNeeded}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ color: 'var(--placeholder-color)' }}>Current credits</span>
+                <span style={{ fontWeight: 600 }}>{(userData?.organisation?.credits || 0)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-color)', paddingTop: 8 }}>
+                <span style={{ color: 'var(--placeholder-color)' }}>Remaining after submit</span>
+                <span style={{ fontWeight: 700 }}>
+                  {(userData?.organisation?.credits || 0) - creditsNeeded}
+                </span>
+              </div>
+            </div>
+          </div>
+        }
+        confirmText={isSubmitting ? 'Submitting...' : 'Confirm & Submit'}
+        cancelText={'Cancel'}
+        onConfirm={() => { if (!isSubmitting) submitReport(); }}
+        onCancel={() => { if (!isSubmitting) setConfirmOpen(false); }}
+      />
     </div>
   );
 };
