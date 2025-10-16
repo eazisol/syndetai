@@ -14,8 +14,16 @@ import { Eye, Download, Plus } from 'lucide-react';
 // Supabase client will be imported dynamically where used to avoid build-time env requirement
 import Image from 'next/image';
 import Protected from '../../components/Protected';
+import TransactionsTable from '../../components/TransactionsTable';
 function SuperadminPage() {
   const { submissions, refreshUserData } = useApp();
+  const [transactions, setTransactions] = useState([]);
+  const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
+  // Organisations state with Supabase integration
+  const [organisations, setOrganisations] = useState([]);
+  const [selectedOrgId, setSelectedOrgId] = useState(null);
+  const [isLoadingOrgs, setIsLoadingOrgs] = useState(false);
+  const [showOrgForm, setShowOrgForm] = useState(false);
   const handleDownload = async (reportUrl, companyName) => {
     try {
       if (!reportUrl) return;
@@ -35,11 +43,47 @@ function SuperadminPage() {
     }
   };
 
-  // Organisations state with Supabase integration
-  const [organisations, setOrganisations] = useState([]);
-  const [selectedOrgId, setSelectedOrgId] = useState(null);
-  const [isLoadingOrgs, setIsLoadingOrgs] = useState(false);
-  const [showOrgForm, setShowOrgForm] = useState(false);
+  const fetchTransactions = async (orgId) => {
+    try {
+      setIsLoadingTransactions(true);
+      const { getSupabase } = await import('../../supabaseClient');
+      const supabase = getSupabase();
+      let query = supabase
+        .from('transactions')
+        .select(`
+          id,
+          organisation_id,
+          payment_intent,
+          created_at,
+          organisations!inner(name)
+        `)
+        .order('created_at', { ascending: false });
+      if (orgId) {
+        query = query.eq('organisation_id', orgId);
+      }
+      const { data, error } = await query;
+      if (error) {
+        console.log('Supabase error:', error);
+        return [];
+      }
+      return data || [];
+    } catch (error) {
+      console.log('Error fetching transactions:', error);
+      return [];
+    } finally {
+      setIsLoadingTransactions(false);
+    }
+  };
+
+  useEffect(() => {
+    const loadTransactions = async () => {
+      const data = await fetchTransactions(selectedOrgId);
+      setTransactions(data);
+    };
+    loadTransactions();
+  }, [selectedOrgId]);
+
+  
 
   const selectedOrganisation = useMemo(() => {
     return organisations.find(o => o.id === selectedOrgId) || null;
@@ -755,6 +799,8 @@ function SuperadminPage() {
                   </table>
                 </div>
               </div>
+              {/* Transactions Table */}
+              <TransactionsTable organisationId={selectedOrgId} title="Transactions" />
             </div>
           </div>
         </div>

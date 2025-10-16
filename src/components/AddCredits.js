@@ -203,7 +203,8 @@ const InnerAddCredits = () => {
         }
     };
 
-    const subtotal = credits * 2;
+    const pricePerCreditGbp = 2; // £2 per credit
+    const subtotal = credits * pricePerCreditGbp;
     const vat = subtotal * 0.2;
     const total = subtotal + vat;
 
@@ -233,16 +234,16 @@ const InnerAddCredits = () => {
                     <div className="payment-summary">
                         <div className="summary-row">
                             <span>Subtotal</span>
-                            <span>${subtotal.toFixed(2)}</span>
+                            <span>£{subtotal.toFixed(2)}</span>
                         </div>
                         <div className="summary-row" style={{ marginTop: '2%' }}>
                             <span>VAT</span>
-                            <span>${vat.toFixed(2)}</span>
+                            <span>£{vat.toFixed(2)}</span>
                         </div>
                         <div className="borderBottom" style={{ marginTop: '2%' }} />
                         <div className="summary-row total-row" >
                             <span>TOTAL</span>
-                            <span>${total.toFixed(2)}</span>
+                            <span>£{total.toFixed(2)}</span>
                         </div>
                     </div>
                 </div>

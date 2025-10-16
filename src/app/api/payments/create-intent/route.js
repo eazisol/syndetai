@@ -23,13 +23,13 @@ export async function POST(req) {
 
     const stripe = new Stripe(stripeSecret, { apiVersion: '2024-06-20' });
 
-    const pricePerCreditUsd = 2;
+    const pricePerCreditGbp = 2; // £2 per credit
     const vatRate = 0.2;
-    const totalUsd = credits * pricePerCreditUsd * (1 + vatRate);
-    const amountCents = Math.round(totalUsd * 100);
+    const totalGbp = credits * pricePerCreditGbp * (1 + vatRate);
+    const amountPence = Math.round(totalGbp * 100);
 
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: amountCents,
+      amount: amountPence,
       currency: 'gbp',
       automatic_payment_methods: { enabled: true },
       metadata: {

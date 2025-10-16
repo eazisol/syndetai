@@ -6,7 +6,7 @@ import Protected from "../../components/Protected";
 
 export default function AddCreditsPage() {
   return (
-    <Protected>
+    <Protected requireAdmin>
       <div className="app">
         <MobileHeader />
         <div className="app-content">

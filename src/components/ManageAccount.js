@@ -6,6 +6,7 @@ import { useApp } from '../context/AppContext';
 import CustomInputField from './CustomInputField';
 import CustomButton from './CustomButton';
 import ConfirmModal from './ConfirmModal';
+import TransactionsTable from './TransactionsTable';
 import { toast } from 'react-toastify';
 import { v4 as uuidv4 } from 'uuid';
 import { sendInviteAndCreatePendingInvite } from '../lib/invite';
@@ -312,6 +313,9 @@ const ManageAccount = () => {
           </div>
         </form>
       </div>
+      {/* Transactions for this organisation */}
+      <div className="borderBottom" style={{ marginTop: '3%' }} />
+      <TransactionsTable organisationId={organizationId} title={'Transactions'} />
     </div>
     <ConfirmModal
       open={confirmState.open}
