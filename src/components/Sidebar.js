@@ -106,21 +106,22 @@ const Sidebar = () => {
       inactiveIcon: '/new-request-inactive.svg'
     },
     // Admin only
-    ...(isAdmin ? [{ 
-      id: 'Manage Account', 
-      label: 'Manage Account', 
-      href: '/manage-account',
-      icon: '/settingactive.svg',
-      inactiveIcon: '/setting.svg'
-    }] : []),
-    // Always visible utility
-    { 
-      id: 'Add Credits', 
-      label: `Add Credits`, 
-      href: '/add-credits',
-      icon: '/criedtactive.svg',
-      inactiveIcon: '/credit.svg'
-    },
+    ...(isAdmin ? [
+      { 
+        id: 'Manage Account', 
+        label: 'Manage Account', 
+        href: '/manage-account',
+        icon: '/settingactive.svg',
+        inactiveIcon: '/setting.svg'
+      },
+      { 
+        id: 'Add Credits', 
+        label: `Add Credits`, 
+        href: '/add-credits',
+        icon: '/criedtactive.svg',
+        inactiveIcon: '/credit.svg'
+      }
+    ] : []),
     // Superadmin only
     ...(isSuperadmin ? [{
       id: 'Superadmin',

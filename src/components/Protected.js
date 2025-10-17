@@ -38,6 +38,17 @@ const Protected = ({ children, requireAdmin = false, requireSuperadmin = false, 
           }
         }
 
+        // Best-effort: cleanup pending_invites for this email after successful login
+        try {
+          const userEmail = session.user?.email || null;
+          if (userEmail) {
+            await supabase
+              .from('pending_invites')
+              .delete()
+              .eq('email', userEmail);
+          }
+        } catch {}
+
         setChecking(false);
       } catch (e) {
         router.push('/login');

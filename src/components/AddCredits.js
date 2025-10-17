@@ -257,7 +257,7 @@ const InnerAddCredits = () => {
                             <h3 className="subsection-title">CARD INFORMATION</h3>
                             <div className="card-input-group position-relative">
                                 <div className="card-number-input" style={{
-                                    width: '100%', padding: '10px 12px', backgroundColor: '#DEE3E9',color:"#0044EE !important", borderTopLeftRadius: '25px !important', borderTopRightRadius: '25px !important'
+                                    width: '100%', padding: '10px 12px', backgroundColor: '#DEE3E9',color:"#0044EE !important", borderTopLeftRadius: '25px', borderTopRightRadius: '25px'
                                 }}>
                                     <CardNumberElement options={elementOptions} style={{color:"#0044EE !important"}}/>
                                 </div>
@@ -267,12 +267,12 @@ const InnerAddCredits = () => {
                             </div>
                             <div className="expiry-cvc-group row g-2">
                                 <div className="col-6">
-                                    <div className="expiry-input" style={{ width: '100%', padding: '10px 12px' ,backgroundColor: '#DEE3E9',borderBottomLeftRadius: '25px !important'}}>
+                                    <div className="expiry-input" style={{ width: '100%', padding: '10px 12px' ,backgroundColor: '#DEE3E9',borderBottomLeftRadius: '25px'}}>
                                         <CardExpiryElement options={elementOptions} style={{color:"#0044EE !important"}}/>
                                     </div>
                                 </div>
                                 <div className="col-6">
-                                    <div className="cvc-input" style={{ width: '100%', padding: '10px 12px' ,backgroundColor: '#DEE3E9',borderBottomRightRadius: '25px !important'}}>
+                                    <div className="cvc-input" style={{ width: '100%', padding: '10px 12px' ,backgroundColor: '#DEE3E9',borderBottomRightRadius: '25px'}}>
                                         <CardCvcElement options={elementOptions} style={{color:"#0044EE !important"}}/>
                                     </div>
                                 </div>
