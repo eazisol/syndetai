@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Eye, Download } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import CustomInputField from './CustomInputField';
+import ReportPreviewModal from './ReportPreviewModal';
 // Supabase will be imported dynamically to avoid build-time env requirement
 
 const PreviousSubmissions = () => {
@@ -9,6 +10,13 @@ const PreviousSubmissions = () => {
   const [libraryData, setLibraryData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const userId = userData?.id;
+  
+  // Report preview modal state
+  const [previewModal, setPreviewModal] = useState({ 
+    isOpen: false, 
+    reportUrl: null, 
+    companyName: '' 
+  });
   const fetchLibraryData = async (userId) => {
     try {
       setIsLoading(true);
@@ -91,6 +99,22 @@ const PreviousSubmissions = () => {
     }
   };
 
+  const handleViewReport = (reportUrl, companyName) => {
+    setPreviewModal({
+      isOpen: true,
+      reportUrl: reportUrl,
+      companyName: companyName || 'Report'
+    });
+  };
+
+  const closePreviewModal = () => {
+    setPreviewModal({
+      isOpen: false,
+      reportUrl: null,
+      companyName: ''
+    });
+  };
+
   return (
     <div className="submissions-section ">
       <div className="row g-3 mb-2 align-items-center justify-content-between">
@@ -160,11 +184,11 @@ const PreviousSubmissions = () => {
                       {submission.status || '-'}
                     </td>
                     <td style={{ textAlign: 'center' }}>{submission.batch_date || submission.created_at?.split('T')[0] || '-'}</td>
-                    <td style={{ textAlign: 'center' }}>
+                    <td style={{ textAlign: 'center' ,padding:"0px"}}>
                       {submission?.report_url && <div className="action-buttons" style={{ justifyContent: 'center' }}>
-                        <a className="link-button" href={submission?.report_url} target="_blank" rel="noopener noreferrer" title="View Report">
+                        <button className="link-button download-button" onClick={() => handleViewReport(submission?.report_url, submission.company_name)} title="View Report">
                           <Eye className="action-icon" />
-                        </a>
+                        </button>
                         <div className="action-separator"></div>
                         <button className="link-button download-button" onClick={() => handleDownload(submission?.report_url, submission.company_name)} title="Download Report">
                           <Download className="action-icon" />
@@ -178,6 +202,15 @@ const PreviousSubmissions = () => {
           </table>
         )}
       </div>
+      
+      {/* Report Preview Modal */}
+      <ReportPreviewModal
+        isOpen={previewModal.isOpen}
+        reportUrl={previewModal.reportUrl}
+        companyName={previewModal.companyName}
+        onClose={closePreviewModal}
+        onDownload={(url, name) => handleDownload(url, name)}
+      />
     </div>
   );
 };

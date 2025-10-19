@@ -15,6 +15,7 @@ import { Eye, Download, Plus } from 'lucide-react';
 import Image from 'next/image';
 import Protected from '../../components/Protected';
 import TransactionsTable from '../../components/TransactionsTable';
+import ReportPreviewModal from '../../components/ReportPreviewModal';
 function SuperadminPage() {
   const { submissions, refreshUserData } = useApp();
   const [transactions, setTransactions] = useState([]);
@@ -41,6 +42,22 @@ function SuperadminPage() {
     } catch (e) {
       console.log('Download failed', e);
     }
+  };
+
+  const handleViewReport = (reportUrl, companyName) => {
+    setPreviewModal({
+      isOpen: true,
+      reportUrl: reportUrl,
+      companyName: companyName || 'Report'
+    });
+  };
+
+  const closePreviewModal = () => {
+    setPreviewModal({
+      isOpen: false,
+      reportUrl: null,
+      companyName: ''
+    });
   };
 
   const fetchTransactions = async (orgId) => {
@@ -464,6 +481,13 @@ function SuperadminPage() {
   // Submissions for selected organisation with Supabase integration
   const [orgSubmissions, setOrgSubmissions] = useState([]);
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
+  
+  // Report preview modal state
+  const [previewModal, setPreviewModal] = useState({ 
+    isOpen: false, 
+    reportUrl: null, 
+    companyName: '' 
+  });
 
   // Fetch submissions for selected organisation
   const fetchOrgSubmissions = async (orgId) => {
@@ -618,7 +642,7 @@ function SuperadminPage() {
               <div className="card-block">
                 <div className="d-flex justify-content-between align-items-center mb-3">
                   <h3 className="subsection-title mb-0">Users in Organisation</h3>
-                  <CustomButton onClick={() => setShowInviteForm(!showInviteForm)} className="btn-primary">
+                  <CustomButton onClick={() => setShowInviteForm(!showInviteForm)}>
                     Invite User
                   </CustomButton>
                 </div>
@@ -767,18 +791,16 @@ function SuperadminPage() {
                               </span>
                             </td>
                             <td style={{ textAlign: 'center' }}>{s.batch_date || s.created_at?.split('T')[0] || '-'}</td>
-                            <td style={{ textAlign: 'center' }}>
+                            <td style={{ textAlign: 'center',padding:"0px" }}>
                               {s.report_url ? (
                                 <div className="action-buttons" style={{ justifyContent: 'center' }}>
-                                  <a
-                                    className="link-button"
-                                    href={s.report_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                  <button
+                                    className="link-button download-button"
+                                    onClick={() => handleViewReport(s.report_url, s.company_name)}
                                     title="View Report"
                                   >
                                     <Eye className="action-icon" />
-                                  </a>
+                                  </button>
                                   <div className="action-separator"></div>
                                   <button
                                     className="link-button download-button"
@@ -810,6 +832,15 @@ function SuperadminPage() {
         title={`Delete ${confirmState.name}?`}
         onConfirm={confirmDelete}
         onCancel={closeConfirm}
+      />
+      
+      {/* Report Preview Modal */}
+      <ReportPreviewModal
+        isOpen={previewModal.isOpen}
+        reportUrl={previewModal.reportUrl}
+        companyName={previewModal.companyName}
+        onClose={closePreviewModal}
+        onDownload={(url, name) => handleDownload(url, name)}
       />
     </Protected>
   );

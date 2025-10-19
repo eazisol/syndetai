@@ -61,11 +61,19 @@ const InnerAddCredits = () => {
             [name]: validatedValue
         });
     };
-
+/**
+     * handleSubmit()
+     * Main payment function that:
+     * - Validates input fields
+     * - Creates a PaymentIntent via backend API
+     * - Confirms the payment with Stripe
+     * - Records transaction in Supabase
+     * - Updates organisation credits
+     */
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Validate required fields (visual form fields)
+         // Step 1: Validate user input
         const { cardholderName, zip } = paymentForm;
 
         if (!cardholderName.trim()) {
@@ -83,7 +91,7 @@ const InnerAddCredits = () => {
         }
 
         setIsProcessing(true);
-
+// Step 2: Create a PaymentIntent on backend
         try {
             const organisationId = typeof window !== 'undefined' ? localStorage.getItem('organisation_id') : null;
             const piRes = await fetch('/api/payments/create-intent', {
@@ -111,7 +119,7 @@ const InnerAddCredits = () => {
                 setIsProcessing(false);
                 return;
             }
-
+//  Step 3: Confirm payment with Stripe
             const confirmResult = await stripe.confirmCardPayment(clientSecret, {
                 payment_method: {
                     card,
@@ -138,6 +146,7 @@ const InnerAddCredits = () => {
                                 {
                                     organisation_id: organisationId,
                                     credits_added: credits,
+                                    amount: total,
                                     payment_provider: 'stripe',
                                     payment_intent: paymentIntentId
                                 }

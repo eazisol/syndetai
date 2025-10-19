@@ -13,7 +13,8 @@ const TransactionsTable = ({ organisationId = null, title = 'Transactions', wrap
       .from('transactions')
       .select(`
         id,
-          credits_added,
+        credits_added,
+        amount,
         organisation_id,
         payment_intent,
         created_at,
@@ -59,36 +60,34 @@ const TransactionsTable = ({ organisationId = null, title = 'Transactions', wrap
         <table className="submissions-table">
           <thead>
             <tr>
-             
-              
               <th>ORGANIZATION</th>
               <th>PAYMENT INTENT</th>
-              <th>CREDITS ADDED</th>
+              <th style={{ textAlign: 'center', width: '100px' }}>AMOUNT</th>
+              <th style={{ textAlign: 'center', width: '120px' }}>CREDITS ADDED</th>
               <th style={{ textAlign: 'center' }}>CREATED AT</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan="3" style={{ padding: '20px', textAlign: 'center' }}>
+                <td colSpan="5" style={{ padding: '20px', textAlign: 'center' }}>
                   Loading transactions...
                 </td>
               </tr>
             ) : transactions.length === 0 ? (
               <tr>
-                <td colSpan="3" style={{ padding: '20px', textAlign: 'center' }}>
+                <td colSpan="5" style={{ padding: '20px', textAlign: 'center' }}>
                   No transactions found
                 </td>
               </tr>
             ) : (
               transactions.map((t) => (
                 <tr key={t.id}>
-               
-                 
                   <td>{t.organisations?.name || ''}</td>
                   <td>{t.payment_intent || ''}</td>
-                  <td>{t.credits_added ?? ''}</td>
-                  <td style={{ textAlign: 'center' }}>{t.created_at ? new Date(t.created_at).toLocaleDateString() : '-'}</td>
+                  <td style={{ textAlign: 'center', width: '100px' }}>{t.amount ? `£${parseFloat(t.amount).toFixed(2)}` : ''}</td>
+                  <td style={{ textAlign: 'center', width: '120px' }}>{t.credits_added ?? ''}</td>
+                  <td style={{ textAlign: 'center' }}>{t.created_at ? t.created_at.split('T')[0] : '-'}</td>
                 </tr>
               ))
             )}
