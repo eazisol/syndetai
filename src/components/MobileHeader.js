@@ -46,7 +46,7 @@ const MobileHeader = () => {
       } catch {}
     }
   }, [userData]);
-
+// Menu items
   const orgCredits = userData?.organisation?.credits;
   const menuItems = [
     { id: 'Library', label: 'Library', href: '/library', icon: '/library.svg', inactiveIcon: '/library-inactive.svg', visible: true },
@@ -56,19 +56,23 @@ const MobileHeader = () => {
     { id: 'Superadmin', label: 'Superadmin', href: '/superadmin', icon: '/superadmin.svg', inactiveIcon: '/superadmin-inactive.svg', visible: isSuperadmin }
   ].filter(item => item.visible);
 
+  // Toggle menu
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
 
+  // Handle menu click
   const handleMenuClick = (href) => {
     router.push(href);
     setIsMenuOpen(false);
   };
 
+  // Handle overlay click
   const handleOverlayClick = () => {
     setIsMenuOpen(false);
   };
 
+  // Return mobile header
   return (
     <>
       {/* Mobile Header */}

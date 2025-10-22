@@ -17,6 +17,7 @@ const PreviousSubmissions = () => {
     reportUrl: null, 
     companyName: '' 
   });
+  // Fetch library data
   const fetchLibraryData = async (userId) => {
     try {
       setIsLoading(true);
@@ -51,11 +52,10 @@ const PreviousSubmissions = () => {
       setIsLoading(false);
     }
   };
+  // Load library data
   useEffect(() => {
     if (userData?.id) {
       const loadLibraryData = async () => {
-        // let id='0c4cf856-0569-4d90-9214-72dc94f8a48d'
-        // const data = await fetchLibraryData(id);
         const data = await fetchLibraryData(userData?.id);
         setLibraryData(data);
       };
@@ -69,19 +69,20 @@ const PreviousSubmissions = () => {
     submission.app_users?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     submission.app_users?.username?.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
+// Handle download
   const handleDownload = async (reportUrl, companyName) => {
     try {
       if (!reportUrl) {
         console.log('No report URL available for download');
         return;
       }
-
+      // Fetch file for download
       const response = await fetch(reportUrl);
       if (!response.ok) {
         console.log('Failed to fetch file for download');
         return;
       }
+      // Create blob
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
 
@@ -98,7 +99,7 @@ const PreviousSubmissions = () => {
       console.log('Error downloading report:', error);
     }
   };
-
+// Handle view report
   const handleViewReport = (reportUrl, companyName) => {
     setPreviewModal({
       isOpen: true,
@@ -106,7 +107,7 @@ const PreviousSubmissions = () => {
       companyName: companyName || 'Report'
     });
   };
-
+// Close preview modal
   const closePreviewModal = () => {
     setPreviewModal({
       isOpen: false,
@@ -114,7 +115,7 @@ const PreviousSubmissions = () => {
       companyName: ''
     });
   };
-
+// Return previous submissions
   return (
     <div className="submissions-section ">
       <div className="row g-3 mb-2 align-items-center justify-content-between">
@@ -132,7 +133,7 @@ const PreviousSubmissions = () => {
         </div>
       </div>
 
-
+{/* library table */}
       <div className="table-container">
         {isLoading ? (
           <div style={{ padding: '20px', textAlign: 'center' }}>

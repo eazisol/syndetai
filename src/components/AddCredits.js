@@ -17,6 +17,7 @@ const InnerAddCredits = () => {
     const elements = useElements();
     const [credits, setCredits] = useState(10);
     const [isProcessing, setIsProcessing] = useState(false);
+    // element options for stripe
     const elementOptions = {
         style: {
             base: {
@@ -31,12 +32,13 @@ const InnerAddCredits = () => {
             }
         }
     };
+    // payment form state
     const [paymentForm, setPaymentForm] = useState({
         cardholderName: '',
         country: 'United States',
         zip: ''
     });
-
+    // handle credits change
     const handleCreditsChange = (e) => {
         const value = e.target.value;
         // Only allow numbers
@@ -44,7 +46,7 @@ const InnerAddCredits = () => {
             setCredits(parseInt(value) || 0);
         }
     };
-
+    // handle payment change
     const handlePaymentChange = (e) => {
         const { name, value } = e.target;
 
@@ -129,10 +131,11 @@ const InnerAddCredits = () => {
                     }
                 }
             });
-
+            // if payment succeeded
             if (confirmResult.paymentIntent?.status === 'succeeded') {
                 const paymentIntentId = confirmResult.paymentIntent?.id;
                 console.log('Payment succeeded:', paymentIntentId);
+                // try to insert transaction
                 try {
                     const organisationId = typeof window !== 'undefined' ? localStorage.getItem('organisation_id') : null;
                     if (!organisationId) {
@@ -152,6 +155,7 @@ const InnerAddCredits = () => {
                                 }
                             ])
                             .select();
+                        // if error inserting transaction
                         if (insertError) {
                             console.log('Failed to insert transaction:', insertError);
                         } else {

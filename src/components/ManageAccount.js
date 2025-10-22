@@ -62,15 +62,13 @@ const ManageAccount = () => {
   useEffect(() => {
     if (organizationId) {
       const loadUsers = async () => {
-        // let id='1aa7dc0d-e404-45cf-b3e9-02f44151913f'
-        // const data = await fetchUsersData(id);
         const data = await fetchUsersData(organizationId);
         setOrgUsers(data);
       };
       loadUsers();
     }
   }, [organizationId]);
-
+// send invite to users here user custom component sendInviteAndCreatePendingInvite for send invite
   const handleInviteSubmit = async (e) => {
     e.preventDefault();
     if (!inviteForm.username || !inviteForm.email || !organizationId) return;
@@ -83,6 +81,7 @@ const ManageAccount = () => {
         username: inviteForm.username,
         organisationId: organizationId
       });
+      // If error sending invite, show error toast
       if (error) {
         toast.error(error.message || 'Failed to send invite', {
           autoClose: 4000,
@@ -91,6 +90,7 @@ const ManageAccount = () => {
         });
         return;
       }
+      // If invite sent successfully, show success toast
       toast.success('Invite sent successfully.', {
         autoClose: 4000,
         pauseOnHover: false,
@@ -125,13 +125,13 @@ const ManageAccount = () => {
   };
 
   const closeConfirm = () => setConfirmState({ open: false, userId: null, name: '' });
-
+// confirm delete user
   const confirmDelete = async () => {
     if (confirmState.userId != null) {
       try {
         const removed = orgUsers.find(u => u.id === confirmState.userId);
         
-        // Update user in Supabase to set is_active = false
+        // Update user in Supabase to set is_active false
         const client = await ensureSupabase();
         const { error } = await client
           .from('app_users')
@@ -164,6 +164,7 @@ const ManageAccount = () => {
     closeConfirm();
   };
 
+  // toggle admin status
   const toggleAdmin = async (userId) => {
     try {
       const user = orgUsers.find(u => u.id === userId);
@@ -276,7 +277,6 @@ const ManageAccount = () => {
       <div className="borderBottom" style={{ marginTop: '3%' }} />
       <div className="invite-section" style={{ marginTop: '3%' }}>
         <h2 className="section-title">Invite a New User</h2>
-        {/* <form onSubmit={()=>{}} className="invite-form"> */}
         <form onSubmit={handleInviteSubmit} className="invite-form">
           <div className="row g-0 g-lg-5">
             <div className="col-12 col-md-6 col-lg-4">

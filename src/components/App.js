@@ -17,7 +17,7 @@ function App() {
   const handleLogin = () => {
     setIsLoggedIn(true);
   };
-
+// here we have a routing system for the app
   const renderMainContent = () => {
     switch (activePage) {
       case 'Library':
@@ -54,12 +54,12 @@ function App() {
         );
     }
   };
-
+// render main content
   // Show login screen if not logged in
   if (!isLoggedIn) {
     return <LoginScreen onLogin={handleLogin} />;
   }
-
+// return app
   // Show dashboard if logged in
   return (
     <div className="app">

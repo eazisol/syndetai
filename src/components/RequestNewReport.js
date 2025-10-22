@@ -5,7 +5,6 @@ import { useApp } from '../context/AppContext';
 import ImageUpload from './ImageUpload';
 import CustomInputField from './CustomInputField';
 import CustomButton from './CustomButton';
-import UploadTest from './UploadTest';
 import { toast } from 'react-toastify';
 import { v4 as uuidv4 } from 'uuid';
 import ConfirmModal from './ConfirmModal';
@@ -28,8 +27,9 @@ const RequestNewReport = () => {
   // Calculate credits needed
   const creditsNeeded = selectedFiles.length > 0 ? 15 : 10;
   const hasEnoughCredits = (userData?.organisation?.credits || 0) >= creditsNeeded;
-
+// Request new report
   const submitReport = async () => {
+    // If no company or website, show error
     if (!formData.company || !formData.website) {
       toast.error('Please fill in all required fields', {
         autoClose: 4000,
@@ -39,6 +39,7 @@ const RequestNewReport = () => {
       return;
     }
 
+    // If no organization ID or user ID, show error
     if (!organizationId || !userId) {
       toast.error('User organization or ID not found. Please try logging in again.', {
         autoClose: 4000,
@@ -48,6 +49,7 @@ const RequestNewReport = () => {
       return;
     }
 
+    // If not enough credits, show error
     if (!hasEnoughCredits) {
       toast.error(`Insufficient credits. You need ${creditsNeeded} credits but have ${userData?.credits}`, {
         autoClose: 4000,
@@ -60,11 +62,11 @@ const RequestNewReport = () => {
     setIsSubmitting(true);
 
     try {
-      // Dynamically import Supabase client
+      // Import Supabase client
       const { getSupabase } = await import('../supabaseClient');
       const supabase = getSupabase();
 
-      // Check organisation has enough credits on server
+      // Check organisation has enough credits
       const { data: orgRow, error: orgErr } = await supabase
         .from('organisations')
         .select('credits')
@@ -91,7 +93,7 @@ const RequestNewReport = () => {
         return;
       }
       
-      // Ensure app_users row exists for this user to satisfy FK on submissions
+      // Ensure app_users row exists for this user
       try {
         const { data: existingUser, error: existingErr } = await supabase
           .from('app_users')
@@ -100,7 +102,7 @@ const RequestNewReport = () => {
           .maybeSingle();
 
         if (!existingUser && !existingErr) {
-          // Get auth user to retrieve email if not in userData
+          // Get auth user email if not in userData
           let emailToUse = userData?.email || null;
           if (!emailToUse) {
             const { data: authData } = await supabase.auth.getUser();
@@ -124,7 +126,7 @@ const RequestNewReport = () => {
         // Continue; insert may still fail and be handled below
       }
       
-      // Create new report in Supabase using the provided user ID
+      // Create new report in Supabase
       const { data, error } = await supabase
         .from('submissions')
         .insert([
@@ -155,7 +157,7 @@ const RequestNewReport = () => {
 
       const submissionId = data[0].id;
 
-      // Upload files if any are selected
+      // Upload files
       if (selectedFiles.length > 0) {
         try {
           const uploadPromises = selectedFiles.map(async (file, index) => {
@@ -172,7 +174,7 @@ const RequestNewReport = () => {
               throw uploadError;
             }
 
-            // Build a public URL for the uploaded file
+            // Build public URL for the uploaded file
             const { data: publicUrlData } = supabase
               .storage
               .from(bucket)
@@ -180,7 +182,7 @@ const RequestNewReport = () => {
 
             const fileUrl = publicUrlData?.publicUrl || null;
 
-            // Insert a record into documents table
+            // Insert record into documents table
             try {
               await supabase
                 .from('documents')
@@ -205,11 +207,6 @@ const RequestNewReport = () => {
           console.log('All files uploaded successfully');
         } catch (uploadError) {
           console.log('Error uploading files:', uploadError);
-          // toast.error('Request submitted but files failed to upload', {
-          //   autoClose: 4000,
-          //   pauseOnHover: false,
-          //   pauseOnFocusLoss: false
-          // });
         }
       }
 
@@ -227,7 +224,7 @@ const RequestNewReport = () => {
         console.log('Credits deduction exception:', decEx);
       }
 
-      // Refresh user/organisation data so UI updates without reload
+      // Refresh user/organisation data
       try { await refreshUserData?.(); } catch {}
 
       // Show success message
@@ -237,7 +234,7 @@ const RequestNewReport = () => {
         pauseOnFocusLoss: false
       });
 
-      // Reset form
+      // Reset form data
       setFormData({ company: '', website: '' });
       setSelectedFiles([]);
 
@@ -254,6 +251,7 @@ const RequestNewReport = () => {
     }
   };
 
+  // Handle submit
   const handleSubmit = (e) => {
     e.preventDefault();
     // Pre-checks before opening confirmation
@@ -284,14 +282,17 @@ const RequestNewReport = () => {
     setConfirmOpen(true);
   };
 
+  // Handle image select
   const handleImageSelect = (files) => {
     setSelectedFiles(files);
   };
 
+  // Handle image remove
   const handleImageRemove = (index) => {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
+  // Handle input change
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
@@ -301,11 +302,10 @@ const RequestNewReport = () => {
 
   return (
     <div className="request-section">
-      {/* Temporary debug component - remove after fixing the issue */}
-      {/* <UploadTest /> */}
+      {/* Temporary debug component - remove after fixing the issue with uploads */}
+    
       
       <div className="request-form-container">
-        {/* <form onSubmit={()=>{}} className="request-form"> */}
         <form onSubmit={handleSubmit} className="request-form">
         <h2 className="section-title text-center mb-5">Request New Report</h2>
           <div className="row g-3">
@@ -343,69 +343,6 @@ const RequestNewReport = () => {
               />
             </div>
           </div>
-
-          {/* Credit Information */}
-          {/* <div className="row g-3 mt-3">
-            <div className="col-12">
-              <div style={{ 
-                padding: '16px', 
-                backgroundColor: '#f8f9fa', 
-                borderRadius: '8px',
-                border: '1px solid #e9ecef'
-              }}>
-                <div className="row g-0 align-items-center">
-                  <div className="col-6">
-                    <p style={{ margin: 0, fontSize: '14px', color: '#5F6368' }}>
-                      Credits Required:
-                    </p>
-                  </div>
-                  <div className="col-6 text-end">
-                    <p style={{ 
-                      margin: 0, 
-                      fontSize: '16px', 
-                      fontWeight: '600',
-                      color: selectedFiles.length > 0 ? '#dc3545' : '#28a745'
-                    }}>
-                      {creditsNeeded} credits
-                      {selectedFiles.length > 0 ? ' (with images)' : ' (no images)'}
-                    </p>
-                  </div>
-                </div>
-                <div className="row g-0 align-items-center mt-2">
-                  <div className="col-6">
-                    <p style={{ margin: 0, fontSize: '14px', color: '#5F6368' }}>
-                      Your Credits:
-                    </p>
-                  </div>
-                  <div className="col-6 text-end">
-                    <p style={{ 
-                      margin: 0, 
-                      fontSize: '16px', 
-                      fontWeight: '600',
-                      color: hasEnoughCredits ? '#28a745' : '#dc3545'
-                    }}>
-                      {userData?.credits} credits
-                    </p>
-                  </div>
-                </div>
-                {!hasEnoughCredits && (
-                  <div className="row g-0 mt-2">
-                    <div className="col-12">
-                      <p style={{ 
-                        margin: 0, 
-                        fontSize: '12px', 
-                        color: '#dc3545',
-                        textAlign: 'center'
-                      }}>
-                        ⚠️ Insufficient credits. Please add more credits to submit this request.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div> */}
-          
           <div className="row g-3 mt-2">
             <div className="col-12">
               <CustomButton 

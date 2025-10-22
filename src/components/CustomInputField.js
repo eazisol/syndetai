@@ -15,7 +15,9 @@ const CustomInputField = ({
   rightIconAriaLabel = 'input adornment',
   ...props 
 }) => {
+  // check if has right icon
   const hasRightIcon = Boolean(rightIcon);
+  // return custom input field
   return (
     <div className={`custom-input-wrapper ${wrapperClassName}`}>
       <input

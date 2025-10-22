@@ -59,7 +59,7 @@ function SuperadminPage() {
       companyName: ''
     });
   };
-
+// Fetch transactions from Supabase
   const fetchTransactions = async (orgId) => {
     try {
       setIsLoadingTransactions(true);
@@ -92,6 +92,7 @@ function SuperadminPage() {
     }
   };
 
+  // Load transactions when organisation changes
   useEffect(() => {
     const loadTransactions = async () => {
       const data = await fetchTransactions(selectedOrgId);
@@ -182,18 +183,21 @@ function SuperadminPage() {
       });
     }
   };
-
+//
+  // Handle add new organization
   const handleAddNewOrganization = () => {
     setSelectedOrgId(null);
     setOrgForm({ name: '', type: '', credits: '' });
     setShowOrgForm(true);
   };
 
+  // Handle organization form change
   const handleOrgFormChange = (e) => {
     const { name, value, type, checked } = e.target;
     setOrgForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   };
 
+  // Handle save organisation
   const handleSaveOrganisation = async (e) => {
     e.preventDefault();
     const creditsNum = Number(orgForm.credits || 0);
@@ -329,6 +333,7 @@ function SuperadminPage() {
     fetchOrgUsers(selectedOrgId);
   }, [selectedOrgId]);
 
+  // Toggle admin
   const toggleAdmin = async (userId) => {
     if (!selectedOrgId) return;
 
@@ -369,6 +374,7 @@ function SuperadminPage() {
     }
   };
 
+  // Remove user
   const removeUser = async (userId) => {
     if (!selectedOrgId) return;
 
@@ -406,12 +412,14 @@ function SuperadminPage() {
     }
   };
 
+  // Open confirm delete user
   const openConfirmDeleteUser = (user) => {
     setConfirmState({ open: true, entityId: user.id, name: user?.username || user.username || 'User' });
   };
 
   const closeConfirm = () => setConfirmState({ open: false, entityId: null, name: '' });
 
+  // Confirm delete user
   const confirmDelete = async () => {
     if (confirmState.entityId) {
       await removeUser(confirmState.entityId);
@@ -419,12 +427,14 @@ function SuperadminPage() {
     closeConfirm();
   };
 
+  // Invite form
   const [inviteForm, setInviteForm] = useState({ username: '', email: '', isAdmin: false });
   const [showInviteForm, setShowInviteForm] = useState(false);
   const handleInviteChange = (e) => {
     const { name, value, type, checked } = e.target;
     setInviteForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   };
+  // Handle invite
   const handleInvite = async (e) => {
     e.preventDefault();
     if (!selectedOrgId) {
@@ -491,15 +501,18 @@ function SuperadminPage() {
 
   // Fetch submissions for selected organisation
   const fetchOrgSubmissions = async (orgId) => {
+    // If no organisation ID, set submissions to empty array and return
     if (!orgId) {
       setOrgSubmissions([]);
       return;
     }
 
     try {
+      // Set loading state to true
       setIsLoadingSubmissions(true);
       const { getSupabase } = await import('../../supabaseClient');
       const supabase = getSupabase();
+      // Fetch submissions from Supabase
       const { data, error } = await supabase
         .from('submissions')
         .select(`
@@ -610,7 +623,7 @@ function SuperadminPage() {
                       </select>
                     </div>
                   </div>
-
+{/* Organization form */}
                   <div className="col-12 col-lg-7 d-flex align-items-center" style={{ marginBottom: "-2%" }}>
                     {showOrgForm && (
                       <form onSubmit={handleSaveOrganisation} className="row gy-3 gx-4 gx-lg-5 align-items-center">

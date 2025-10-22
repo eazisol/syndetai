@@ -98,7 +98,7 @@ const LoginScreen = ({ onLogin }) => {
         if (!invite) return;
 
         const username = invite.username || (user.email ? user.email.split('@')[0] : 'user');
-
+// insert user into app_users
         const { error: insertErr } = await supabase.from('app_users').insert([
           {
             id: user.id,
@@ -116,6 +116,7 @@ const LoginScreen = ({ onLogin }) => {
           return;
         }
 
+        // delete pending invite
         await supabase.from('pending_invites').delete().eq('email', user.email);
       } catch (e) {
         console.error('First login setup failed:', e);
@@ -127,7 +128,7 @@ const LoginScreen = ({ onLogin }) => {
     }
   }, [session]);
 
-  // Check existing session on component mount
+  // Check existing session
   useEffect(() => {
     const checkSession = async () => {
       if (!mounted) return;
@@ -157,6 +158,7 @@ const LoginScreen = ({ onLogin }) => {
     checkSession();
   }, [mounted, router]);
 
+  // Handle submit
   const handleSubmit = async (e) => {
     e.preventDefault();
   

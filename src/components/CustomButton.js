@@ -12,6 +12,7 @@ const CustomButton = ({
   loadingText = 'Loading...',
   ...props 
 }) => {
+  // custom button that is use in whole app
   return (
     <button
       type={type}

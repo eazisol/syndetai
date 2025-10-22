@@ -11,6 +11,7 @@ const Protected = ({ children, requireAdmin = false, requireSuperadmin = false, 
 
   useEffect(() => {
     let isActive = true;
+    // Check authentication
     const checkAuth = async () => {
       try {
         const { getSupabase } = await import('../supabaseClient');
@@ -54,10 +55,12 @@ const Protected = ({ children, requireAdmin = false, requireSuperadmin = false, 
         router.push('/login');
       }
     };
+    // Check authentication
     checkAuth();
     return () => { isActive = false; };
   }, [router, userData, requireAdmin, requireSuperadmin, unauthorizedRedirect]);
 
+  // If checking, return null
   if (checking) return null;
   return children;
 };
