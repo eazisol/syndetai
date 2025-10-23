@@ -6,9 +6,11 @@ import Image from 'next/image';
 import CustomInputField from './CustomInputField';
 import CustomButton from './CustomButton';
 import { toast } from 'react-toastify';
+import { useApp } from '../context/AppContext';
 
 const LoginScreen = ({ onLogin }) => {
   const router = useRouter();
+  const { refreshUserData } = useApp();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -51,11 +53,27 @@ const LoginScreen = ({ onLogin }) => {
       
       if (accessToken && refreshToken) {
         // Set session and redirect to library
-        setSession({ access_token: accessToken, refresh_token: refreshToken });
-        toast.success('Login successful! Redirecting...');
-        setTimeout(() => {
-          router.push('/library');
-        }, 1000);
+        const handleAuth = async () => {
+          const { getSupabase } = await import('../supabaseClient');
+          const supabase = getSupabase();
+          
+          // Set the session in Supabase auth
+          await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+          
+          // Get the actual session from Supabase
+          const { data } = await supabase.auth.getSession();
+          setSession(data.session);
+          
+          toast.success('Login successful! Redirecting...');
+          setTimeout(() => {
+            router.push('/library');
+          }, 1000);
+        };
+        
+        handleAuth();
       }
     }
   }, [mounted, router]);
@@ -66,25 +84,38 @@ const LoginScreen = ({ onLogin }) => {
       try {
         const { getSupabase } = await import('../supabaseClient');
         const supabase = getSupabase();
-
-        const { data: authData } = await supabase.auth.getUser();
-        const user = authData?.user;
-        if (!user) return;
-
-        // Check if already present in app_users
+  
+        // Wait for user to be available (retry up to 5 times)
+        let user = null;
+        for (let i = 0; i < 5; i++) {
+          const { data: authData } = await supabase.auth.getUser();
+          if (authData?.user) {
+            user = authData.user;
+            break;
+          }
+          await new Promise((res) => setTimeout(res, 500)); // wait 0.5s
+        }
+  
+        if (!user) {
+          console.warn('User not found after login, skipping setup.');
+          return;
+        }
+  
+        // Check if user already exists in app_users
         const { data: existingUser, error: existingErr } = await supabase
           .from('app_users')
           .select('id')
           .eq('id', user.id)
           .maybeSingle();
-
+  
         if (existingErr) {
           console.error('Error checking app_users:', existingErr.message || existingErr);
           return;
         }
         if (existingUser) return;
-
+  
         // Find pending invite by email
+        console.log('🔍 Checking pending invites for:', user.email);
         const { data: invite, error: inviteErr } = await supabase
           .from('pending_invites')
           .select('organisation_id, username')
@@ -92,13 +123,26 @@ const LoginScreen = ({ onLogin }) => {
           .maybeSingle();
 
         if (inviteErr) {
-          console.error('Error checking pending_invites:', inviteErr.message || inviteErr);
+        
           return;
         }
-        if (!invite) return;
-
+        if (!invite) {
+          
+          return;
+        }
+        
+        console.log(' Found pending invite:', invite);
+  
         const username = invite.username || (user.email ? user.email.split('@')[0] : 'user');
-// insert user into app_users
+
+        console.log(' Inserting user into app_users:', {
+          id: user.id,
+          email: user.email,
+          username,
+          organisation_id: invite.organisation_id
+        });
+
+        // Insert user into app_users
         const { error: insertErr } = await supabase.from('app_users').insert([
           {
             id: user.id,
@@ -107,26 +151,48 @@ const LoginScreen = ({ onLogin }) => {
             is_admin: false,
             is_superadmin: false,
             organisation_id: invite.organisation_id,
-            is_active:true
-          }
+            is_active: true,
+          },
         ]);
 
         if (insertErr) {
-          console.error('Error inserting into app_users:', insertErr.message || insertErr);
+        
           return;
         }
+        
+        console.log(' Successfully inserted user into app_users');
 
-        // delete pending invite
-        await supabase.from('pending_invites').delete().eq('email', user.email);
+        // Delete pending invite
+        const { error: deleteErr } = await supabase.from('pending_invites').delete().eq('email', user.email);
+        
+        if (deleteErr) {
+         
+        } else {
+          console.log(' Successfully deleted pending invite');
+        }
+
+        // Refresh user data in AppContext to show credits and other data
+        console.log(' Refreshing user data...');
+        try {
+          // Call the refresh function from AppContext
+          if (refreshUserData) {
+            await refreshUserData();
+            console.log(' User data refreshed successfully');
+          }
+        } catch (refreshError) {
+        
+        }
       } catch (e) {
         console.error('First login setup failed:', e);
       }
     };
-
+  
     if (session) {
+      console.log('🚀 Session found, starting first login process');
       handleFirstLogin();
     }
   }, [session]);
+  
 
   // Check existing session
   useEffect(() => {
