@@ -55,8 +55,17 @@ export async function sendInviteAndCreatePendingInvite(supabase, params) {
   const trimmedEmail = String(email).trim();
   const trimmedUsername = String(username).trim();
 
-  // 1) Send magic link
-  const { error: otpError } = await supabase.auth.signInWithOtp({ email: trimmedEmail });
+  // 1) Send magic link with increased expiration (default is 600, set e.g. to 1800 seconds = 30 minutes)
+  const { error: otpError } = await supabase.auth.signInWithOtp({ 
+    email: trimmedEmail,
+    options: { 
+      emailRedirectTo: undefined, // optional, leave as is/use your redirect if needed
+      shouldCreateUser: true,     // default true
+      // increase expire in seconds, e.g. 1800 (30 minutes)
+      // As of Supabase JS v2, pass 'expiresIn' property (max is 604800)
+      expiresIn: 1800 
+    }
+  });
   if (otpError) return { error: otpError };
 
   // 2) Check if email already exists in pending_invites
