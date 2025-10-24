@@ -430,6 +430,7 @@ function SuperadminPage() {
   // Invite form
   const [inviteForm, setInviteForm] = useState({ username: '', email: '', isAdmin: false });
   const [showInviteForm, setShowInviteForm] = useState(false);
+  const [isInviting, setIsInviting] = useState(false);
   const handleInviteChange = (e) => {
     const { name, value, type, checked } = e.target;
     setInviteForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
@@ -454,13 +455,15 @@ function SuperadminPage() {
       return;
     }
 
+    setIsInviting(true);
     try {
       const { getSupabase } = await import('../../supabaseClient');
       const supabase = getSupabase();
       const { error } = await sendInviteAndCreatePendingInvite(supabase, {
         email: inviteForm.email,
         username: inviteForm.username,
-        organisationId: selectedOrgId
+        organisationId: selectedOrgId,
+        isAdmin: inviteForm.isAdmin
       });
       if (error) {
         toast.error(error.message || 'Failed to invite user', {
@@ -485,6 +488,8 @@ function SuperadminPage() {
         pauseOnHover: false,
         pauseOnFocusLoss: false
       });
+    } finally {
+      setIsInviting(false);
     }
   };
 
@@ -723,19 +728,21 @@ function SuperadminPage() {
                     <form onSubmit={handleInvite} className="invite-form">
                       <div className="row g-0 g-lg-4 mb-0">
                         <div className="col-12 col-md-4">
-                          <CustomInputField name="username" placeholder="Username" value={inviteForm.username} onChange={handleInviteChange} />
+                          <CustomInputField name="username" placeholder="Username" value={inviteForm.username} onChange={handleInviteChange} disabled={isInviting} />
                         </div>
                         <div className="col-12 col-md-4">
-                          <CustomInputField name="email" type="email" placeholder="Email" value={inviteForm.email} onChange={handleInviteChange} />
+                          <CustomInputField name="email" type="email" placeholder="Email" value={inviteForm.email} onChange={handleInviteChange} disabled={isInviting} />
                         </div>
                         <div className="col-12 col-md-2 d-flex align-items-center">
                           <label className="checkbox-label">
-                            <input type="checkbox" name="isAdmin" checked={inviteForm.isAdmin} onChange={handleInviteChange} />
+                            <input type="checkbox" name="isAdmin" checked={inviteForm.isAdmin} onChange={handleInviteChange} disabled={isInviting} />
                             <span style={{ marginLeft: 8 }}>Admin</span>
                           </label>
                         </div>
                         <div className="col-12 col-md-2 d-flex align-items-end" style={{ marginLeft: "-29px" }}>
-                          <CustomButton type="submit">Send Invite</CustomButton>
+                          <CustomButton type="submit" disabled={isInviting}>
+                            {isInviting ? 'Sending...' : 'Send Invite'}
+                          </CustomButton>
                         </div>
                       </div>
                     </form>

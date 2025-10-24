@@ -1,6 +1,6 @@
 import React from 'react';
 
-const ConfirmModal = ({ open, title, description, confirmText = 'Confirm', cancelText = 'Cancel', onConfirm, onCancel }) => {
+const ConfirmModal = ({ open, title, description, confirmText = 'Confirm', cancelText = 'Cancel', onConfirm, onCancel,isSubmitting }) => {
   if (!open) return null;
 
   return (

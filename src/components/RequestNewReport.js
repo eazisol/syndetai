@@ -389,6 +389,7 @@ const RequestNewReport = () => {
             </div>
           </div>
         }
+        
         confirmText={isSubmitting ? 'Submitting...' : 'Confirm & Submit'}
         cancelText={'Cancel'}
         onConfirm={() => { if (!isSubmitting) submitReport(); }}

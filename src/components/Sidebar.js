@@ -1,17 +1,19 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useApp } from '../context/AppContext';
 import Image from 'next/image';
 // Avoid top-level import to keep build safe on prerender; import dynamically where needed
 
 const Sidebar = () => {
-  const { userData,user } = useApp();
+  const { userData, user } = useApp();
   const pathname = usePathname();
   const router = useRouter();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isSuperadmin, setIsSuperadmin] = useState(false);
+  
+  // Use userData from AppContext instead of local state
+  const isAdmin = Boolean(userData?.is_admin);
+  const isSuperadmin = Boolean(userData?.is_superadmin);
 
   const handleLogout = async () => {
     try {
@@ -21,73 +23,10 @@ const Sidebar = () => {
     } catch (e) {
       // no-op; navigate regardless
     } finally {
-      try {
-        localStorage.removeItem('is_admin');
-        localStorage.removeItem('is_superadmin');
-        localStorage.removeItem('organisation_id');
-      } catch {}
       router.push('/login');
     }
   };
 
-  useEffect(() => {
-    const loadRoles = async () => {
-      // Hydrate from cache immediately to avoid flicker on refresh
-      try {
-        const cachedAdmin = localStorage.getItem('is_admin');
-        const cachedSuper = localStorage.getItem('is_superadmin');
-        if (cachedAdmin !== null) setIsAdmin(cachedAdmin === 'true');
-        if (cachedSuper !== null) setIsSuperadmin(cachedSuper === 'true');
-      } catch {}
-
-      const { getSupabase } = await import('../supabaseClient');
-      const supabase = getSupabase();
-      const { data: authData, error: authError } = await supabase.auth.getUser();
-      if (authError || !authData?.user) return;
-
-      const userId = authData.user.id;
-      const userEmail = authData.user.email;
-
-      // First: look up by auth id
-      let { data, error } = await supabase
-        .from('app_users')
-        .select('id, email, is_admin, is_superadmin, organisation_id')
-        .eq('id', userId)
-        .maybeSingle();
-
-      // Fallback: look up by email if not found
-      if (!data && userEmail) {
-        const byEmail = await supabase
-          .from('app_users')
-          .select('id, email, is_admin, is_superadmin, organisation_id')
-          .eq('email', userEmail)
-          .maybeSingle();
-        if (!byEmail.error) {
-          data = byEmail.data ?? null;
-        }
-      }
-
-      // Apply flags
-      if (data) {
-        setIsAdmin(Boolean(data.is_admin));
-        setIsSuperadmin(Boolean(data.is_superadmin));
-        try {
-          localStorage.setItem('is_admin', String(Boolean(data.is_admin)));
-          localStorage.setItem('is_superadmin', String(Boolean(data.is_superadmin)));
-          localStorage.setItem('organisation_id', data.organisation_id || '');
-        } catch {}
-      } else {
-        setIsAdmin(false);
-        setIsSuperadmin(false);
-        try {
-          localStorage.removeItem('is_admin');
-          localStorage.removeItem('is_superadmin');
-          localStorage.removeItem('organisation_id');
-        } catch {}
-      }
-    };
-    loadRoles();
-  }, []);
 
   const menuItems = [
     // Public (visible to all logged-in users)

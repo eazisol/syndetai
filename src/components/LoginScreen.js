@@ -118,7 +118,7 @@ const LoginScreen = ({ onLogin }) => {
         console.log('🔍 Checking pending invites for:', user.email);
         const { data: invite, error: inviteErr } = await supabase
           .from('pending_invites')
-          .select('organisation_id, username')
+          .select('organisation_id, username, is_admin')
           .eq('email', user.email)
           .maybeSingle();
 
@@ -148,7 +148,7 @@ const LoginScreen = ({ onLogin }) => {
             id: user.id,
             email: user.email,
             username,
-            is_admin: false,
+            is_admin: Boolean(invite.is_admin),
             is_superadmin: false,
             organisation_id: invite.organisation_id,
             is_active: true,

@@ -11,7 +11,7 @@ export async function POST(req) {
     // Get invite (no status/expiry columns required)
     const { data: invite, error: inviteErr } = await supabase
       .from('pending_invites')
-      .select('id, email, username, organisation_id, token')
+      .select('id, email, username, organisation_id, token, is_admin')
       .eq('token', token)
       .maybeSingle();
     if (inviteErr || !invite) {
@@ -32,7 +32,7 @@ export async function POST(req) {
         id: user.id,
         email: invite.email,
         username: invite.username || invite.email?.split('@')[0] || 'user',
-        is_admin: false,
+        is_admin: Boolean(invite.is_admin),
         is_superadmin: false,
         organisation_id: invite.organisation_id
       }, { onConflict: 'id' });

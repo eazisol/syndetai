@@ -18,7 +18,7 @@ const PreviousSubmissions = () => {
     companyName: '' 
   });
   // Fetch library data
-  const fetchLibraryData = async (userId) => {
+  const fetchLibraryData = async (userId, organisationId) => {
     try {
       setIsLoading(true);
       const { getSupabase } = await import('../supabaseClient');
@@ -38,7 +38,7 @@ const PreviousSubmissions = () => {
           created_at,
           app_users!inner(username, email)
         `)
-        .eq('user_id', userId)
+        .eq('organisation_id', organisationId)
         .order('created_at', { ascending: false });
       if (error) {
         console.log('Supabase error:', error);
@@ -54,14 +54,14 @@ const PreviousSubmissions = () => {
   };
   // Load library data
   useEffect(() => {
-    if (userData?.id) {
+    if (userData?.id && userData?.organisation_id) {
       const loadLibraryData = async () => {
-        const data = await fetchLibraryData(userData?.id);
+        const data = await fetchLibraryData(userData?.id, userData?.organisation_id);
         setLibraryData(data);
       };
       loadLibraryData();
     }
-  }, [userData?.id]);
+  }, [userData?.id, userData?.organisation_id]);
 
   const filteredSubmissions = libraryData.filter(submission =>
     submission.company_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -162,7 +162,6 @@ const PreviousSubmissions = () => {
             </thead>
             <tbody>
               {filteredSubmissions.map((submission) => {
-                let link = "https://tnsqnyriumdgaugkgxun.supabase.co/storage/v1/object/public/documents/6441a892-8a2c-4ed4-8c3a-c3739fd88c28.pdf"
                 return (
                   <tr key={submission.id}>
                     <td>{submission.company_name || '-'}</td>

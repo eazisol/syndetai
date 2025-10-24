@@ -52,7 +52,7 @@ const MobileHeader = () => {
     { id: 'Library', label: 'Library', href: '/library', icon: '/library.svg', inactiveIcon: '/library-inactive.svg', visible: true },
     { id: 'New Request', label: 'New Request', href: '/new-request', icon: '/new-request.svg', inactiveIcon: '/new-request-inactive.svg', visible: true },
     { id: 'Manage Account', label: 'Manage Account', href: '/manage-account', icon: '/settingactive.svg', inactiveIcon: '/setting.svg', visible: isAdmin },
-    { id: 'Add Credits', label: `Add Credits${Number.isFinite(orgCredits) ? ` (${orgCredits})` : ''}`, href: '/add-credits', icon: '/criedtactive.svg', inactiveIcon: '/credit.svg', visible: true },
+    { id: 'Add Credits', label: `Add Credits${Number.isFinite(orgCredits) ? ` (${orgCredits})` : ''}`, href: '/add-credits', icon: '/criedtactive.svg', inactiveIcon: '/credit.svg', visible: isAdmin },
     { id: 'Superadmin', label: 'Superadmin', href: '/superadmin', icon: '/superadmin.svg', inactiveIcon: '/superadmin-inactive.svg', visible: isSuperadmin }
   ].filter(item => item.visible);
 
