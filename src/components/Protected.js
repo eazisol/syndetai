@@ -22,7 +22,7 @@ const Protected = ({ children, requireAdmin = false, requireSuperadmin = false, 
         if (!isActive) return;
 
         if (!session) {
-          router.push('/login');
+          router.push('/home');
           return;
         }
 
@@ -43,7 +43,7 @@ const Protected = ({ children, requireAdmin = false, requireSuperadmin = false, 
 
         setChecking(false);
       } catch (e) {
-        router.push('/login');
+        router.push('/home');
       }
     };
     // Check authentication

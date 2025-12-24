@@ -9,6 +9,8 @@ import ManageAccount from './ManageAccount';
 import AddCredits from './AddCredits';
 import LoginScreen from './LoginScreen';
 import { useApp } from '../context/AppContext';
+import Cards from './newdesign/Cards';
+import HomeAlt from './newdesign/HomeAlt';
 
 function App() {
   const { activePage } = useApp();
@@ -19,7 +21,23 @@ function App() {
   };
 // here we have a routing system for the app
   const renderMainContent = () => {
+
     switch (activePage) {
+      case 'Home':
+      return (
+        <div className="main-content">
+          <div className="borderBottom" />
+          <Cards />
+        </div>
+      );
+      case 'Home2':
+      return (
+        <div className="main-content">
+          <div className="borderBottom" />
+          <HomeAlt />
+        </div>
+      );
+
       case 'Library':
         return (
           <div className="main-content">
