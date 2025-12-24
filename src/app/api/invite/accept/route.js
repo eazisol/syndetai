@@ -1,3 +1,5 @@
+import { getSupabase } from "@/supabaseClient";
+
 export async function POST(req) {
   try {
     const { token } = await req.json();
@@ -5,7 +7,7 @@ export async function POST(req) {
       return new Response(JSON.stringify({ error: 'Missing token' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 
-    const { getSupabase } = await import('../../../supabaseClient');
+    // const { getSupabase } = await import('../../../supabaseClient');
     const supabase = getSupabase();
 
     // Get invite (no status/expiry columns required)
