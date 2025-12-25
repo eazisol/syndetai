@@ -21,7 +21,6 @@ function App() {
   };
 // here we have a routing system for the app
   const renderMainContent = () => {
-
     switch (activePage) {
       case 'Home':
       return (
@@ -37,7 +36,6 @@ function App() {
           <HomeAlt />
         </div>
       );
-
       case 'Library':
         return (
           <div className="main-content">

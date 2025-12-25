@@ -1,11 +1,10 @@
-'use client';
+"use client";
 
 import { useState } from "react";
-// import { useCart } from "./cart/CartContext";
+import { useCart } from "./CartContext";
 
 export default function Cards() {
-
-  // const { addToCart } = useCart();
+  const { addToCart } = useCart();
 
   const [plans, setPlans] = useState([
     {
@@ -24,7 +23,7 @@ export default function Cards() {
         { icon: "/tick.svg", text: "Email support" },
       ],
     },
-    
+
     {
       id: 2,
       icon: "/images/analysis.png",
@@ -65,7 +64,7 @@ export default function Cards() {
 
   return (
     <section className="mi-section py-5">
-      <div className="container mi-container">
+      <div className="container">
         <div className="text-center">
           <div className="mi-top-pill mx-auto">
             <img className="mi-top-pill-icon" src="/images/logo.png" alt="" />
@@ -104,8 +103,8 @@ export default function Cards() {
                     <div className="mi-popular-badge">Most Popular</div>
                   )}
 
-                  <div className="mi-card-body flex-grow-1">
-                    <div className="mi-icon-box">
+                  <div className= {idx === 1 ?"mi-card-bodyy " : "mi-card-body flex-grow-1"}>
+                    <div className={idx === 1 ?"mi-icon-boxx" : "mi-icon-box"}>
                       <img className="mi-icon" src={plan.icon} alt="" />
                     </div>
 
@@ -114,7 +113,11 @@ export default function Cards() {
                       <p className="mi-card-desc">{plan.desc}</p>
                     </div>
 
-                    <div className="mi-toggle" role="group" aria-label="Billing">
+                    <div
+                      className="mi-toggle"
+                      role="group"
+                      aria-label="Billing"
+                    >
                       <span
                         className={`mi-toggle-pill ${isAnnual ? "right" : ""}`}
                       />
@@ -166,16 +169,21 @@ export default function Cards() {
                     </ul>
                   </div>
 
-                  <div className="mi-card-footer mt-auto">
+                  <div className= {idx === 1 ?"mi-card-footerr " : "mi-card-footer mt-auto"}>
                     <button
                       type="button"
                       className="mi-btn w-100 d-flex align-items-center justify-content-center gap-2"
+                        onClick={() =>
+                        addToCart({
+                          title: plan.title,
+                          type: "One-off", 
+                          price: Number(
+                            String(plan.price).replace(/[^0-9.]/g, "")
+                          ), 
+                        })
+                      }
                     >
-                      <img
-                        className="mi-cart-img"
-                        src="/cart.svg"
-                        alt=""
-                      />
+                      <img className="mi-cart-img" src="/cart.svg" alt="" />
                       <span>Add to basket</span>
                     </button>
                   </div>

@@ -5,7 +5,6 @@ import AddCredits from "../../components/AddCredits";
 import Protected from "../../components/Protected";
 
 export default function AddCreditsPage() {
-
   return (
     <Protected requireAdmin>
       <div className="app">

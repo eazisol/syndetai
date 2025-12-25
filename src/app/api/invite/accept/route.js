@@ -8,6 +8,7 @@ export async function POST(req) {
     }
 
     // const { getSupabase } = await import('../../../supabaseClient');
+    // const { getSupabase } = await import('../../../supabaseClient');
     const supabase = getSupabase();
 
     // Get invite (no status/expiry columns required)

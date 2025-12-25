@@ -19,7 +19,11 @@ const RequestNewReport = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   
-  const organizationId = localStorage.getItem('organisation_id');
+  const organizationId =
+    (userData?.organisation_id) ||
+    (userData?.organisation && userData.organisation.id) ||
+    (typeof window !== 'undefined' ? localStorage.getItem('organisation_id') : null);
+  
   const userId = userData?.id;
 
   
