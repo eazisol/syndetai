@@ -10,14 +10,13 @@ export default function Navbar() {
       <div className="container">
         <div className="d-flex align-items-center justify-content-between mi-navbar-inner">
           {/* Logo */}
-          <Image
-            src="/images/LogoT.png"
-            alt="Logo"
-            width={120}
-            height={36}
-            className="mi-navbar-logo"
-            priority
-          />
+          <Image 
+                       src="/logo.svg" 
+                       alt="SyndetAI Logo" 
+                       width={24}
+                       height={24}
+                       className="logo-svg"
+                     />
 
           {/* Cart */}
           <button type="button" className="mi-cart-btn" aria-label="cart">
