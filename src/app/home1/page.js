@@ -1,20 +1,15 @@
-'use client';
 
-import FaqSection from "@/components/newdesign/FaqSection";
-import Footer from "@/components/newdesign/Footer";
-import HomeAlt from "@/components/newdesign/HomeAlt";
-import Navbar from "@/components/newdesign/Navbar";
+import { notFound } from 'next/navigation';
+import HomeOne from '@/components/newdesign/HomeOne';
 
+export default async function ProtectedHomeOne({ searchParams }) {
+    const resolvedSearchParams = await searchParams;
+    const accessKey = resolvedSearchParams?.access_token;
+    const dummyValue = "syndet_secret_123";
 
-export default function HomeOne() {
-  return (
-   <>
-        <Navbar />
-          <div className="" >
-            <HomeAlt />
-            <FaqSection />
-            <Footer />
-        </div>
-    </>
-  );
+    if (accessKey === dummyValue) {
+        return <HomeOne />;
+    }
+
+    notFound();
 }

@@ -1,5 +1,6 @@
-'use client';
+"use client";
 
+import Image from "next/image";
 import React, { useState } from "react";
 
 export default function FaqSection() {
@@ -38,10 +39,12 @@ export default function FaqSection() {
         {/* Icon */}
         <div className="d-flex justify-content-center mb-3">
           <div className="faq-iconBox">
-            <img
+            <Image
               className="faq-iconImg"
               src="/images/question.png"
               alt="Question"
+              width={24}
+              height={24}
             />
           </div>
         </div>
@@ -71,14 +74,10 @@ export default function FaqSection() {
                 <div className="d-flex align-items-center justify-content-between">
                   <div className="faq-question">{item.q}</div>
 
-                  <span className={`faq-chevron ${isOpen ? "up" : ""}`}>
-                    ▾
-                  </span>
+                  <span className={`faq-chevron ${isOpen ? "up" : ""}`}>▾</span>
                 </div>
 
-                {isOpen && (
-                  <div className="faq-answer mt-3">{item.a}</div>
-                )}
+                {isOpen && <div className="faq-answer mt-3">{item.a}</div>}
               </div>
             );
           })}

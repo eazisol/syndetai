@@ -1,5 +1,6 @@
-import React, { useEffect } from "react";
+'use client';
 
+import React, { useEffect } from "react";
 import Image from "next/image";
 
 export default function CheckoutModal({
@@ -10,11 +11,9 @@ export default function CheckoutModal({
   onRemove,
   onEditBasket,
 }) {
-  if (!open) return null;
 
   const subtotal = total;
   const vat = 0;
-
   const stop = (e) => e.stopPropagation();
   useEffect(() => {
     if (!open) return;
@@ -24,7 +23,7 @@ export default function CheckoutModal({
       document.body.style.overflow = prev;
     };
   }, [open]);
-
+   if (!open) return null;
   return (
     <>
       <div className="cart-overlay show" onClick={onClose} />

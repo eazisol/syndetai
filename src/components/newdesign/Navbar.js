@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import React from "react";
 import Image from "next/image";
@@ -10,17 +10,17 @@ export default function Navbar() {
       <div className="container">
         <div className="d-flex align-items-center justify-content-between mi-navbar-inner">
           {/* Logo */}
-          <Image 
-                       src="/logo.svg" 
-                       alt="SyndetAI Logo" 
-                       width={24}
-                       height={24}
-                       className="logo-svg"
-                     />
+          <Image
+            src="/logo.svg"
+            alt="SyndetAI Logo"
+            width={24}
+            height={24}
+            className="logo-svg"
+          />
 
           {/* Cart */}
           <button type="button" className="mi-cart-btn" aria-label="cart">
-          {cartCount > 0 && <span className="mi-nav-badge">{cartCount}</span>}
+            {cartCount > 0 && <span className="mi-nav-badge">{cartCount}</span>}
             <span className="mi-nav-badge">0</span>
 
             <Image

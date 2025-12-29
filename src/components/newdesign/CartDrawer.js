@@ -1,3 +1,5 @@
+'use client';
+
 import React from "react";
 // import deleteIcon from "../../assets/delete.png";
 import Image from "next/image";

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import React, { useState } from "react";
 // import { useCart } from "../cart/CartContext";
 
@@ -56,11 +57,14 @@ export default function ValueCards() {
       <div className="container mi-container">
         <div className="text-center mb-5">
           <div className="mi-top-pill mx-auto mb-3">
-            <img
+            <Image
               src="/images/logo.png"
               alt="Best value bundles"
               className="mi-top-pill-icon"
+              width={24}
+              height={24}
             />
+
             <span>Best Value Bundles</span>
           </div>
 
@@ -81,10 +85,12 @@ export default function ValueCards() {
                 <div className="mi-card h-100 d-flex flex-column">
                   <div className="mi-card-body flex-grow-1">
                     <div className="mi-icon-box">
-                      <img
+                      <Image
                         src={bundle.icon}
                         alt={bundle.title}
                         className="mi-icon"
+                        width={48}
+                        height={48}
                       />
                     </div>
 
@@ -144,10 +150,12 @@ export default function ValueCards() {
 
                     <div className="mt-4">
                       <div className="d-flex align-items-center gap-2 mb-2">
-                        <img
+                        <Image
                           src={bundle.headerIcon}
                           alt=""
                           className="mi-feature-icon"
+                          width={16}
+                          height={16}
                         />
 
                         <span className="mi-feature-text fw-semibold">
@@ -167,11 +175,14 @@ export default function ValueCards() {
                             key={idx}
                             className="d-flex align-items-start mi-feature"
                           >
-                            <img
+                            <Image
                               src="/images/shieldtick.png"
                               alt=""
                               className="mi-feature-icon"
+                              width={16}
+                              height={16}
                             />
+
                             <span className="mi-feature-text">{text}</span>
                           </li>
                         ))}
@@ -184,7 +195,14 @@ export default function ValueCards() {
                       type="button"
                       className="mi-btn w-100 d-flex align-items-center justify-content-center gap-2"
                     >
-                      <img className="mi-cart-img" src="/cart.svg" alt="" />
+                      <Image
+                        src="/cart.svg"
+                        alt=""
+                        className="mi-cart-img"
+                        width={18}
+                        height={18}
+                      />
+
                       <span>Add to basket</span>
                     </button>
                   </div>

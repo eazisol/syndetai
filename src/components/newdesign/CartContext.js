@@ -1,3 +1,5 @@
+'use client';
+
 import React, { createContext, useContext, useState } from "react";
 import CartDrawer from "./CartDrawer";
 import CheckoutModal from "./CheckoutModal";

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 // import { useCart } from "./cart/CartContext";
 
@@ -67,7 +68,14 @@ export default function HomeAlt() {
       <div className="container mi-container">
         <div className="text-center">
           <div className="mi-top-pill mx-auto">
-            <img className="mi-top-pill-icon" src="/images/logo.png" alt="" />
+            <Image
+              className="mi-top-pill-icon"
+              src="/images/logo.png"
+              alt=""
+              width={24}
+              height={24}
+            />
+
             <span>Premium Research Products</span>
           </div>
 
@@ -108,7 +116,13 @@ export default function HomeAlt() {
 
                   <div className="mi-card-body flex-grow-1">
                     <div className="mi-icon-box">
-                      <img className="mi-icon" src={plan.icon} alt="" />
+                      <Image
+                        className="mi-icon"
+                        src={plan.icon}
+                        alt=""
+                        width={48}
+                        height={48}
+                      />
                     </div>
 
                     <div className="mi-box">
@@ -168,11 +182,14 @@ export default function HomeAlt() {
                           className="mi-feature d-flex align-items-start"
                           key={i}
                         >
-                          <img
+                          <Image
                             className="mi-feature-icon"
                             src={f.icon}
                             alt=""
+                            width={16}
+                            height={16}
                           />
+
                           <span className="mi-feature-text">{f.text}</span>
                         </li>
                       ))}
@@ -185,7 +202,14 @@ export default function HomeAlt() {
                       className="mi-btn w-100 d-flex align-items-center justify-content-center gap-2"
                       style={{ background: "#60A5FA" }}
                     >
-                      <img className="mi-cart-img" src="/cart.svg" alt="" />
+                      <Image
+                        className="mi-cart-img"
+                        src="/cart.svg"
+                        alt=""
+                        width={18}
+                        height={18}
+                      />
+
                       <span>Add to basket</span>
                     </button>
                   </div>
