@@ -2993,7 +2993,7 @@ body {
   opacity: 0;
   pointer-events: none;
   transition: opacity 180ms ease;
-  z-index: 2000;
+   z-index: 2000; 
 }
 
 .cart-overlay.show {
@@ -3036,10 +3036,11 @@ body {
   justify-content: space-between;
   align-items: center;
   box-shadow: 0px 0px 10px 0px #00000040;
+
 }
 
 .cart-checkout-btn {
-  background: #0044ee !important;
+  background: #0044EE !important;
   color: #fff !important;
   border-radius: 999px !important;
   padding: 12px 14px !important;
@@ -3052,22 +3053,23 @@ body {
   background: #003bd1;
   color: #fff;
 }
-.cart-title {
-  font-weight: 500;
+.cart-title{
+
+font-weight: 500;
   font-size: 14px;
   color: #001144;
 }
-.cart-type {
+.cart-type{
   font-weight: 500;
   font-size: 12px;
-  color: #64748b;
+  color: #64748B;
 }
-.cart-price {
-  color: #0044ee;
+.cart-price{
+  color: #0044EE;
   font-size: 14px;
   font-weight: 500;
 }
-/* checkoutModal */
+ /* checkoutModal */
 
 .checkout-modal {
   position: fixed;
@@ -3080,12 +3082,12 @@ body {
 }
 
 .checkout-modal-inner {
-  width: min(980px, 96vw);
+  width: min(1012px, 96vw);
   background: #fff;
   /* border-radius: 10px; */
   overflow: hidden;
   box-shadow: 0 18px 40px rgba(12, 28, 58, 0.25);
-  max-height: 92vh;
+  max-height: 92vh;  
 }
 
 .checkout-header {
@@ -3125,13 +3127,13 @@ body {
 }
 
 .checkout-section-sub {
-  font-size: 10px;
-  color: #999fa7;
+  font-size: 14px;
+  color: #999FA7;
   margin-top: 6px;
 }
 
 .checkout-label {
-  font-size: 10px;
+  font-size: 14px;
   font-weight: 500;
   color: #001144;
   margin-bottom: 6px;
@@ -3148,7 +3150,7 @@ body {
   box-shadow: 0px 0px 3.87px 0px #00000040;
   padding: 10px 14px;
 }
-.form-control {
+.form-control{
   line-height: 0.5px;
 }
 .checkout-input:focus {
@@ -3158,13 +3160,13 @@ body {
 
 .checkout-check .form-check-input {
   border-radius: 4px;
-  border-color: #cfd8ea;
-  box-shadow: none;
+  border-color: #cfd8ea !important;
+  box-shadow: none !important;
 }
 
 .checkout-check-text {
-  font-size: 11px;
-  color: #999fa7;
+  font-size: 14px;
+  color: #999FA7;
 }
 
 .checkout-link {
@@ -3173,6 +3175,7 @@ body {
   cursor: pointer;
   text-decoration: underline;
 }
+
 
 /* payment */
 .payment-box {
@@ -3206,7 +3209,7 @@ body {
 }
 
 .payment-hint {
-  font-size: 11px;
+  font-size: 14px;
   color: #8a97ad;
   white-space: nowrap;
 }
@@ -3216,7 +3219,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
+  font-size: 14px;
   color: #999fa7;
 }
 
@@ -3238,7 +3241,7 @@ body {
 
 .payment-after {
   margin-top: 10px;
-  font-size: 10px;
+  font-size: 13px;
   color: #8a97ad;
   text-align: center;
 }
