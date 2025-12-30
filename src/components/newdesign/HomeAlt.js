@@ -114,8 +114,12 @@ export default function HomeAlt() {
                     <div className="mi-save100-top">SAVE £100</div>
                   )}
 
-                  <div className="mi-card-body flex-grow-1">
-                    <div className="mi-icon-box">
+                   <div
+                    className={
+                      idx === 1 ? "mi-card-bodyy " : "mi-card-body flex-grow-1"
+                    }
+                  >
+                    <div className={idx === 1 ? "mi-icon-boxx" : "mi-icon-box"}>
                       <Image
                         className="mi-icon"
                         src={plan.icon}
@@ -196,7 +200,10 @@ export default function HomeAlt() {
                     </ul>
                   </div>
 
-                  <div className="mi-card-footer mt-auto">
+                  <div 
+                  className={
+                      idx === 1 ? "mi-card-footerr " : "mi-card-footer mt-auto"
+                    }>
                     <button
                       type="button"
                       className="mi-btn w-100 d-flex align-items-center justify-content-center gap-2"

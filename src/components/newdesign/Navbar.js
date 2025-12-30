@@ -6,6 +6,7 @@ import Image from "next/image";
 export default function Navbar() {
   const cartCount = 0;
   return (
+    <>
     <header className="mi-navbar sticky-top">
       <div className="container">
         <div className="d-flex align-items-center justify-content-between mi-navbar-inner">
@@ -34,5 +35,6 @@ export default function Navbar() {
         </div>
       </div>
     </header>
+    </>
   );
 }

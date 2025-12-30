@@ -1,8 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import React, { useState } from "react";
-// import { useCart } from "../cart/CartContext";
+import Image from "next/image";
+// ✅ NEW: connect ValueCards button to cart (same like Cards)
+import { useCart } from "./CartContext"; // <-- adjust path if your CartContext is elsewhere
 
 const bundles = [
   {
@@ -50,7 +51,9 @@ export default function ValueCards() {
     setBilling((prev) => ({ ...prev, [id]: plan }));
   };
 
-  // const { addToCart } = useCart();
+  const { addToCart } = useCart();
+
+  const toNumber = (v) => Number(String(v).replace(/[^0-9.]/g, "")) || 0;
 
   return (
     <section className="mi-section py-5">
@@ -64,7 +67,6 @@ export default function ValueCards() {
               width={24}
               height={24}
             />
-
             <span>Best Value Bundles</span>
           </div>
 
@@ -95,10 +97,7 @@ export default function ValueCards() {
                     </div>
 
                     <div className="d-flex justify-content-between align-items-start">
-                      <h3
-                        className="mi-card-title"
-                        style={{ fontSize: "24px" }}
-                      >
+                      <h3 className="mi-card-title" style={{ fontSize: "24px" }}>
                         {bundle.title}
                       </h3>
 
@@ -107,11 +106,7 @@ export default function ValueCards() {
 
                     <p className="mi-card-desc mb-3">{bundle.desc}</p>
 
-                    <div
-                      className="mi-toggle"
-                      role="group"
-                      aria-label="Billing"
-                    >
+                    <div className="mi-toggle" role="group" aria-label="Billing">
                       <span
                         className={`mi-toggle-pill ${isAnnual ? "right" : ""}`}
                       />
@@ -163,9 +158,7 @@ export default function ValueCards() {
                         </span>
 
                         {bundle.showSave30 && isAnnual && (
-                          <span className="mi-save-badge ms-auto">
-                            Save 30%
-                          </span>
+                          <span className="mi-save-badge ms-auto">Save 30%</span>
                         )}
                       </div>
 
@@ -194,6 +187,14 @@ export default function ValueCards() {
                     <button
                       type="button"
                       className="mi-btn w-100 d-flex align-items-center justify-content-center gap-2"
+                      // ✅ NEW: add to cart on click (same like Cards)
+                      onClick={() =>
+                        addToCart({
+                          title: bundle.title,
+                          type: isAnnual ? "Annual Plan" : "One-time Purchase",
+                          price: toNumber(bundle.price),
+                        })
+                      }
                     >
                       <Image
                         src="/cart.svg"
@@ -202,7 +203,6 @@ export default function ValueCards() {
                         width={18}
                         height={18}
                       />
-
                       <span>Add to basket</span>
                     </button>
                   </div>

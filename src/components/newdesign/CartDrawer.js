@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import React from "react";
 // import deleteIcon from "../../assets/delete.png";
@@ -12,6 +12,11 @@ export default function CartDrawer({
   total,
   onCheckout,
 }) {
+  const subtotal = items.reduce((sum, it) => sum + (Number(it.price) || 0), 0);
+  const VAT_RATE = 0.2;
+  const vat = +(subtotal * VAT_RATE).toFixed(2);
+  const grandTotal = +(subtotal + vat).toFixed(2);
+
   return (
     <>
       {/* overlay */}
@@ -62,11 +67,38 @@ export default function CartDrawer({
           )}
         </div>
 
-        <div className="mt-auto pt-3 border-top">
+        {/* <div className="mt-auto pt-3 border-top">
           <div className="d-flex justify-content-between mb-3">
             <div className="fw-semibold">Total</div>
             <div className="fw-bold cart-price" style={{ fontSize: "24px" }}>
               £{total}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="btn w-100 cart-checkout-btn"
+            disabled={items.length === 0}
+            onClick={onCheckout}
+          >
+            Checkout
+          </button>
+        </div> */}
+        <div className="mt-auto pt-3 border-top">
+          <div className="d-flex justify-content-between mb-2">
+            <div className="fw-semibold">Subtotal</div>
+            <div className="fw-bold cart-price">£{subtotal.toFixed(2)}</div>
+          </div>
+
+          <div className="d-flex justify-content-between mb-3">
+            <div className="fw-semibold">VAT (20%)</div>
+            <div className="fw-bold cart-price">£{vat.toFixed(2)}</div>
+          </div>
+
+          <div className="d-flex justify-content-between mb-3">
+            <div className="fw-semibold">Total</div>
+            <div className="fw-bold cart-price" style={{ fontSize: "24px" }}>
+              £{grandTotal.toFixed(2)}
             </div>
           </div>
 

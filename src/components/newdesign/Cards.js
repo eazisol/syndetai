@@ -201,10 +201,8 @@ export default function Cards() {
                       onClick={() =>
                         addToCart({
                           title: plan.title,
-                          type: "One-off",
-                          price: Number(
-                            String(plan.price).replace(/[^0-9.]/g, "")
-                          ),
+                          type: isAnnual ? "Annual" : "One-off",
+                          price: Number(String(price).replace(/[^0-9.]/g, "")),
                         })
                       }
                     >

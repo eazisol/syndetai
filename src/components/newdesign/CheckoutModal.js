@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 
 export default function CheckoutModal({
@@ -11,9 +11,16 @@ export default function CheckoutModal({
   onRemove,
   onEditBasket,
 }) {
+const [cardNumber, setCardNumber] = useState("");
+const [expiry, setExpiry] = useState("");
+const [cvc, setCvc] = useState("");
+  // const subtotal = total;
+  // const vat = 0;
+  const subtotal = items.reduce((sum, it) => sum + (Number(it.price) || 0), 0);
+  const VAT_RATE = 0.2; // dummy VAT 20%
+  const vat = +(subtotal * VAT_RATE).toFixed(2);
+  const grandTotal = +(subtotal + vat).toFixed(2);
 
-  const subtotal = total;
-  const vat = 0;
   const stop = (e) => e.stopPropagation();
   useEffect(() => {
     if (!open) return;
@@ -23,7 +30,8 @@ export default function CheckoutModal({
       document.body.style.overflow = prev;
     };
   }, [open]);
-   if (!open) return null;
+  if (!open) return null;
+  
   return (
     <>
       <div className="cart-overlay show" onClick={onClose} />
@@ -137,7 +145,7 @@ export default function CheckoutModal({
                       Payment Details
                     </div>
 
-                    <div className="payment-box mt-2">
+                    {/* <div className="payment-box mt-2">
                       <div className="payment-input">
                         <div className="payment-card-icon">
                           <Image
@@ -158,7 +166,105 @@ export default function CheckoutModal({
                           MM / YY&nbsp;&nbsp;CVC
                         </div>
                       </div>
+                    </div> */}
+                    <div className="payment-box mt-2">
+                      <div className="payment-row">
+                        {/* Left: card icon + number */}
+                        <div className="payment-number">
+                          <div className="payment-card-icon">
+                            <Image
+                              src="/images/creditcard.png"
+                              alt="creditcard"
+                              width={20}
+                              height={20}
+                            />
+                          </div>
+
+                          <input
+                            className="payment-field payment-field-number"
+                            placeholder="1234 1234 1234 1234"
+                            type="text"
+                            inputMode="numeric"
+                            autoComplete="cc-number"
+                            maxLength={23} // spaces included
+                            value={cardNumber}
+                            onChange={(e) => {
+                              // digits only, format with spaces every 4
+                              const digits = e.target.value
+                                .replace(/\D/g, "")
+                                .slice(0, 19);
+                              const spaced = digits
+                                .replace(/(.{4})/g, "$1 ")
+                                .trim();
+                              setCardNumber(spaced);
+                            }}
+                          />
+                        </div>
+
+                        {/* Right: cards image */}
+                        <div className="payment-cards">
+                          <Image
+                            src="/cards.svg"
+                            alt=""
+                            width={100}
+                            height={40}
+                            style={{ marginRight: "10px" }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Bottom row: expiry + cvc */}
+                      <div className="payment-row payment-row-bottom">
+                        <input
+                          className="payment-field payment-field-exp"
+                          placeholder="MM / YY"
+                          type="text"
+                          inputMode="numeric"
+                          autoComplete="cc-exp"
+                          maxLength={5}
+                          value={expiry}
+                          onChange={(e) => {
+                            // digits only, auto add "/"
+                            const digits = e.target.value
+                              .replace(/\D/g, "")
+                              .slice(0, 4);
+                            let out = digits;
+                            if (digits.length >= 3)
+                              out = `${digits.slice(0, 2)}/${digits.slice(2)}`;
+                            setExpiry(out);
+                          }}
+                          onBlur={() => {
+                            // basic month validation
+                            const [mm, yy] = expiry.split("/");
+                            if (!mm || mm.length !== 2) return;
+                            const m = Number(mm);
+                            if (m < 1 || m > 12) setExpiry("");
+                          }}
+                        />
+
+                        <input
+                          className="payment-field payment-field-cvc"
+                          placeholder="CVC"
+                          type="text"
+                          inputMode="numeric"
+                          autoComplete="cc-csc"
+                          maxLength={4}
+                          value={cvc}
+                          onChange={(e) => {
+                            const digits = e.target.value
+                              .replace(/\D/g, "")
+                              .slice(0, 4);
+                            setCvc(digits);
+                          }}
+                          onBlur={() => {
+                            // allow 3 or 4 digits
+                            if (cvc && !(cvc.length === 3 || cvc.length === 4))
+                              setCvc("");
+                          }}
+                        />
+                      </div>
                     </div>
+
                     <div className="payment-boxs">
                       <div className="payment-note">
                         <Image
@@ -235,17 +341,19 @@ export default function CheckoutModal({
 
                     <div className="order-row">
                       <span>Subtotal</span>
-                      <span>£{subtotal}</span>
+                      <span>£{subtotal.toFixed(2)}</span>
                     </div>
 
                     <div className="order-row">
                       <span>VAT (0%)</span>
-                      <span>£{vat}</span>
+                      <span>£{vat.toFixed(2)}</span>
                     </div>
 
                     <div className="order-bottom">
                       <div className="order-total-label">Total</div>
-                      <div className="order-total-value">£{total}</div>
+                      <div className="order-total-value">
+                        £{grandTotal.toFixed(2)}
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import React, { createContext, useContext, useState } from "react";
 import CartDrawer from "./CartDrawer";
@@ -48,7 +48,17 @@ export function CartProvider({ children }) {
         onCheckout={openCheckout}
       />
 
-      <CheckoutModal open={checkoutOpen} onClose={closeCheckout} total={total} />
+      <CheckoutModal
+        open={checkoutOpen}
+        onClose={closeCheckout}
+        items={items}
+        total={total}
+        onRemove={removeFromCart}
+        onEditBasket={() => {
+          setCheckoutOpen(false);
+          setCartOpen(true);
+        }}
+      />
     </CartContext.Provider>
   );
 }
