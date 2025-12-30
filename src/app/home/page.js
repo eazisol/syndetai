@@ -2,6 +2,7 @@
 import { notFound } from 'next/navigation';
 import HomePage from '@/components/newdesign/HomePage';
 import TokenHider from '@/components/TokenHider';
+import { CartProvider } from '@/components/newdesign/CartContext';
 
 export default async function ProtectedHome({ searchParams }) {
     const resolvedSearchParams = await searchParams;
@@ -15,7 +16,9 @@ export default async function ProtectedHome({ searchParams }) {
             return (
                 <>
                     <TokenHider />
+                    <CartProvider>
                     <HomePage />
+                    </CartProvider>
                 </>
             );
         }

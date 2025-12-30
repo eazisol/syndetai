@@ -2,6 +2,7 @@
 import { notFound } from 'next/navigation';
 import HomeOne from '@/components/newdesign/HomeOne';
 import TokenHider from '@/components/TokenHider';
+import { CartProvider } from '@/components/newdesign/CartContext';
 
 export default async function ProtectedHomeOne({ searchParams }) {
     const resolvedSearchParams = await searchParams;
@@ -15,7 +16,9 @@ export default async function ProtectedHomeOne({ searchParams }) {
             return (
                 <>
                     <TokenHider />
+                    <CartProvider>
                     <HomeOne />
+                    </CartProvider>
                 </>
             );
         }

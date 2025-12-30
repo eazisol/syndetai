@@ -2,10 +2,10 @@
 
 import Image from "next/image";
 import { useState } from "react";
-// import { useCart } from "./cart/CartContext";
+import { useCart } from "./CartContext";
 
 export default function HomeAlt() {
-  // const { addToCart } = useCart();
+  const { addToCart } = useCart();
 
   const [plans, setPlans] = useState([
     {
@@ -114,7 +114,7 @@ export default function HomeAlt() {
                     <div className="mi-save100-top">SAVE £100</div>
                   )}
 
-                   <div
+                  <div
                     className={
                       idx === 1 ? "mi-card-bodyy " : "mi-card-body flex-grow-1"
                     }
@@ -200,14 +200,28 @@ export default function HomeAlt() {
                     </ul>
                   </div>
 
-                  <div 
-                  className={
+                  <div
+                    className={
                       idx === 1 ? "mi-card-footerr " : "mi-card-footer mt-auto"
-                    }>
+                    }
+                  >
+                    {/* <button
+                      type="button"
+                      className="mi-btn w-100 d-flex align-items-center justify-content-center gap-2"
+                      style={{ background: "#60A5FA" }}
+                    > */}
                     <button
                       type="button"
                       className="mi-btn w-100 d-flex align-items-center justify-content-center gap-2"
                       style={{ background: "#60A5FA" }}
+                      onClick={() =>
+                        addToCart({
+                          title: plan.title,
+                          type: isAnnual ? "Annual" : "One-off",
+                          price:
+                            Number(String(price).replace(/[^0-9.]/g, "")) || 0,
+                        })
+                      }
                     >
                       <Image
                         className="mi-cart-img"
