@@ -25,7 +25,7 @@ const MobileHeader = () => {
         localStorage.removeItem('is_admin');
         localStorage.removeItem('is_superadmin');
         localStorage.removeItem('organisation_id');
-      } catch {}
+      } catch { }
       router.push('/login');
       setIsMenuOpen(false);
     }
@@ -43,16 +43,17 @@ const MobileHeader = () => {
         const cachedSuper = localStorage.getItem('is_superadmin');
         if (!admin && cachedAdmin !== null) setIsAdmin(cachedAdmin === 'true');
         if (!superadmin && cachedSuper !== null) setIsSuperadmin(cachedSuper === 'true');
-      } catch {}
+      } catch { }
     }
   }, [userData]);
-// Menu items
+  // Menu items
   const orgCredits = userData?.organisation?.credits;
   const menuItems = [
     { id: 'Library', label: 'Library', href: '/library', icon: '/library.svg', inactiveIcon: '/library-inactive.svg', visible: true },
     { id: 'New Request', label: 'New Request', href: '/new-request', icon: '/new-request.svg', inactiveIcon: '/new-request-inactive.svg', visible: true },
     { id: 'Manage Account', label: 'Manage Account', href: '/manage-account', icon: '/settingactive.svg', inactiveIcon: '/setting.svg', visible: isAdmin },
     { id: 'Add Credits', label: `Add Credits${Number.isFinite(orgCredits) ? ` (${orgCredits})` : ''}`, href: '/add-credits', icon: '/criedtactive.svg', inactiveIcon: '/credit.svg', visible: isAdmin },
+    { id: 'Logs', label: 'Logs', href: '/Logs', icon: '/Logs.svg', inactiveIcon: '/Logs-inactive.svg', visible: true },
     { id: 'Superadmin', label: 'Superadmin', href: '/superadmin', icon: '/superadmin.svg', inactiveIcon: '/superadmin-inactive.svg', visible: isSuperadmin }
   ].filter(item => item.visible);
 
@@ -79,9 +80,9 @@ const MobileHeader = () => {
       <div className="mobile-header">
         <div className="mobile-logo">
           <div className="mobile-logo-icon">
-            <Image 
-              src="/logo.svg" 
-              alt="SyndetAI Logo" 
+            <Image
+              src="/logo.svg"
+              alt="SyndetAI Logo"
               width={24}
               height={24}
               className="logo-svg"
@@ -89,9 +90,9 @@ const MobileHeader = () => {
           </div>
         </div>
         <button className="hamburger-menu" onClick={toggleMenu}>
-          <Image 
-            src="/hamburg.svg" 
-            alt="Menu icon" 
+          <Image
+            src="/hamburg.svg"
+            alt="Menu icon"
             width={24}
             height={24}
             className="hamburger-icon"
@@ -100,8 +101,8 @@ const MobileHeader = () => {
       </div>
 
       {/* Mobile Menu Overlay */}
-      <div 
-        className={`mobile-menu-overlay ${isMenuOpen ? 'show' : ''}`} 
+      <div
+        className={`mobile-menu-overlay ${isMenuOpen ? 'show' : ''}`}
         onClick={handleOverlayClick}
       ></div>
 
@@ -110,19 +111,19 @@ const MobileHeader = () => {
         <div className="mobile-menu-header">
           <div className="mobile-logo">
             <div className="mobile-logo-icon">
-              <Image 
-              src="/logo.svg" 
-              alt="SyndetAI Logo" 
-              width={24}
-              height={24}
-              className="logo-svg"
-            />
+              <Image
+                src="/logo.svg"
+                alt="SyndetAI Logo"
+                width={24}
+                height={24}
+                className="logo-svg"
+              />
             </div>
           </div>
           <button className="mobile-menu-close" onClick={toggleMenu}>
-            <Image 
-              src="/cross.svg" 
-              alt="Close icon" 
+            <Image
+              src="/cross.svg"
+              alt="Close icon"
               width={20}
               height={20}
               className="close-icon"
@@ -134,16 +135,16 @@ const MobileHeader = () => {
         <nav className="nav-menu">
           {menuItems.map((item) => {
             const isActive = pathname === item.href;
-            
+
             return (
               <button
                 key={item.id}
                 className={`nav-item ${isActive ? 'active' : ''}`}
                 onClick={() => handleMenuClick(item.href)}
               >
-                <Image 
-                  src={isActive ? item.icon : item.inactiveIcon} 
-                  alt={`${item.label} icon`} 
+                <Image
+                  src={isActive ? item.icon : item.inactiveIcon}
+                  alt={`${item.label} icon`}
                   width={20}
                   height={20}
                   className="nav-icon"

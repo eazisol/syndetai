@@ -10,7 +10,7 @@ const Sidebar = () => {
   const { userData, user } = useApp();
   const pathname = usePathname();
   const router = useRouter();
-  
+
   // Use userData from AppContext instead of local state
   const isAdmin = Boolean(userData?.is_admin);
   const isSuperadmin = Boolean(userData?.is_superadmin);
@@ -26,7 +26,6 @@ const Sidebar = () => {
       router.push('/login');
     }
   };
-
 
   const menuItems = [
     // Public (visible to all logged-in users)
@@ -46,21 +45,28 @@ const Sidebar = () => {
     },
     // Admin only
     ...(isAdmin ? [
-      { 
-        id: 'Manage Account', 
-        label: 'Manage Account', 
+      {
+        id: 'Manage Account',
+        label: 'Manage Account',
         href: '/manage-account',
         icon: '/settingactive.svg',
         inactiveIcon: '/setting.svg'
       },
-      { 
-        id: 'Add Credits', 
-        label: `Add Credits`, 
+      {
+        id: 'Add Credits',
+        label: `Add Credits`,
         href: '/add-credits',
         icon: '/criedtactive.svg',
         inactiveIcon: '/credit.svg'
-      }
+      },
     ] : []),
+    {
+      id: 'Logs',
+      label: 'Logs',
+      href: '/Logs',
+      icon: '/Logs.svg',
+      inactiveIcon: '/Logs-inactive.svg'
+    },
     // Superadmin only
     ...(isSuperadmin ? [{
       id: 'Superadmin',
@@ -73,31 +79,31 @@ const Sidebar = () => {
 
   return (
     <div className="sidebar">
-       {/* Logo */}
-       <div className="logo">
-           <Image 
-             src="/logo.svg" 
-             alt="SyndetAI Logo" 
-             width={150}
-             height={56}
-             className="logo-svg"
-           />
-       </div>
+      {/* Logo */}
+      <div className="logo">
+        <Image
+          src="/logo.svg"
+          alt="SyndetAI Logo"
+          width={150}
+          height={56}
+          className="logo-svg"
+        />
+      </div>
 
       {/* Navigation Menu */}
       <nav className="nav-menu">
         {menuItems.map((item) => {
           const isActive = pathname === item.href;
-          
+
           return (
             <button
               key={item.id}
               className={`nav-item ${isActive ? 'active' : ''}`}
               onClick={() => router.push(item.href)}
             >
-              <Image 
-                src={isActive ? item.icon : item.inactiveIcon} 
-                alt={`${item.label} icon`} 
+              <Image
+                src={isActive ? item.icon : item.inactiveIcon}
+                alt={`${item.label} icon`}
                 width={20}
                 height={20}
                 className="nav-icon"
@@ -111,19 +117,19 @@ const Sidebar = () => {
       {/* User Info */}
       <div style={{ padding: '35px 0px' }}>
 
-      <div className="user-info">
-        <span className="user-email">{userData?.email}</span>
-        <button className="logout-button" style={{border:"none",backgroundColor:"transparent"}}onClick={handleLogout} title="Logout">
-          <Image 
-            src="/Vector.svg" 
-            alt="Logout" 
-            width={16}
-            height={16}
-            className="logout-icon"
-          />
-        </button>
-      </div>
-      <div className="user-credits" style={{   color: '#5F6368', fontSize: 12 }}>Credits: {userData?.organisation?.credits}</div>
+        <div className="user-info">
+          <span className="user-email">{userData?.email}</span>
+          <button className="logout-button" style={{ border: "none", backgroundColor: "transparent" }} onClick={handleLogout} title="Logout">
+            <Image
+              src="/Vector.svg"
+              alt="Logout"
+              width={16}
+              height={16}
+              className="logout-icon"
+            />
+          </button>
+        </div>
+        <div className="user-credits" style={{ color: '#5F6368', fontSize: 12 }}>Credits: {userData?.organisation?.credits}</div>
 
       </div>
     </div>

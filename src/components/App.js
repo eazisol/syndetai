@@ -11,6 +11,7 @@ import LoginScreen from './LoginScreen';
 import { useApp } from '../context/AppContext';
 import Cards from './newdesign/Cards';
 import HomeAlt from './newdesign/HomeAlt';
+import LogsDetailed from './LogsDetailed';
 
 function App() {
   const { activePage } = useApp();
@@ -29,7 +30,7 @@ function App() {
           <Cards />
         </div>
       );
-      case 'Home2':
+      case 'Home1':
       return (
         <div className="main-content">
           <div className="borderBottom" />
@@ -59,6 +60,13 @@ function App() {
         return (
           <div className="main-content">
             <AddCredits />
+          </div>
+        );
+         case 'Logs':
+        return (
+          <div className="main-content">
+            <div className="borderBottom" />
+            {/* <LogsDetailed /> */}
           </div>
         );
       default:

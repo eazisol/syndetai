@@ -1,10 +1,9 @@
 
 import { notFound } from 'next/navigation';
-import HomePage from '@/components/newdesign/HomePage';
-import TokenHider from '@/components/TokenHider';
+import HomeOne from '@/components/newdesign/HomeOne';
 import { CartProvider } from '@/components/newdesign/CartContext';
 
-export default async function ProtectedHome({ searchParams }) {
+export default async function ProtectedHomeOne({ searchParams }) {
     const resolvedSearchParams = await searchParams;
     const accessKey = resolvedSearchParams?.access_token;
     const dummyValue = "syndet_secret_123";
@@ -15,9 +14,9 @@ export default async function ProtectedHome({ searchParams }) {
         if (decodedKey === dummyValue) {
             return (
                 <>
-                    <TokenHider />
+                    {/* <TokenHider /> */}
                     <CartProvider>
-                    <HomePage />
+                    <HomeOne />
                     </CartProvider>
                 </>
             );
