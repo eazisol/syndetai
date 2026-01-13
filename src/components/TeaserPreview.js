@@ -55,7 +55,8 @@ export default function TeaserPreview({ companyId, pdfUrl }) {
 
             <div style={{ display: "flex", justifyContent: "center" }}>
               <a
-                href={`/product/${companyId}?uuid=${uuid}`}
+                // href={`/product/${companyId}?uuid=${uuid}`}
+                href={`/product?company_id=${companyId}&uuid=${uuid}`}
                 className="nf-btn mt-3"
                 style={{
                   padding: "12px 24px",
