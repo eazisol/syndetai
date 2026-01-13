@@ -51,7 +51,7 @@ export default function LogsDetailed() {
           .in("company_id", companyIds);
 
         if (peopleError) {
-          console.error("Error fetching company people:", peopleError);
+          // console.error("Error fetching company people:", peopleError);
           // Continue even if we can't fetch company names
         }
         console.log(companyPeopleData, "companyPeopleData");
@@ -73,7 +73,7 @@ export default function LogsDetailed() {
         console.log(enrichedLogs, "enrichedLogs");
         setLogs(enrichedLogs);
       } catch (err) {
-        console.error("Error fetching logs:", err);
+        // console.error("Error fetching logs:", err);
         setError(err.message || "Failed to fetch logs");
       } finally {
         setIsLoading(false);
@@ -170,7 +170,7 @@ export default function LogsDetailed() {
                 <th>Company Name</th>
                 <th>User ID</th>
                 <th style={{ textAlign: "center" }}>Date</th>
-                <th style={{ textAlign: "center" }}>Report</th>
+                {/* <th style={{ textAlign: "center" }}>Report</th> */}
               </tr>
             </thead>
 
@@ -182,11 +182,11 @@ export default function LogsDetailed() {
                   <td style={{ textAlign: "center" }}>
                     {formatDate(log.created_at)}
                   </td>
-                  <td style={{ textAlign: "center" }}>
+                  {/* <td style={{ textAlign: "center" }}>
                     <a href="#" className="link-button" title="View Report">
                       <Eye className="action-icon" />
                     </a>
-                  </td>
+                  </td> */}
                 </tr>
               ))}
             </tbody>
