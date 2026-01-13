@@ -59,14 +59,15 @@ const Sidebar = () => {
         icon: '/criedtactive.svg',
         inactiveIcon: '/credit.svg'
       },
+      {
+        id: 'Logs',
+        label: 'Logs',
+        href: '/logs',
+        icon: '/Logsinactve.svg',
+        inactiveIcon: '/Logs.svg'
+      },
     ] : []),
-    {
-      id: 'Logs',
-      label: 'Logs',
-      href: '/Logs',
-      icon: '/Logs.svg',
-      inactiveIcon: '/Logs-inactive.svg'
-    },
+
     // Superadmin only
     ...(isSuperadmin ? [{
       id: 'Superadmin',

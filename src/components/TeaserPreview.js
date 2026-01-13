@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Footer from "./newdesign/Footer";
 import Image from "next/image";
 
-export default function TeaserPreview({ companyId, pdfUrl }) {
+export default function TeaserPreview({ companyId, pdfUrl, onOpenFullReport }) {
   const searchParams = useSearchParams();
   const uuid = searchParams?.get("uuid");
 
@@ -54,9 +54,8 @@ export default function TeaserPreview({ companyId, pdfUrl }) {
             </div>
 
             <div style={{ display: "flex", justifyContent: "center" }}>
-              <a
-                // href={`/product/${companyId}?uuid=${uuid}`}
-                href={`/product?company_id=${companyId}&uuid=${uuid}`}
+              <button
+                onClick={onOpenFullReport}
                 className="nf-btn mt-3"
                 style={{
                   padding: "12px 24px",
@@ -65,10 +64,12 @@ export default function TeaserPreview({ companyId, pdfUrl }) {
                   textDecoration: "none",
                   borderRadius: "6px",
                   fontWeight: "600",
+                  border: "none",
+                  cursor: "pointer",
                 }}
               >
                 Open Full Report
-              </a>
+              </button>
             </div>
           </div>
         </div>

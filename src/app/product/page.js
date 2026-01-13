@@ -23,6 +23,47 @@ export default function ProtectedHome() {
   const [isLoadingUuid, setIsLoadingUuid] = useState(false);
   const [companyId, setCompanyId] = useState(null);
   const [pdfUrl, setPdfUrl] = useState(null);
+  const [showFullProduct, setShowFullProduct] = useState(false);
+
+  // Handler for "Open Full Report" button
+  const handleOpenFullReport = async () => {
+    if (!companyId || !uuid) return;
+
+    try {
+      const supabase = getSupabase();
+
+      // Fetch IP address
+      let ipAddress = null;
+      try {
+        const res = await fetch("https://api.ipify.org?format=json");
+        const data = await res.json();
+        ipAddress = data.ip;
+      } catch (ipError) {
+        console.error("Error fetching IP:", ipError);
+      }
+
+      // Log event
+      const { error: logError } = await supabase
+        .from("event_logs")
+        .insert([
+          {
+            company_id: companyId,
+            ip_address: ipAddress,
+          },
+        ]);
+
+      if (logError) {
+        console.error("Error logging event:", logError);
+      } else {
+        console.log("Event logged successfully");
+      }
+
+      // Show full product
+      setShowFullProduct(true);
+    } catch (err) {
+      console.error("Error in handleOpenFullReport:", err);
+    }
+  };
 
   // ✅ CONNECT FLOW (moved from /connect/[companyId])
   // Runs ONLY when both uuid + company_id exist
@@ -45,7 +86,7 @@ export default function ProtectedHome() {
         try {
           const supabase = getSupabase();
 
-          // 1. Get User's Company ID
+          // 1. Verify UUID exists in company_people
           const { data: userData, error: userError } = await supabase
             .from("company_people")
             .select("company_id")
@@ -59,13 +100,13 @@ export default function ProtectedHome() {
             return;
           }
 
-          const resolvedCompanyId = userData.company_id;
+          const userCompanyId = userData.company_id;
 
-          // 2. Check for Teaser Document
+          // 2. Check for Teaser Document and get company_id from research_documents
           const { data: docData, error: docError } = await supabase
             .from("research_documents")
-            .select("*")
-            .eq("company_id", resolvedCompanyId)
+            .select("company_id, storage_path")
+            .eq("company_id", userCompanyId)
             .eq("doc_type", "teaser")
             .limit(1);
 
@@ -73,7 +114,8 @@ export default function ProtectedHome() {
             setIsValidUuid(false);
           } else {
             setIsValidUuid(true);
-            setCompanyId(resolvedCompanyId);
+            // Use company_id from research_documents table
+            setCompanyId(docData[0].company_id);
             setPdfUrl(docData[0].storage_path);
           }
         } catch (err) {
@@ -110,9 +152,16 @@ export default function ProtectedHome() {
     );
   }
 
-  // 2. Teaser Flow Valid
+  // 2. Teaser Flow Valid - Show Product if showFullProduct is true
   if (uuid && !companyIdParam && isValidUuid) {
-    return <TeaserPreview companyId={companyId} pdfUrl={pdfUrl} />;
+    if (showFullProduct) {
+      return (
+        <CartProvider>
+          <HomePage />
+        </CartProvider>
+      );
+    }
+    return <TeaserPreview companyId={companyId} pdfUrl={pdfUrl} onOpenFullReport={handleOpenFullReport} />;
   }
 
   // 3. Home page when company_id exists
