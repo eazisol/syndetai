@@ -184,10 +184,11 @@ export default function LogsDetailed() {
             <thead>
               <tr>
                 <th>Company Name</th>
-                <th>Activity</th>
                 <th>User ID</th>
-                <th style={{ textAlign: "center" }}>Time</th>
+                <th>Activity</th>
                 <th style={{ textAlign: "center" }}>Date</th>
+                <th style={{ textAlign: "center" }}> Teaser Time</th>
+                <th style={{ textAlign: "center" }}> Landing Time</th>
                 {/* <th style={{ textAlign: "center" }}>Report</th> */}
               </tr>
             </thead>
@@ -195,8 +196,7 @@ export default function LogsDetailed() {
             <tbody>
               {filteredLogs.map((log) => {
                 const activityLower = (log.activity || "").toLowerCase();
-                const displayActivity =
-                  activityLower.charAt(0).toUpperCase() + activityLower.slice(1);
+                const displayActivity = log.activity || "N/A"; // Show exact value from database
 
                 // Badge styles
                 let badgeStyle = {
@@ -215,6 +215,10 @@ export default function LogsDetailed() {
                   // Blue style
                   badgeStyle.backgroundColor = "#E3F2FD";
                   badgeStyle.color = "#1565C0";
+                } else if (activityLower === "teaser+landing") {
+                  // Green style for combined activity
+                  badgeStyle.backgroundColor = "#E8F5E9";
+                  badgeStyle.color = "#2E7D32";
                 } else {
                   // Default gray
                   badgeStyle.backgroundColor = "#F5F5F5";
@@ -224,6 +228,7 @@ export default function LogsDetailed() {
                 return (
                   <tr key={log.id}>
                     <td>{log.company_name || "N/A"}</td>
+                    <td>{log.user_id || "N/A"}</td>
                     <td>
                       {log.activity ? (
                         <span style={badgeStyle}>{displayActivity}</span>
@@ -231,13 +236,16 @@ export default function LogsDetailed() {
                         "N/A"
                       )}
                     </td>
-                    <td>{log.user_id || "N/A"}</td>
+                    <td style={{ textAlign: "center" }}>
+                      {formatDate(log.teaser_created || log.created_at)}
+                    </td>
+                    <td style={{ textAlign: "center" }}>
+                      {formatTime(log.teaser_created)}
+                    </td>
                     <td style={{ textAlign: "center" }}>
                       {formatTime(log.created_at)}
                     </td>
-                    <td style={{ textAlign: "center" }}>
-                      {formatDate(log.created_at)}
-                    </td>
+
                     {/* <td style={{ textAlign: "center" }}>
                       <a href="#" className="link-button" title="View Report">
                         <Eye className="action-icon" />

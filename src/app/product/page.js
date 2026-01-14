@@ -24,6 +24,7 @@ function ProtectedHome() {
   const [companyId, setCompanyId] = useState(null);
   const [pdfUrl, setPdfUrl] = useState(null);
   const [showFullProduct, setShowFullProduct] = useState(false);
+  const [teaserLogId, setTeaserLogId] = useState(null); // Store the teaser log entry ID
 
   // Ref to track if we have already logged the teaser view
   const hasLoggedTeaser = React.useRef(false);
@@ -51,21 +52,22 @@ function ProtectedHome() {
         console.error("Error fetching IP:", ipError);
       }
 
-      // Log event
-      const logPayload = {
-        company_id: companyId,
-        ip_address: ipAddress,
-        activity: "landing",
-      };
+      // Update existing teaser log entry to "teaser+landing"
+      if (teaserLogId) {
+        const { data: updateData, error: logError } = await supabase
+          .from("event_logs")
+          .update({
+            activity: "teaser+landing",
+            created_at: new Date().toISOString() // ✅ Set landing page timestamp
+          })
+          .eq("id", teaserLogId)
+          .select();
 
-      console.log("Attempting to insert log:", logPayload);
-
-      const { data: insertData, error: logError } = await supabase.from("event_logs").insert([logPayload]).select();
-
-      if (logError) {
-        console.error("Error logging event:", logError);
-      } else {
-        console.log("Event logged successfully:", insertData);
+        if (logError) {
+          console.error("Error logging event:", logError);
+        } else {
+          console.log("Event logged successfully:", updateData);
+        }
       }
 
       // Show full product
@@ -141,17 +143,26 @@ function ProtectedHome() {
                 console.error("Error fetching IP:", ipError);
               }
 
-              const { error: logError } = await supabase
+              const { data: logData, error: logError } = await supabase
                 .from("event_logs")
                 .insert([
                   {
                     company_id: docData[0].company_id,
                     ip_address: ipAddress,
                     activity: "teaser",
+                    user_id: uuid, // ✅ Log user_id from UUID
+                    teaser_created: new Date().toISOString(), // ✅ Store teaser open timestamp
+                    created_at: null, // ✅ Set as NULL initially
                   },
-                ]);
+                ])
+                .select();
+
               if (logError) {
                 console.error("Error logging teaser view:", logError);
+              } else if (logData && logData.length > 0) {
+                // Store the log entry ID for later update
+                setTeaserLogId(logData[0].id);
+                console.log("Teaser log created with ID:", logData[0].id);
               }
             }
           }

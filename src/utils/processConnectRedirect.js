@@ -39,15 +39,13 @@ export async function processConnectRedirect({ router, companyId, userUuid }) {
       console.error("Error fetching IP:", ipError);
     }
 
-    const { error: logError } = await supabase
-      .from("event_logs")
-      .insert([
-        {
-          company_id: companyId,
-          ip_address: ipAddress,
-          // user_id skipped
-        },
-      ]);
+    const { error: logError } = await supabase.from("event_logs").insert([
+      {
+        company_id: companyId,
+        ip_address: ipAddress,
+        // user_id skipped
+      },
+    ]);
 
     if (logError) {
       console.error("Error logging event:", logError);
