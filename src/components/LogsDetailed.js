@@ -42,7 +42,11 @@ export default function LogsDetailed() {
         }
         console.log(eventLogsData, "eventLogsData");
         // Get unique company_ids from event_logs
-        const companyIds = [...new Set(eventLogsData.map(log => log.company_id).filter(Boolean))];
+        const companyIds = [
+          ...new Set(
+            eventLogsData.map((log) => log.company_id).filter(Boolean)
+          ),
+        ];
         console.log(companyIds, "companyIds");
         // Fetch company_people data for these company_ids
         const { data: companyPeopleData, error: peopleError } = await supabase
@@ -58,7 +62,7 @@ export default function LogsDetailed() {
         // Create a lookup map: company_id -> full_name
         const companyNameMap = {};
         if (companyPeopleData) {
-          companyPeopleData.forEach(person => {
+          companyPeopleData.forEach((person) => {
             if (person.company_id && !companyNameMap[person.company_id]) {
               companyNameMap[person.company_id] = person.full_name;
             }
@@ -66,9 +70,9 @@ export default function LogsDetailed() {
         }
         console.log(companyNameMap, "companyNameMap");
         // Combine event_logs with company names
-        const enrichedLogs = eventLogsData.map(log => ({
+        const enrichedLogs = eventLogsData.map((log) => ({
           ...log,
-          company_name: companyNameMap[log.company_id] || "N/A"
+          company_name: companyNameMap[log.company_id] || "N/A",
         }));
         console.log(enrichedLogs, "enrichedLogs");
         setLogs(enrichedLogs);
@@ -113,10 +117,20 @@ export default function LogsDetailed() {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   };
+
+  const formatTime = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const seconds = String(date.getSeconds()).padStart(2, "0");
+    return `${hours}:${minutes}:${seconds}`;
+  };
+
 
   // Filter logs based on search query
   const filteredLogs = logs.filter((log) => {
@@ -125,11 +139,13 @@ export default function LogsDetailed() {
     const companyName = log.company_name || "";
     const userId = log.user_id || "";
     const ipAddress = log.ip_address || "";
+    const activity = log.activity || "";
 
     return (
       companyName.toLowerCase().includes(searchLower) ||
       userId.toLowerCase().includes(searchLower) ||
-      ipAddress.toLowerCase().includes(searchLower)
+      ipAddress.toLowerCase().includes(searchLower) ||
+      activity.toLowerCase().includes(searchLower)
     );
   });
 
@@ -168,27 +184,68 @@ export default function LogsDetailed() {
             <thead>
               <tr>
                 <th>Company Name</th>
+                <th>Activity</th>
                 <th>User ID</th>
+                <th style={{ textAlign: "center" }}>Time</th>
                 <th style={{ textAlign: "center" }}>Date</th>
                 {/* <th style={{ textAlign: "center" }}>Report</th> */}
               </tr>
             </thead>
 
             <tbody>
-              {filteredLogs.map((log) => (
-                <tr key={log.id}>
-                  <td>{log.company_name || "N/A"}</td>
-                  <td>{log.user_id || "N/A"}</td>
-                  <td style={{ textAlign: "center" }}>
-                    {formatDate(log.created_at)}
-                  </td>
-                  {/* <td style={{ textAlign: "center" }}>
-                    <a href="#" className="link-button" title="View Report">
-                      <Eye className="action-icon" />
-                    </a>
-                  </td> */}
-                </tr>
-              ))}
+              {filteredLogs.map((log) => {
+                const activityLower = (log.activity || "").toLowerCase();
+                const displayActivity =
+                  activityLower.charAt(0).toUpperCase() + activityLower.slice(1);
+
+                // Badge styles
+                let badgeStyle = {
+                  padding: "4px 12px",
+                  borderRadius: "50px",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  display: "inline-block",
+                };
+
+                if (activityLower === "teaser") {
+                  // Yellow/Orange style
+                  badgeStyle.backgroundColor = "#FFF4E5";
+                  badgeStyle.color = "#B76E00";
+                } else if (activityLower === "landing") {
+                  // Blue style
+                  badgeStyle.backgroundColor = "#E3F2FD";
+                  badgeStyle.color = "#1565C0";
+                } else {
+                  // Default gray
+                  badgeStyle.backgroundColor = "#F5F5F5";
+                  badgeStyle.color = "#616161";
+                }
+
+                return (
+                  <tr key={log.id}>
+                    <td>{log.company_name || "N/A"}</td>
+                    <td>
+                      {log.activity ? (
+                        <span style={badgeStyle}>{displayActivity}</span>
+                      ) : (
+                        "N/A"
+                      )}
+                    </td>
+                    <td>{log.user_id || "N/A"}</td>
+                    <td style={{ textAlign: "center" }}>
+                      {formatTime(log.created_at)}
+                    </td>
+                    <td style={{ textAlign: "center" }}>
+                      {formatDate(log.created_at)}
+                    </td>
+                    {/* <td style={{ textAlign: "center" }}>
+                      <a href="#" className="link-button" title="View Report">
+                        <Eye className="action-icon" />
+                      </a>
+                    </td> */}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

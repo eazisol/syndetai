@@ -25,9 +25,18 @@ function ProtectedHome() {
   const [pdfUrl, setPdfUrl] = useState(null);
   const [showFullProduct, setShowFullProduct] = useState(false);
 
+  // Ref to track if we have already logged the teaser view
+  const hasLoggedTeaser = React.useRef(false);
+
   // Handler for "Open Full Report" button
   const handleOpenFullReport = async () => {
-    if (!companyId || !uuid) return;
+    console.log("handleOpenFullReport called");
+    console.log("Current State:", { companyId, uuid });
+
+    if (!companyId || !uuid) {
+      console.error("Missing companyId or uuid in handleOpenFullReport");
+      return;
+    }
 
     try {
       const supabase = getSupabase();
@@ -43,17 +52,20 @@ function ProtectedHome() {
       }
 
       // Log event
-      const { error: logError } = await supabase.from("event_logs").insert([
-        {
-          company_id: companyId,
-          ip_address: ipAddress,
-        },
-      ]);
+      const logPayload = {
+        company_id: companyId,
+        ip_address: ipAddress,
+        activity: "landing",
+      };
+
+      console.log("Attempting to insert log:", logPayload);
+
+      const { data: insertData, error: logError } = await supabase.from("event_logs").insert([logPayload]).select();
 
       if (logError) {
         console.error("Error logging event:", logError);
       } else {
-        console.log("Event logged successfully");
+        console.log("Event logged successfully:", insertData);
       }
 
       // Show full product
@@ -115,6 +127,33 @@ function ProtectedHome() {
             // Use company_id from research_documents table
             setCompanyId(docData[0].company_id);
             setPdfUrl(docData[0].storage_path);
+
+            // Log Teaser Activity (ONLY IF NOT LOGGED YET)
+            if (!hasLoggedTeaser.current) {
+              hasLoggedTeaser.current = true; // Mark as logged immediately
+
+              let ipAddress = null;
+              try {
+                const res = await fetch("https://api.ipify.org?format=json");
+                const data = await res.json();
+                ipAddress = data.ip;
+              } catch (ipError) {
+                console.error("Error fetching IP:", ipError);
+              }
+
+              const { error: logError } = await supabase
+                .from("event_logs")
+                .insert([
+                  {
+                    company_id: docData[0].company_id,
+                    ip_address: ipAddress,
+                    activity: "teaser",
+                  },
+                ]);
+              if (logError) {
+                console.error("Error logging teaser view:", logError);
+              }
+            }
           }
         } catch (err) {
           console.error("Error checking UUID:", err);

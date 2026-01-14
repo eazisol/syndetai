@@ -16,7 +16,8 @@ export function CartProvider({ children }) {
 
   const addToCart = (item) => {
     const key = Date.now() + Math.random();
-    setItems((prev) => [...prev, { ...item, key }]);
+    // setItems((prev) => [...prev, { ...item, key }]);
+    setItems([{ ...item, key }]);
     setCartOpen(true);
   };
 
