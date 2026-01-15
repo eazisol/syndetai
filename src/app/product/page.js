@@ -35,7 +35,7 @@ function ProtectedHome() {
     console.log("Current State:", { companyId, uuid });
 
     if (!companyId || !uuid) {
-      console.error("Missing companyId or uuid in handleOpenFullReport");
+      console.log("Missing companyId or uuid in handleOpenFullReport");
       return;
     }
 
@@ -49,7 +49,7 @@ function ProtectedHome() {
         const data = await res.json();
         ipAddress = data.ip;
       } catch (ipError) {
-        console.error("Error fetching IP:", ipError);
+        console.log("Error fetching IP:", ipError);
       }
 
       // Update existing teaser log entry to "teaser+landing"
@@ -58,13 +58,13 @@ function ProtectedHome() {
           .from("event_logs")
           .update({
             activity: "teaser+landing",
-            created_at: new Date().toISOString() // ✅ Set landing page timestamp
+            landing_created: new Date().toISOString() //  Set landing page timestamp
           })
           .eq("id", teaserLogId)
           .select();
 
         if (logError) {
-          console.error("Error logging event:", logError);
+          console.log("Error logging event:", logError);
         } else {
           console.log("Event logged successfully:", updateData);
         }
@@ -73,11 +73,10 @@ function ProtectedHome() {
       // Show full product
       setShowFullProduct(true);
     } catch (err) {
-      console.error("Error in handleOpenFullReport:", err);
+      console.log("Error in handleOpenFullReport:", err);
     }
   };
 
-  // ✅ CONNECT FLOW (moved from /connect/[companyId])
   // Runs ONLY when both uuid + company_id exist
   useEffect(() => {
     if (uuid && companyIdParam) {
@@ -89,7 +88,7 @@ function ProtectedHome() {
     }
   }, [uuid, companyIdParam, router]);
 
-  // ✅ TEASER FLOW (unchanged logic, just guarded so it runs ONLY when uuid exists WITHOUT company_id)
+  // TEASER FLOW (just guarded so it runs ONLY when uuid exists WITHOUT company_id)
   useEffect(() => {
     const checkLogic = async () => {
       // Priority: UUID teaser flow only when there is NO company_id
@@ -132,7 +131,7 @@ function ProtectedHome() {
 
             // Log Teaser Activity (ONLY IF NOT LOGGED YET)
             if (!hasLoggedTeaser.current) {
-              hasLoggedTeaser.current = true; // Mark as logged immediately
+              hasLoggedTeaser.current = true; 
 
               let ipAddress = null;
               try {
@@ -140,7 +139,7 @@ function ProtectedHome() {
                 const data = await res.json();
                 ipAddress = data.ip;
               } catch (ipError) {
-                console.error("Error fetching IP:", ipError);
+                console.log("Error fetching IP:", ipError);
               }
 
               const { data: logData, error: logError } = await supabase
@@ -150,15 +149,14 @@ function ProtectedHome() {
                     company_id: docData[0].company_id,
                     ip_address: ipAddress,
                     activity: "teaser",
-                    user_id: uuid, // ✅ Log user_id from UUID
-                    teaser_created: new Date().toISOString(), // ✅ Store teaser open timestamp
-                    created_at: null, // ✅ Set as NULL initially
+                    user_id: uuid, //  Log user_id from UUID
+                    teaser_created: new Date().toISOString(), // Store teaser open timestamp
                   },
                 ])
                 .select();
 
               if (logError) {
-                console.error("Error logging teaser view:", logError);
+                console.log("Error logging teaser view:", logError);
               } else if (logData && logData.length > 0) {
                 // Store the log entry ID for later update
                 setTeaserLogId(logData[0].id);
@@ -167,7 +165,7 @@ function ProtectedHome() {
             }
           }
         } catch (err) {
-          console.error("Error checking UUID:", err);
+          console.log("Error checking UUID:", err);
           setIsValidUuid(false);
         } finally {
           setIsLoadingUuid(false);
@@ -204,7 +202,7 @@ function ProtectedHome() {
   if (uuid && !companyIdParam && isValidUuid) {
     if (showFullProduct) {
       return (
-        <CartProvider>
+        <CartProvider companyId={companyId}>
           <HomePage />
         </CartProvider>
       );
@@ -221,7 +219,7 @@ function ProtectedHome() {
   // 3. Home page when company_id exists
   if (companyIdParam) {
     return (
-      <CartProvider>
+      <CartProvider companyId={companyIdParam}>
         <HomePage />
       </CartProvider>
     );

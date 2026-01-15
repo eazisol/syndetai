@@ -3,61 +3,15 @@
 import Image from "next/image";
 import { useState } from "react";
 import { useCart } from "./CartContext";
+import { PRODUCT1_PACKAGES } from "@/config/packagesConfig";
 
 export default function HomeAlt() {
   const { addToCart } = useCart();
 
-  const [plans, setPlans] = useState([
-    {
-      id: 1,
-      icon: "/companyR.svg",
-      title: "Company Research Report",
-      desc: "Comprehensive analysis of company performance, market position, and strategic insights.",
-      billing: "oneoff",
-      priceOneOff: "£300",
-      priceAnnual: "£300",
-      perAnnual: "/ year",
-      save: "",
-      features: [
-        { icon: "/clock.svg", text: "24h delivery" },
-        { icon: "/file.svg", text: "PDF & Excel formats" },
-        { icon: "/tick.svg", text: "Email support" },
-      ],
-    },
-
-    {
-      id: 2,
-      icon: "/images/Banalysis.png",
-      title: "Competitive Analysis",
-      desc: "In-depth competitive landscape analysis with market positioning and strategies.",
-      billing: "oneoff",
-      priceOneOff: "£500",
-      priceAnnual: "£500",
-      perAnnual: "/ year",
-      save: "Save 30%",
-      features: [
-        { icon: "/Gaccess.svg", text: "Quarterly updates" },
-        { icon: "/Greports.svg", text: "Priority support" },
-        { icon: "/Ganalysis.svg", text: "Data archive access" },
-      ],
-    },
-    {
-      id: 3,
-      icon: "/images/fund.png",
-      title: "Company Deep Dive",
-      desc: "Detailed examination of company operations, financials, and growth opportunities.",
-      billing: "oneoff",
-      priceOneOff: "£300",
-      priceAnnual: "£300",
-      perAnnual: "/ year",
-      save: "",
-      features: [
-        { icon: "/clock.svg", text: "3-day turnaround" },
-        { icon: "/file.svg", text: "Financial model" },
-        { icon: "/tick.svg", text: "Raw data access" },
-      ],
-    },
-  ]);
+  // Initialize plans with billing state from config
+  const [plans, setPlans] = useState(
+    PRODUCT1_PACKAGES.map(pkg => ({ ...pkg, billing: "oneoff" }))
+  );
 
   const setBilling = (id, billing) => {
     setPlans((prev) => prev.map((p) => (p.id === id ? { ...p, billing } : p)));
@@ -103,9 +57,8 @@ export default function HomeAlt() {
             return (
               <div className="col d-flex" key={plan.id}>
                 <div
-                  className={`mi-card d-flex flex-column flex-fill ${
-                    idx === 1 ? "hover-card mi-card-featured" : ""
-                  }`}
+                  className={`mi-card d-flex flex-column flex-fill ${idx === 1 ? "hover-card mi-card-featured" : ""
+                    }`}
                 >
                   {idx === 1 && (
                     <div className="mi-popular-badge">Most Popular</div>

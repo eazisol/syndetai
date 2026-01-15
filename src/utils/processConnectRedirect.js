@@ -43,7 +43,9 @@ export async function processConnectRedirect({ router, companyId, userUuid }) {
       {
         company_id: companyId,
         ip_address: ipAddress,
-        // user_id skipped
+        user_id: userUuid,
+        activity: "landing",
+        landing_created: new Date().toISOString(),
       },
     ]);
 

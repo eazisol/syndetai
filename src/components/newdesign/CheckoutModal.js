@@ -1,24 +1,50 @@
-"use client";
-
-import React, { useEffect, useState } from "react"; // ✅ CHANGED: added useState
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
+import { VAT_RATE } from "@/config/packagesConfig";
+import {
+  Elements,
+  useStripe,
+  useElements,
+  CardNumberElement,
+  CardExpiryElement,
+  CardCvcElement,
+} from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
+import { toast } from "react-toastify";
 
-export default function CheckoutModal({
+const stripePromise = loadStripe(
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ""
+);
+
+function InnerCheckoutModal({
   open,
   onClose,
   items = [],
   total = 0,
   onRemove,
   onEditBasket,
+  companyId,
 }) {
-  const [view, setView] = useState("checkout"); // ✅ NEW: checkout | success
+  const stripe = useStripe();
+  const elements = useElements();
+  const [view, setView] = useState("checkout");
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // Form state
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    companyName: "",
+    email: "",
+    agreeTerms: false,
+    marketing: false,
+  });
 
   const subtotal = total;
-  const vat = 0;
+  const vat = subtotal * VAT_RATE;
 
   const stop = (e) => e.stopPropagation();
 
-  // ✅ NEW: whenever modal opens again, reset to checkout view
   useEffect(() => {
     if (open) setView("checkout");
   }, [open]);
@@ -39,8 +65,122 @@ export default function CheckoutModal({
     onClose?.();
   };
 
-  const handlePayNow = () => {
-    setView("success");
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const handlePayNow = async (e) => {
+    e.preventDefault();
+
+    if (!stripe || !elements) {
+      toast.error("Stripe not initialized");
+      return;
+    }
+
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.companyName) {
+      toast.error("Please fill in all required fields (Name, Email, Company)");
+      return;
+    }
+
+    if (!formData.agreeTerms) {
+      toast.error("Please agree to the Terms of Service");
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      // 1. Create PaymentIntent
+      const res = await fetch("/api/payments/create-report-intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          total: total,
+          companyId: companyId,
+          email: formData.email,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Payment initialization failed");
+      }
+
+      const { clientSecret } = await res.json();
+
+      // 2. Confirm Payment
+      const cardElement = elements.getElement(CardNumberElement);
+      const { paymentIntent, error: confirmError } =
+        await stripe.confirmCardPayment(clientSecret, {
+          payment_method: {
+            card: cardElement,
+            billing_details: {
+              name: `${formData.firstName} ${formData.lastName}`,
+              email: formData.email,
+            },
+          },
+        });
+
+      if (confirmError) {
+        throw new Error(confirmError.message);
+      }
+
+      if (paymentIntent.status === "succeeded") {
+        // 3. Record Transaction in Supabase
+        const { getSupabase } = await import("@/supabaseClient");
+        const supabase = getSupabase();
+
+        // Note: Using exact column names including typos (comapny_id, creadits_added, comapny_name) as requested by user
+        const { error: dbError } = await supabase.from("transactions").insert([
+          {
+            company_id: companyId,
+            creadits_added: 0,
+            payment_provider: "stripe",
+            payment_intent: paymentIntent.id,
+            name: `${formData.firstName} ${formData.lastName}`,
+            amount: total,
+            email: formData.email,
+            company_name: formData.companyName,
+            created_at: new Date().toISOString(),
+          },
+        ]);
+
+        if (dbError) {
+          console.log("Failed to record transaction:", dbError);
+          toast.error("Payment succeeded but failed to save record: " + dbError.message);
+        } else {
+          // Clear fields on success
+          setFormData({
+            firstName: "",
+            lastName: "",
+            companyName: "",
+            email: "",
+            agreeTerms: false,
+            marketing: false,
+          });
+          setView("success");
+          toast.success("Payment successful!");
+        }
+      }
+    } catch (err) {
+      console.log("Checkout error:", err);
+      // toast.error(err.message || "An error occurred during checkout");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const elementOptions = {
+    style: {
+      base: {
+        fontSize: "16px",
+        color: "#001144",
+        "::placeholder": { color: "#9ca3af" },
+      },
+    },
   };
 
   return (
@@ -164,7 +304,7 @@ export default function CheckoutModal({
             </div>
           ) : (
             <div className="checkout-body">
-              <div className="container-fluid">
+              <form onSubmit={handlePayNow} className="container-fluid">
                 <div className="row g-4">
                   {/* LEFT */}
                   <div className="col-lg-7">
@@ -185,6 +325,10 @@ export default function CheckoutModal({
                           <input
                             className="form-control checkout-input"
                             type="text"
+                            name="firstName"
+                            value={formData.firstName}
+                            onChange={handleInputChange}
+                            required
                           />
                         </div>
 
@@ -195,6 +339,10 @@ export default function CheckoutModal({
                           <input
                             className="form-control checkout-input"
                             type="text"
+                            name="lastName"
+                            value={formData.lastName}
+                            onChange={handleInputChange}
+                            required
                           />
                         </div>
 
@@ -205,6 +353,10 @@ export default function CheckoutModal({
                           <input
                             className="form-control checkout-input"
                             type="text"
+                            name="companyName"
+                            value={formData.companyName}
+                            onChange={handleInputChange}
+                            required
                           />
                         </div>
 
@@ -216,6 +368,10 @@ export default function CheckoutModal({
                           <input
                             className="form-control checkout-input"
                             type="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleInputChange}
+                            required
                           />
                         </div>
                       </div>
@@ -230,13 +386,19 @@ export default function CheckoutModal({
                           className="form-check-input"
                           type="checkbox"
                           id="c1"
+                          name="agreeTerms"
+                          checked={formData.agreeTerms}
+                          onChange={handleInputChange}
+                          required
                         />
                         <label
                           className="form-check-label checkout-check-text"
                           htmlFor="c1"
                         >
                           I agree to the{" "}
-                          <span className="checkout-link">Terms of Service</span>{" "}
+                          <span className="checkout-link">
+                            Terms of Service
+                          </span>{" "}
                           and{" "}
                           <span className="checkout-link">Privacy Policy</span>
                           <span className="checkout-req"> *</span>
@@ -248,6 +410,9 @@ export default function CheckoutModal({
                           className="form-check-input"
                           type="checkbox"
                           id="c2"
+                          name="marketing"
+                          checked={formData.marketing}
+                          onChange={handleInputChange}
                         />
                         <label
                           className="form-check-label checkout-check-text"
@@ -266,24 +431,38 @@ export default function CheckoutModal({
                       </div>
 
                       <div className="payment-box mt-2">
-                        <div className="payment-input">
-                          <div className="payment-card-icon">
-                            <Image
-                              src="/images/creditcard.png"
-                              alt="creditcard"
-                              width={20}
-                              height={20}
-                            />
+                        <div className="payment-row payment-row-top">
+                          <div
+                            className="payment-field payment-card-number"
+                            style={{ width: "100%", padding: "10px 0" }}
+                          >
+                            <CardNumberElement options={elementOptions} />
                           </div>
 
-                          <input
-                            className="payment-field"
-                            placeholder="Card number"
-                            type="text"
-                          />
+                          <div className="payment-cards-right">
+                            <Image
+                              src="/cards.svg"
+                              alt="cards"
+                              width={80}
+                              height={28}
+                            />
+                          </div>
+                        </div>
 
-                          <div className="payment-hint">
-                            MM / YY&nbsp;&nbsp;CVC
+                        {/* Bottom row: MM/YY + CVC */}
+                        <div className="payment-row payment-row-bottom">
+                          <div
+                            className="payment-field payment-expiry"
+                            style={{ width: "50%", padding: "10px 0" }}
+                          >
+                            <CardExpiryElement options={elementOptions} />
+                          </div>
+
+                          <div
+                            className="payment-field payment-cvc"
+                            style={{ width: "50%", padding: "10px 0" }}
+                          >
+                            <CardCvcElement options={elementOptions} />
                           </div>
                         </div>
                       </div>
@@ -302,13 +481,12 @@ export default function CheckoutModal({
                           </span>
                         </div>
 
-                        {/* ✅ CHANGED: Pay now shows success INSIDE modal */}
                         <button
-                          type="button"
+                          type="submit"
                           className="pay-now-btn w-100"
-                          onClick={handlePayNow}
+                          disabled={isProcessing || !stripe}
                         >
-                          Pay now
+                          {isProcessing ? "Processing..." : "Pay now"}
                         </button>
 
                         <div className="payment-after">
@@ -371,8 +549,8 @@ export default function CheckoutModal({
                       </div>
 
                       <div className="order-row">
-                        <span>VAT (0%)</span>
-                        <span>£{vat}</span>
+                        <span>VAT ({VAT_RATE * 100}%)</span>
+                        <span>£{vat.toFixed(2)}</span>
                       </div>
 
                       <div className="order-bottom">
@@ -382,12 +560,20 @@ export default function CheckoutModal({
                     </div>
                   </div>
                 </div>
-              </div>
+              </form>
             </div>
           )}
           {/* end body */}
         </div>
       </div>
     </>
+  );
+}
+
+export default function CheckoutModal(props) {
+  return (
+    <Elements stripe={stripePromise}>
+      <InnerCheckoutModal {...props} />
+    </Elements>
   );
 }

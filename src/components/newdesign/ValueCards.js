@@ -4,47 +4,11 @@ import React, { useState } from "react";
 import Image from "next/image";
 // ✅ NEW: connect ValueCards button to cart (same like Cards)
 import { useCart } from "./CartContext"; // <-- adjust path if your CartContext is elsewhere
-
-const bundles = [
-  {
-    id: "market",
-    icon: "/images/marketing.png",
-    title: "Market Analysis Bundle",
-    desc: "Complete market intelligence package",
-    saveBadge: "SAVE £100",
-    price: "£800",
-    oldPrice: "£900",
-    headerIcon: "/images/goldstar.png",
-    headerLabel: "Annual Benefits:",
-    features: [
-      "Quarterly report updates",
-      "Priority support access",
-      "Market trend alerts",
-    ],
-    showSave30: true,
-  },
-  {
-    id: "fundraising",
-    icon: "/images/fundraising.png",
-    title: "Fundraising Readiness",
-    desc: "Complete package for investors",
-    saveBadge: "SAVE £250",
-    price: "£650",
-    oldPrice: "£900",
-    headerIcon: "/images/include.png",
-    headerLabel: "What's Included:",
-    features: [
-      "Company Research Report",
-      "Competitive Analysis Report",
-      "Company Deep Dive",
-    ],
-    showSave30: false,
-  },
-];
+import { BUNDLE_PACKAGES } from "@/config/packagesConfig";
 
 export default function ValueCards() {
   const [billing, setBilling] = useState(() =>
-    Object.fromEntries(bundles.map((b) => [b.id, "oneoff"]))
+    Object.fromEntries(BUNDLE_PACKAGES.map((b) => [b.id, "oneoff"]))
   );
 
   const setPlan = (id, plan) => {
@@ -79,8 +43,10 @@ export default function ValueCards() {
         </div>
 
         <div className="row g-4">
-          {bundles.map((bundle) => {
+          {BUNDLE_PACKAGES.map((bundle) => {
             const isAnnual = billing[bundle.id] === "annual";
+            const currentPrice = isAnnual ? bundle.priceYearly : bundle.priceOneOff;
+            const oldPrice = isAnnual ? bundle.oldPriceYearly : null;
 
             return (
               <div className="col-12 col-lg-6" key={bundle.id}>
@@ -101,7 +67,9 @@ export default function ValueCards() {
                         {bundle.title}
                       </h3>
 
-                      <span className="mi-save-badge">{bundle.saveBadge}</span>
+                      {isAnnual && (
+                        <span className="mi-save-badge">{bundle.saveBadge}</span>
+                      )}
                     </div>
 
                     <p className="mi-card-desc mb-3">{bundle.desc}</p>
@@ -131,11 +99,11 @@ export default function ValueCards() {
                     <div className="mi-price-row mt-3">
                       <div>
                         <div className="d-flex align-items-baseline gap-2">
-                          <span className="mi-price">{bundle.price}</span>
+                          <span className="mi-price">{currentPrice}</span>
 
-                          {isAnnual && (
+                          {oldPrice && (
                             <span className="text-muted text-decoration-line-through fw-semibold">
-                              {bundle.oldPrice}
+                              {oldPrice}
                             </span>
                           )}
                           {isAnnual && <span className="mi-per">/ year</span>}
@@ -192,7 +160,7 @@ export default function ValueCards() {
                         addToCart({
                           title: bundle.title,
                           type: isAnnual ? "Annual Plan" : "One-time Purchase",
-                          price: toNumber(bundle.price),
+                          price: toNumber(currentPrice),
                         })
                       }
                     >

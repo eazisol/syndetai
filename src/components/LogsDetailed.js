@@ -185,7 +185,7 @@ export default function LogsDetailed() {
               <tr>
                 <th>Company Name</th>
                 <th>User ID</th>
-                <th>Activity</th>
+                <th style={{ textAlign: "center" }}>Activity</th>
                 <th style={{ textAlign: "center" }}>Date</th>
                 <th style={{ textAlign: "center" }}> Teaser Time</th>
                 <th style={{ textAlign: "center" }}> Landing Time</th>
@@ -229,7 +229,7 @@ export default function LogsDetailed() {
                   <tr key={log.id}>
                     <td>{log.company_name || "N/A"}</td>
                     <td>{log.user_id || "N/A"}</td>
-                    <td>
+                    <td style={{ textAlign: "center" }}>
                       {log.activity ? (
                         <span style={badgeStyle}>{displayActivity}</span>
                       ) : (
@@ -237,13 +237,13 @@ export default function LogsDetailed() {
                       )}
                     </td>
                     <td style={{ textAlign: "center" }}>
-                      {formatDate(log.teaser_created || log.created_at)}
+                      {formatDate(log.teaser_created || log.landing_created || log.created_at)}
                     </td>
                     <td style={{ textAlign: "center" }}>
                       {formatTime(log.teaser_created)}
                     </td>
                     <td style={{ textAlign: "center" }}>
-                      {formatTime(log.created_at)}
+                      {formatTime(log.landing_created)}
                     </td>
 
                     {/* <td style={{ textAlign: "center" }}>

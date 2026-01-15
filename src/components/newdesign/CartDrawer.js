@@ -2,20 +2,20 @@
 
 import React from "react";
 import Image from "next/image";
+import { VAT_RATE } from "@/config/packagesConfig";
 
 export default function CartDrawer({
   open,
   onClose,
   items = [],
-  onRemove = () => {},
-  onCheckout = () => {},
+  onRemove = () => { },
+  onCheckout = () => { },
 }) {
   const subtotal = items.reduce(
     (sum, it) => sum + (Number(it.price) || 0),
     0
   );
 
-  const VAT_RATE = 0.2;
   const vat = +(subtotal * VAT_RATE).toFixed(2);
   const grandTotal = +(subtotal + vat).toFixed(2);
 
@@ -73,7 +73,7 @@ export default function CartDrawer({
           </div>
 
           <div className="d-flex justify-content-between mb-3">
-            <div className="fw-semibold">VAT (20%)</div>
+            <div className="fw-semibold">VAT ({VAT_RATE * 100}%)</div>
             <div className="fw-bold cart-price">£{vat.toFixed(2)}</div>
           </div>
 
