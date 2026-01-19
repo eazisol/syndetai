@@ -29,6 +29,7 @@ function InnerCheckoutModal({
   const elements = useElements();
   const [view, setView] = useState("checkout");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [cvcLen, setCvcLen] = useState(0);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -453,17 +454,18 @@ function InnerCheckoutModal({
                         <div className="payment-row payment-row-bottom">
                           <div
                             className="payment-field payment-expiry"
-                            style={{ width: "50%", padding: "10px 0" }}
+                            style={{ width: "50%", padding: "10px 14px" }}
                           >
                             <CardExpiryElement options={elementOptions} />
                           </div>
 
                           <div
                             className="payment-field payment-cvc"
-                            style={{ width: "50%", padding: "10px 0" }}
+                            style={{ width: "50%", padding: "10px 14px" }}
                           >
                             <CardCvcElement options={elementOptions} />
                           </div>
+
                         </div>
                       </div>
 

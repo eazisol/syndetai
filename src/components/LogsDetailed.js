@@ -131,7 +131,6 @@ export default function LogsDetailed() {
     return `${hours}:${minutes}:${seconds}`;
   };
 
-
   // Filter logs based on search query
   const filteredLogs = logs.filter((log) => {
     if (!searchQuery) return true;
@@ -196,7 +195,14 @@ export default function LogsDetailed() {
             <tbody>
               {filteredLogs.map((log) => {
                 const activityLower = (log.activity || "").toLowerCase();
-                const displayActivity = log.activity || "N/A"; // Show exact value from database
+                {
+                  /* const displayActivity = log.activity || "N/A";  */
+                }
+                const displayActivity = log.activity
+                  ? log.activity
+                    .replace(/teaser/g, "Teaser")
+                    .replace(/landing/g, "Landing")
+                  : "N/A";
 
                 // Badge styles
                 let badgeStyle = {
@@ -237,7 +243,11 @@ export default function LogsDetailed() {
                       )}
                     </td>
                     <td style={{ textAlign: "center" }}>
-                      {formatDate(log.teaser_created || log.landing_created || log.created_at)}
+                      {formatDate(
+                        log.teaser_created ||
+                        log.landing_created ||
+                        log.created_at
+                      )}
                     </td>
                     <td style={{ textAlign: "center" }}>
                       {formatTime(log.teaser_created)}

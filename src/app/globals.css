@@ -3187,17 +3187,14 @@ font-weight: 500;
 .payment-boxs {
   padding: 14px;
 }
-.payment-box {
+/* .payment-box {
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   overflow: hidden;
-}
+} */
 
-.payment-row {
-  display: flex;
-  align-items: center;
-}
+
 
 .payment-row-top {
   padding: 12px 14px;
@@ -3208,13 +3205,14 @@ font-weight: 500;
   border-top: 1px solid #e5e7eb;
 }
 
-.payment-field {
+/* .payment-field {
   border: none;
   outline: none;
   background: transparent;
   font-size: 14px;
   width: 100%;
-}
+  align-items: center;
+} */
 
 .payment-card-number {
   flex: 1;
@@ -3257,6 +3255,7 @@ font-weight: 500;
   width: 100%;
   font-size: 12px;
   color: #00000040;
+  align-items: center;
 }
 
 .payment-hint {
@@ -3358,6 +3357,22 @@ font-weight: 500;
 .payment-field-cvc {
   border-left: 1px solid #e8ecf4;
 }
+.payment-cvc {
+  position: relative;
+}
+
+.payment-cvc .cvc-mask {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  background: #fff;      
+  pointer-events: none;
+  font-size: 16px;
+  color: #001144;
+}
+
 
 
 /* Order summary card */
