@@ -52,22 +52,23 @@ function ProtectedHome() {
         console.log("Error fetching IP:", ipError);
       }
 
-      // Update existing teaser log entry to "teaser+landing"
-      if (teaserLogId) {
-        const { data: updateData, error: logError } = await supabase
-          .from("event_logs")
-          .update({
-            activity: "teaser+landing",
-            landing_created: new Date().toISOString() //  Set landing page timestamp
-          })
-          .eq("id", teaserLogId)
-          .select();
+      // Insert a new log entry for "landing" activity
+      const { data: logData, error: logError } = await supabase
+        .from("event_logs")
+        .insert([
+          {
+            company_id: companyId,
+            ip_address: ipAddress,
+            event_type: "landing",
+            user_id: uuid,
+          },
+        ])
+        .select();
 
-        if (logError) {
-          console.log("Error logging event:", logError);
-        } else {
-          console.log("Event logged successfully:", updateData);
-        }
+      if (logError) {
+        console.log("Error logging event:", logError);
+      } else {
+        console.log("Event logged successfully:", logData);
       }
 
       // Show full product
@@ -131,7 +132,7 @@ function ProtectedHome() {
 
             // Log Teaser Activity (ONLY IF NOT LOGGED YET)
             if (!hasLoggedTeaser.current) {
-              hasLoggedTeaser.current = true; 
+              hasLoggedTeaser.current = true;
 
               let ipAddress = null;
               try {
@@ -148,9 +149,8 @@ function ProtectedHome() {
                   {
                     company_id: docData[0].company_id,
                     ip_address: ipAddress,
-                    activity: "teaser",
+                    event_type: "teaser",
                     user_id: uuid, //  Log user_id from UUID
-                    teaser_created: new Date().toISOString(), // Store teaser open timestamp
                   },
                 ])
                 .select();

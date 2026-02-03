@@ -8,8 +8,6 @@ import { useApp } from "@/context/AppContext";
 import { getSupabase } from "@/supabaseClient";
 
 export default function LogsDetailed() {
-  // const searchParams = useSearchParams();
-  // const uuid = searchParams?.get("uuid");
   const { searchQuery, setSearchQuery, userData } = useApp();
 
   // State for real data
@@ -55,8 +53,6 @@ export default function LogsDetailed() {
           .in("company_id", companyIds);
 
         if (peopleError) {
-          // console.error("Error fetching company people:", peopleError);
-          // Continue even if we can't fetch company names
         }
         console.log(companyPeopleData, "companyPeopleData");
         // Create a lookup map: company_id -> full_name
@@ -93,20 +89,18 @@ export default function LogsDetailed() {
       .on(
         "postgres_changes",
         {
-          event: "*", // Listen to all events (INSERT, UPDATE, DELETE)
+          event: "*",
           schema: "public",
           table: "event_logs",
         },
         async (payload) => {
           console.log("Real-time update:", payload);
-
-          // Refetch all logs to get updated data
           fetchLogs();
         }
       )
       .subscribe();
 
-    // Cleanup subscription on unmount
+
     return () => {
       supabase.removeChannel(channel);
     };
@@ -138,7 +132,7 @@ export default function LogsDetailed() {
     const companyName = log.company_name || "";
     const userId = log.user_id || "";
     const ipAddress = log.ip_address || "";
-    const activity = log.activity || "";
+    const activity = log.event_type || "";
 
     return (
       companyName.toLowerCase().includes(searchLower) ||
@@ -184,22 +178,18 @@ export default function LogsDetailed() {
               <tr>
                 <th>Company Name</th>
                 <th>User ID</th>
-                <th style={{ textAlign: "center" }}>Activity</th>
+                <th style={{ textAlign: "center" }}>Event Type</th>
                 <th style={{ textAlign: "center" }}>Date</th>
-                <th style={{ textAlign: "center" }}> Teaser Time</th>
-                <th style={{ textAlign: "center" }}> Landing Time</th>
+                <th style={{ textAlign: "center" }}> Time</th>
                 {/* <th style={{ textAlign: "center" }}>Report</th> */}
               </tr>
             </thead>
 
             <tbody>
               {filteredLogs.map((log) => {
-                const activityLower = (log.activity || "").toLowerCase();
-                {
-                  /* const displayActivity = log.activity || "N/A";  */
-                }
-                const displayActivity = log.activity
-                  ? log.activity
+                const activityLower = (log.event_type || "").toLowerCase();
+                const displayActivity = log.event_type
+                  ? log.event_type
                     .replace(/teaser/g, "Teaser")
                     .replace(/landing/g, "Landing")
                   : "N/A";
@@ -236,24 +226,17 @@ export default function LogsDetailed() {
                     <td>{log.company_name || "N/A"}</td>
                     <td>{log.user_id || "N/A"}</td>
                     <td style={{ textAlign: "center" }}>
-                      {log.activity ? (
+                      {log.event_type ? (
                         <span style={badgeStyle}>{displayActivity}</span>
                       ) : (
                         "N/A"
                       )}
                     </td>
                     <td style={{ textAlign: "center" }}>
-                      {formatDate(
-                        log.teaser_created ||
-                        log.landing_created ||
-                        log.created_at
-                      )}
+                      {formatDate(log.created_at)}
                     </td>
                     <td style={{ textAlign: "center" }}>
-                      {formatTime(log.teaser_created)}
-                    </td>
-                    <td style={{ textAlign: "center" }}>
-                      {formatTime(log.landing_created)}
+                      {formatTime(log.created_at)}
                     </td>
 
                     {/* <td style={{ textAlign: "center" }}>
