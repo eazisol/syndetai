@@ -2627,9 +2627,7 @@ body {
 }
 
 @media (min-width: 992px) {
-  .mi-section .row.row-cols-lg-3.align-items-stretch {
-    align-items: flex-start !important;
-  }
+  .mi-section .row.row-cols-lg-3.align-items-stretch {}
 }
 
 .mi-popular-badge {
@@ -2649,6 +2647,9 @@ body {
 
 .mi-card-body {
   padding: 42px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .mi-card-bodyy {
@@ -2663,6 +2664,18 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  /* margin-bottom: 18px; */
+  margin-right: 16px;
+}
+
+.mi-heading {
+  display: flex;
+  flex-direction: row;
+  /* justify-content: space-between; */
+  align-items: center;
+  padding: 0px;
+  /* max-width: 271px; */
+  width: 100%;
   margin-bottom: 18px;
 }
 
@@ -2686,7 +2699,7 @@ body {
 
 .mi-card-title {
   font-weight: 700;
-  font-size: 20px;
+  font-size: 18px;
   margin: 0 0 6px;
   color: #001144;
 }
@@ -2694,16 +2707,97 @@ body {
 .mi-box {
   display: flex;
   flex-direction: column;
-  padding: 0 10px;
-  max-width: 271px;
+  padding: 0 10px 0 2px;
+  /* max-width: 271px; */
   width: 100%;
-  min-height: 109px;
+  min-height: 140px;
 }
 
+.mi-card-sub {
+  min-height: 54px;
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.5;
+  color: #637690;
+  font-weight: 500;
+}
+
+.mi-badge-blue {
+  display: inline-block;
+  background-color: #ebf5ff;
+  color: #3b82f6;
+  font-size: 12px;
+  padding: 4px 12px;
+  border-radius: 100px;
+  font-weight: 500;
+  width: fit-content;
+  margin-top: 0;
+}
+
+.mi-desc-align {
+  margin-top: 32px !important;
+}
+
+.mi-tooltip-container {
+  position: relative;
+  display: flex;
+}
+
+.ms-auto {
+  margin-left: auto !important;
+}
+
+.mi-tooltip-icon {
+  width: 20px;
+  height: 20px;
+  background: #f1f4f6;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #64748b;
+  cursor: help;
+  transition: all 0.1s ease;
+}
+
+.mi-tooltip-text {
+  position: absolute;
+  top: 100%;
+  /* Opens downwards to avoid clipping */
+  right: 0;
+  width: 240px;
+  background: #0044ee;
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.1s ease;
+  z-index: 100;
+  margin-top: 8px;
+  /* Margin at top since it opens downwards */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+}
+
+.mi-tooltip-container:hover .mi-tooltip-text {
+  opacity: 1;
+  visibility: visible;
+}
+
+.mi-tooltip-icon:hover {
+  background: #e2e8f0;
+  color: #001144;
+}
+
+
 .mi-card-desc {
-  margin: 0 0 14px;
+  margin: 0 10px 14px 0;
   font-size: 14px;
-  line-height: 2;
+  line-height: 1.5;
   color: #64748b;
   font-weight: 400;
 }
@@ -2830,6 +2924,7 @@ body {
 }
 
 .mi-card-footer {
+  margin-top: auto;
   padding: 0 22px 22px;
 }
 

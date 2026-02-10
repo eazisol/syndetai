@@ -23,7 +23,7 @@ export default function Navbar() {
             />
 
             {/* Cart */}
-            <button
+            {/* <button
               type="button"
               className="mi-cart-btn"
               aria-label="cart"
@@ -41,7 +41,7 @@ export default function Navbar() {
                 height={26}
                 className="mi-cart-icon"
               />
-            </button>
+            </button> */}
           </div>
         </div>
       </header>

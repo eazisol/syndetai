@@ -57,31 +57,51 @@ export default function Cards() {
             return (
               <div className="col d-flex" key={plan.id}>
                 <div
-                  className={`mi-card d-flex flex-column flex-fill ${idx === 1 ? "hover-card mi-card-featured" : ""
-                    }`}
+                  // className={`mi-card d-flex flex-column flex-fill ${idx === 1 ? "hover-card mi-card-featured" : ""
+                  //   }`}
+                  className="mi-card d-flex flex-column flex-fill"
                 >
-                  {idx === 1 && (
+                  {/* {idx === 1 && (
                     <div className="mi-popular-badge">Most Popular</div>
-                  )}
+                  )} */}
 
                   <div
-                    className={
-                      idx === 1 ? "mi-card-bodyy " : "mi-card-body flex-grow-1"
-                    }
+                    className="mi-card-body flex-grow-1"
                   >
-                    <div className={idx === 1 ? "mi-icon-boxx" : "mi-icon-box"}>
-                      <Image
-                        className="mi-icon"
-                        src={plan.icon}
-                        alt=""
-                        width={48}
-                        height={48}
-                      />
+                    <div className="mi-heading">
+                      <div
+                        // className={idx === 1 ? "mi-icon-boxx" : "mi-icon-box"}
+                        className="mi-icon-box"
+                      >
+                        <Image
+                          className="mi-icon"
+                          src={plan.icon}
+                          alt=""
+                          width={48}
+                          height={48}
+                        />
+                      </div>
+                      <h5 className="mi-card-title">{plan.title}</h5>
+                      {plan.tooltip && (
+                        <div className="mi-tooltip-container ms-auto">
+                          <span className="mi-tooltip-icon">?</span>
+                          <div className="mi-tooltip-text">
+                            {plan.tooltip}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="mi-box">
-                      <h5 className="mi-card-title">{plan.title}</h5>
-                      <p className="mi-card-desc">{plan.desc}</p>
+                      <h5 className="mi-card-sub">{plan.sub}</h5>
+                      {plan.badge && (
+                        <div className="mi-badge-blue mb-2">
+                          {plan.badge}
+                        </div>
+                      )}
+                      <p className={`mi-card-desc ${!plan.badge ? "mi-desc-align" : ""}`}>
+                        {plan.desc}
+                      </p>
                     </div>
 
                     <div
@@ -126,13 +146,14 @@ export default function Cards() {
                     <ul className="mi-features list-unstyled m-0">
                       {plan.features.map((f, i) => (
                         <li
-                          className="mi-feature d-flex align-items-start"
+                          // className="mi-feature d-flex align-items-start"
+                          className={`mi-feature d-flex align-items-start ${f.icon === "/dot.svg" ? "ms-3" : ""}`}
                           key={i}
                         >
                           <Image
                             className="mi-feature-icon"
                             src={f.icon}
-                            alt=""
+                            alt="icon"
                             width={16}
                             height={16}
                           />
@@ -145,7 +166,7 @@ export default function Cards() {
 
                   <div
                     className={
-                      idx === 1 ? "mi-card-footerr " : "mi-card-footer mt-auto"
+                      idx === 1 ? "mi-card-footerr mt-auto" : "mi-card-footer mt-auto"
                     }
                   >
                     <button
@@ -176,6 +197,6 @@ export default function Cards() {
           })}
         </div>
       </div>
-    </section>
+    </section >
   );
 }

@@ -69,7 +69,7 @@ export default function HomeAlt() {
 
                   <div
                     className={
-                      idx === 1 ? "mi-card-bodyy " : "mi-card-body flex-grow-1"
+                      idx === 1 ? "mi-card-bodyy flex-grow-1" : "mi-card-body flex-grow-1"
                     }
                   >
                     <div className={idx === 1 ? "mi-icon-boxx" : "mi-icon-box"}>
@@ -155,7 +155,7 @@ export default function HomeAlt() {
 
                   <div
                     className={
-                      idx === 1 ? "mi-card-footerr " : "mi-card-footer mt-auto"
+                      idx === 1 ? "mi-card-footerr mt-auto" : "mi-card-footer mt-auto"
                     }
                   >
                     {/* <button

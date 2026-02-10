@@ -15,7 +15,7 @@ export default function HomePage() {
             <Navbar />
             <div className="" >
                 <Cards />
-                <ValueCards />
+                {/* <ValueCards /> */}
                 <FaqSection />
                 <Footer />
             </div>
