@@ -59,7 +59,7 @@ function ProtectedHome() {
           {
             company_id: companyId,
             ip_address: ipAddress,
-            event_type: "landing",
+            event_type: "Landing",
             user_id: uuid,
           },
         ])
@@ -149,7 +149,7 @@ function ProtectedHome() {
                   {
                     company_id: docData[0].company_id,
                     ip_address: ipAddress,
-                    event_type: "teaser",
+                    event_type: "Teaser",
                     user_id: uuid, //  Log user_id from UUID
                   },
                 ])
@@ -180,7 +180,6 @@ function ProtectedHome() {
   // RENDER LOGIC
   // =========================
 
-  // ✅ If user is coming via connect link (uuid + company_id), show minimal loading while redirect happens
   if (uuid && companyIdParam) {
     return (
       <div style={{ display: "flex", justifyContent: "center", marginTop: "50px" }}>
@@ -202,7 +201,7 @@ function ProtectedHome() {
   if (uuid && !companyIdParam && isValidUuid) {
     if (showFullProduct) {
       return (
-        <CartProvider companyId={companyId}>
+        <CartProvider companyId={companyId} userId={uuid}>
           <HomePage />
         </CartProvider>
       );
@@ -212,6 +211,7 @@ function ProtectedHome() {
         companyId={companyId}
         pdfUrl={pdfUrl}
         onOpenFullReport={handleOpenFullReport}
+        userId={uuid}
       />
     );
   }
@@ -219,7 +219,7 @@ function ProtectedHome() {
   // 3. Home page when company_id exists
   if (companyIdParam) {
     return (
-      <CartProvider companyId={companyIdParam}>
+      <CartProvider companyId={companyIdParam} userId={uuid}>
         <HomePage />
       </CartProvider>
     );

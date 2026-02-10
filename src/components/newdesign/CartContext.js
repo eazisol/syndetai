@@ -6,7 +6,7 @@ import CheckoutModal from "./CheckoutModal";
 
 const CartContext = createContext(null);
 
-export function CartProvider({ children, companyId }) {
+export function CartProvider({ children, companyId, userId }) {
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [items, setItems] = useState([]);
@@ -37,7 +37,7 @@ export function CartProvider({ children, companyId }) {
 
   return (
     <CartContext.Provider
-      value={{ openCart, closeCart, addToCart, removeFromCart, items, total }}
+      value={{ openCart, closeCart, addToCart, removeFromCart, items, total, companyId, userId }}
     >
       {children}
 
@@ -56,6 +56,7 @@ export function CartProvider({ children, companyId }) {
         items={items}
         total={total}
         companyId={companyId}
+        userId={userId}
         onRemove={removeFromCart}
         onEditBasket={() => {
           setCheckoutOpen(false);

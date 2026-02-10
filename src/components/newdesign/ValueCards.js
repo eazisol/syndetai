@@ -2,9 +2,9 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-// ✅ NEW: connect ValueCards button to cart (same like Cards)
-import { useCart } from "./CartContext"; // <-- adjust path if your CartContext is elsewhere
+import { useCart } from "./CartContext"; 
 import { BUNDLE_PACKAGES } from "@/config/packagesConfig";
+import { logEvent } from "@/utils/eventLogger";
 
 export default function ValueCards() {
   const [billing, setBilling] = useState(() =>
@@ -15,7 +15,7 @@ export default function ValueCards() {
     setBilling((prev) => ({ ...prev, [id]: plan }));
   };
 
-  const { addToCart } = useCart();
+  const { addToCart, companyId, userId } = useCart();
 
   const toNumber = (v) => Number(String(v).replace(/[^0-9.]/g, "")) || 0;
 
@@ -156,13 +156,18 @@ export default function ValueCards() {
                       type="button"
                       className="mi-btn w-100 d-flex align-items-center justify-content-center gap-2"
                       // ✅ NEW: add to cart on click (same like Cards)
-                      onClick={() =>
+                      onClick={() => {
                         addToCart({
                           title: bundle.title,
                           type: isAnnual ? "Annual Plan" : "One-time Purchase",
                           price: toNumber(currentPrice),
-                        })
-                      }
+                        });
+                        logEvent({
+                          companyId,
+                          userId,
+                          eventType: `Add to cart: ${bundle.title}`,
+                        });
+                      }}
                     >
                       <Image
                         src="/cart.svg"

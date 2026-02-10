@@ -11,6 +11,7 @@ import {
 } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import { toast } from "react-toastify";
+import { logEvent } from "@/utils/eventLogger";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ""
@@ -24,6 +25,7 @@ function InnerCheckoutModal({
   onRemove,
   onEditBasket,
   companyId,
+  userId,
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -40,6 +42,31 @@ function InnerCheckoutModal({
     agreeTerms: false,
     marketing: false,
   });
+
+  // State to prevent duplicate logging of field completion in one session
+  const [loggedFields, setLoggedFields] = useState({
+    card: false,
+    expiry: false,
+    cvc: false,
+  });
+
+  const handleElementChange = (field, e) => {
+    if (e.complete && !loggedFields[field]) {
+      setLoggedFields((prev) => ({ ...prev, [field]: true }));
+
+      const fieldNames = {
+        card: "Fill Card Number",
+        expiry: "Fill Expiry Date",
+        cvc: "Fill CVC",
+      };
+
+      logEvent({
+        companyId,
+        userId,
+        eventType: fieldNames[field],
+      });
+    }
+  };
 
   const subtotal = total;
   const vat = subtotal * VAT_RATE;
@@ -93,6 +120,12 @@ function InnerCheckoutModal({
     }
 
     setIsProcessing(true);
+
+    logEvent({
+      companyId,
+      userId,
+      eventType: "Click on Pay now button",
+    });
 
     try {
       // 1. Create PaymentIntent
@@ -164,6 +197,12 @@ function InnerCheckoutModal({
           });
           setView("success");
           toast.success("Payment successful!");
+
+          logEvent({
+            companyId,
+            userId,
+            eventType: "Payment successful",
+          });
         }
       }
     } catch (err) {
@@ -437,7 +476,10 @@ function InnerCheckoutModal({
                             className="payment-field payment-card-number"
                             style={{ width: "100%", padding: "10px 0" }}
                           >
-                            <CardNumberElement options={elementOptions} />
+                            <CardNumberElement
+                              options={elementOptions}
+                              onChange={(e) => handleElementChange("card", e)}
+                            />
                           </div>
 
                           <div className="payment-cards-right">
@@ -456,14 +498,20 @@ function InnerCheckoutModal({
                             className="payment-field payment-expiry"
                             style={{ width: "50%", padding: "10px 14px" }}
                           >
-                            <CardExpiryElement options={elementOptions} />
+                            <CardExpiryElement
+                              options={elementOptions}
+                              onChange={(e) => handleElementChange("expiry", e)}
+                            />
                           </div>
 
                           <div
                             className="payment-field payment-cvc"
                             style={{ width: "50%", padding: "10px 14px" }}
                           >
-                            <CardCvcElement options={elementOptions} />
+                            <CardCvcElement
+                              options={elementOptions}
+                              onChange={(e) => handleElementChange("cvc", e)}
+                            />
                           </div>
 
                         </div>

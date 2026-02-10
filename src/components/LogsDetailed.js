@@ -178,7 +178,7 @@ export default function LogsDetailed() {
               <tr>
                 <th>Company Name</th>
                 <th>User ID</th>
-                <th style={{ textAlign: "center" }}>Event Type</th>
+                <th style={{ textAlign: "left" }}>Event Type</th>
                 <th style={{ textAlign: "center" }}>Date</th>
                 <th style={{ textAlign: "center" }}> Time</th>
                 {/* <th style={{ textAlign: "center" }}>Report</th> */}
@@ -188,46 +188,67 @@ export default function LogsDetailed() {
             <tbody>
               {filteredLogs.map((log) => {
                 const activityLower = (log.event_type || "").toLowerCase();
-                const displayActivity = log.event_type
-                  ? log.event_type
-                    .replace(/teaser/g, "Teaser")
-                    .replace(/landing/g, "Landing")
-                  : "N/A";
+                const displayActivity = log.event_type ||
+                  "N/A";
 
                 // Badge styles
-                let badgeStyle = {
+                {/* let badgeStyle = {
                   padding: "4px 12px",
                   borderRadius: "50px",
-                  fontSize: "14px",
-                  fontWeight: "500",
+                  fontSize: "13px",
+                  fontWeight: "600",
                   display: "inline-block",
-                };
+                  whiteSpace: "nowrap",
+                }; */}
 
-                if (activityLower === "teaser") {
-                  // Yellow/Orange style
+                {/* if (activityLower === "teaser") {
+                  // Original Yellow/Orange style
                   badgeStyle.backgroundColor = "#FFF4E5";
                   badgeStyle.color = "#B76E00";
                 } else if (activityLower === "landing") {
-                  // Blue style
+                  // Original Blue style
                   badgeStyle.backgroundColor = "#E3F2FD";
                   badgeStyle.color = "#1565C0";
-                } else if (activityLower === "teaser+landing") {
-                  // Green style for combined activity
+                } else if (activityLower === "teaser+landing" || activityLower === "teaser+landing") {
+                  // Original Green style
                   badgeStyle.backgroundColor = "#E8F5E9";
                   badgeStyle.color = "#2E7D32";
+                } else if (activityLower.startsWith("add to cart")) {
+                  // Purple/Indigo for high intent
+                  badgeStyle.backgroundColor = "#e4fbf3";
+                  badgeStyle.color = "#29a691";
+                  badgeStyle.border = "1px solid #ffe0fd";
+                } else if (activityLower.includes("pay now")) {
+                  // Rose/Pink for checkout process
+                  badgeStyle.backgroundColor = "#FFF1F2";
+                  badgeStyle.color = "#f65a81";
+                  badgeStyle.border = "1px solid #FFE4E6";
+                } else if (activityLower.includes("fill")) {
+                  // Amber/Orange for form interaction
+                  badgeStyle.backgroundColor = "#FFFBEB";
+                  badgeStyle.color = "#D97706";
+                  badgeStyle.border = "1px solid #FEF3C7";
+                } else if (activityLower.includes("successful") || activityLower.includes("success")) {
+                  // Green for completion
+                  badgeStyle.backgroundColor = "#F0FDF4";
+                  badgeStyle.color = "#15803D";
+                  badgeStyle.border = "1px solid #DCFCE7";
                 } else {
                   // Default gray
-                  badgeStyle.backgroundColor = "#F5F5F5";
-                  badgeStyle.color = "#616161";
-                }
+                  badgeStyle.backgroundColor = "#F9FAFB";
+                  badgeStyle.color = "#4B5563";
+                  badgeStyle.border = "1px solid #F3F4F6";
+                } */}
 
                 return (
                   <tr key={log.id}>
                     <td>{log.company_name || "N/A"}</td>
                     <td>{log.user_id || "N/A"}</td>
-                    <td style={{ textAlign: "center" }}>
+                    <td style={{ textAlign: "left" }}>
                       {log.event_type ? (
-                        <span style={badgeStyle}>{displayActivity}</span>
+                        <span
+                        //  style={badgeStyle}
+                         >{displayActivity}</span>
                       ) : (
                         "N/A"
                       )}

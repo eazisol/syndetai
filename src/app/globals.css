@@ -3061,16 +3061,15 @@ body {
 .mi-navbar-inner {
   min-height: 72px;
 }
-
 @media (max-width: 575.98px) {
   .mi-navbar-inner {
     min-height: 64px;
   }
 }
 
-@media (max-width: 575.98px) {
+/* @media (max-width: 575.98px) {
   .mi-navbar-logo {}
-}
+} */
 
 .mi-cart-btn {
   position: relative;

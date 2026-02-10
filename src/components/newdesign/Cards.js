@@ -4,9 +4,10 @@ import { useState } from "react";
 import { useCart } from "./CartContext";
 import Image from "next/image";
 import { PRODUCT_PACKAGES } from "@/config/packagesConfig";
+import { logEvent } from "@/utils/eventLogger";
 
 export default function Cards() {
-  const { addToCart } = useCart();
+  const { addToCart, companyId, userId } = useCart();
 
   // Initialize plans with billing state from config
   const [plans, setPlans] = useState(
@@ -172,13 +173,18 @@ export default function Cards() {
                     <button
                       type="button"
                       className="mi-btn w-100 d-flex align-items-center justify-content-center gap-2"
-                      onClick={() =>
+                      onClick={() => {
                         addToCart({
                           title: plan.title,
                           type: isAnnual ? "Annual" : "One-off",
                           price: Number(String(price).replace(/[^0-9.]/g, "")),
-                        })
-                      }
+                        });
+                        logEvent({
+                          companyId,
+                          userId,
+                          eventType: `Add to cart: ${plan.title}`,
+                        });
+                      }}
                     >
                       <Image
                         className="mi-cart-img"

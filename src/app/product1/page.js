@@ -60,7 +60,7 @@ function ProtectedHomeOne() {
           {
             company_id: companyId,
             ip_address: ipAddress,
-            event_type: "landing",
+            event_type: "Landing",
             user_id: uuid,
           },
         ])
@@ -150,7 +150,7 @@ function ProtectedHomeOne() {
                   {
                     company_id: docData[0].company_id,
                     ip_address: ipAddress,
-                    event_type: "teaser",
+                    event_type: "Teaser",
                     user_id: uuid, //  Log user_id from UUID
                   },
                 ])
@@ -203,7 +203,7 @@ function ProtectedHomeOne() {
   if (uuid && !companyIdParam && isValidUuid) {
     if (showFullProduct) {
       return (
-        <CartProvider companyId={companyId}>
+        <CartProvider companyId={companyId} userId={uuid}>
           <HomeOne />
         </CartProvider>
       );
@@ -220,7 +220,7 @@ function ProtectedHomeOne() {
   // 3. Home page when company_id exists
   if (companyIdParam) {
     return (
-      <CartProvider companyId={companyIdParam}>
+      <CartProvider companyId={companyIdParam} userId={uuid}>
         <HomeOne />
       </CartProvider>
     );
