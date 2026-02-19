@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { VAT_RATE } from "@/config/packagesConfig";
+import { v4 as uuidv4 } from 'uuid';
 import {
   Elements,
   useStripe,
@@ -144,6 +145,7 @@ function InnerCheckoutModal({
       }
 
       const { clientSecret } = await res.json();
+      // console.log("Payment intent created successfully, Client Secret received");
 
       // 2. Confirm Payment
       const cardElement = elements.getElement(CardNumberElement);
@@ -157,6 +159,8 @@ function InnerCheckoutModal({
             },
           },
         });
+
+      // console.log("Stripe confirmation result:", { paymentIntent, confirmError });
 
       if (confirmError) {
         throw new Error(confirmError.message);
@@ -181,6 +185,106 @@ function InnerCheckoutModal({
             created_at: new Date().toISOString(),
           },
         ]);
+
+        console.log("Transaction recorded in transactions table:", { dbError });
+
+        // Add to organisations table
+        const { data: orgData, error: orgError } = await supabase
+          .from("organisations")
+          .insert([
+            {
+              name: `${formData.firstName} ${formData.lastName}`,
+              type: "startup",
+              credits: 0,
+              is_active: true,
+              created_at: new Date().toISOString(),
+            },
+          ])
+          .select();
+
+        if (orgError) {
+          console.error("Failed to create organisation entry:", orgError);
+        } else if (orgData && orgData.length > 0) {
+          const newOrgId = orgData[0].id;
+          console.log("Organisation created successfully in Database, ID:", newOrgId);
+
+          // Determine doc_type based on purchased package
+          const itemTitle = items[0]?.title || "";
+          let docType = "";
+          if (itemTitle === "Pre-Diligence Assessment" || itemTitle === "Company Research Report") {
+            docType = "due_diligence";
+          } else if (itemTitle === "Competitive Positioning Assessment" || itemTitle === "Competitive Analysis") {
+            docType = "competitor_analysis";
+          } else if (itemTitle === "Fundraising Readiness Diagnostic" || itemTitle === "Company Deep Dive") {
+            docType = "full_research_report";
+          }
+
+          let reportUrl = null;
+          if (docType && companyId) {
+            try {
+              const { data: rdData, error: rdError } = await supabase
+                .from("research_documents")
+                .select("storage_path")
+                .eq("company_id", companyId)
+                .eq("doc_type", docType)
+                .maybeSingle();
+
+              if (rdError) {
+                console.log("Error fetching research document:", rdError);
+              } else if (rdData) {
+                reportUrl = rdData.storage_path;
+              }
+            } catch (err) {
+              console.log("Research documents lookup failed:", err);
+            }
+          }
+
+          // Hamesha naya UUID banayein taaki jitni baar purchase ho, utni baar naye entry ho sake
+          // (Duplicate key error se bachne ke liye)
+          const appUserId = uuidv4();
+
+          // Create entry in app_users table
+          const { error: userError } = await supabase.from("app_users").insert([
+            {
+              id: appUserId,
+              organisation_id: newOrgId,
+              email: formData.email,
+              username: `${formData.firstName} ${formData.lastName}`,
+              is_admin: true,
+              is_superadmin: false,
+              is_active: true,
+              created_at: new Date().toISOString(),
+            },
+          ]);
+
+          if (userError) {
+            console.log("Failed to create app_user entry in Database:", userError);
+          } else {
+            console.log("App user entry created successfully in Database");
+            // Create entry in submissions table
+            const { error: submissionError } = await supabase.from("submissions").insert([
+              {
+                user_id: appUserId,
+                organisation_id: newOrgId,
+                company_name: formData.companyName,
+                company_url: null,
+                batch_date: new Date().toISOString(),
+                queue_position: 0,
+                status: "pending",
+                report_url: reportUrl,
+                created_at: new Date().toISOString(),
+              },
+            ]);
+
+            if (submissionError) {
+              console.log("Failed to create submission entry:", submissionError);
+            } else {
+              console.log("Submission entry created successfully with report_url:", reportUrl);
+            }
+          }
+        } else {
+          console.log("No organisation data returned from insert (check RLS policies)");
+        }
 
         if (dbError) {
           console.log("Failed to record transaction:", dbError);
@@ -336,8 +440,8 @@ function InnerCheckoutModal({
                       gap: 10,
                     }}
                   >
-                    <span style={{ fontSize: 18, lineHeight: 1 }}>←</span>
-                    Back to Products
+                    {/* <span style={{ fontSize: 18, lineHeight: 1 }}>←</span> */}
+                    Take me to my documents
                   </button>
                 </div>
               </div>
