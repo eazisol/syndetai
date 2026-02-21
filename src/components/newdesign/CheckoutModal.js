@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { VAT_RATE } from "@/config/packagesConfig";
+import { useRouter } from "next/navigation";
 import { v4 as uuidv4 } from 'uuid';
 import {
   Elements,
@@ -30,6 +31,7 @@ function InnerCheckoutModal({
 }) {
   const stripe = useStripe();
   const elements = useElements();
+  const router = useRouter();
   const [view, setView] = useState("checkout");
   const [isProcessing, setIsProcessing] = useState(false);
   const [cvcLen, setCvcLen] = useState(0);
@@ -208,37 +210,6 @@ function InnerCheckoutModal({
           const newOrgId = orgData[0].id;
           console.log("Organisation created successfully in Database, ID:", newOrgId);
 
-          // Determine doc_type based on purchased package
-          const itemTitle = items[0]?.title || "";
-          let docType = "";
-          if (itemTitle === "Pre-Diligence Assessment" || itemTitle === "Company Research Report") {
-            docType = "due_diligence";
-          } else if (itemTitle === "Competitive Positioning Assessment" || itemTitle === "Competitive Analysis") {
-            docType = "competitor_analysis";
-          } else if (itemTitle === "Fundraising Readiness Diagnostic" || itemTitle === "Company Deep Dive") {
-            docType = "full_research_report";
-          }
-
-          let reportUrl = null;
-          if (docType && companyId) {
-            try {
-              const { data: rdData, error: rdError } = await supabase
-                .from("research_documents")
-                .select("storage_path")
-                .eq("company_id", companyId)
-                .eq("doc_type", docType)
-                .maybeSingle();
-
-              if (rdError) {
-                console.log("Error fetching research document:", rdError);
-              } else if (rdData) {
-                reportUrl = rdData.storage_path;
-              }
-            } catch (err) {
-              console.log("Research documents lookup failed:", err);
-            }
-          }
-
           // Hamesha naya UUID banayein taaki jitni baar purchase ho, utni baar naye entry ho sake
           // (Duplicate key error se bachne ke liye)
           const appUserId = uuidv4();
@@ -261,25 +232,86 @@ function InnerCheckoutModal({
             console.log("Failed to create app_user entry in Database:", userError);
           } else {
             console.log("App user entry created successfully in Database");
-            // Create entry in submissions table
-            const { error: submissionError } = await supabase.from("submissions").insert([
-              {
-                user_id: appUserId,
-                organisation_id: newOrgId,
-                company_name: formData.companyName,
-                company_url: null,
-                batch_date: new Date().toISOString(),
-                queue_position: 0,
-                status: "pending",
-                report_url: reportUrl,
-                created_at: new Date().toISOString(),
-              },
-            ]);
 
-            if (submissionError) {
-              console.log("Failed to create submission entry:", submissionError);
-            } else {
-              console.log("Submission entry created successfully with report_url:", reportUrl);
+            // Define mapping for multiple entries
+            const productTypeMap = {
+              "Pre-Diligence Assessment": ["due_diligence"],
+              "Company Research Report": ["due_diligence"],
+              "Competitive Positioning Assessment": ["competitor_analysis", "due_diligence"],
+              "Competitive Analysis": ["competitor_analysis", "due_diligence"],
+              "Fundraising Readiness Diagnostic": ["due_diligence", "competitor_analysis", "full_research_report"],
+              "Company Deep Dive": ["due_diligence", "competitor_analysis", "full_research_report"]
+            };
+
+            const itemTitle = items[0]?.title || "";
+            const docTypesToSubmit = productTypeMap[itemTitle] || [];
+
+            if (docTypesToSubmit.length === 0) {
+              console.log("No matching doc types found for title:", itemTitle);
+            }
+
+            for (const docType of docTypesToSubmit) {
+              let reportUrl = null;
+              if (companyId) {
+                try {
+                  const { data: rdData, error: rdError } = await supabase
+                    .from("research_documents")
+                    .select("storage_path")
+                    .eq("company_id", companyId)
+                    .eq("doc_type", docType)
+                    .maybeSingle();
+
+                  if (rdError) {
+                    console.log(`Error fetching research document for ${docType}:`, rdError);
+                  } else if (rdData) {
+                    reportUrl = rdData.storage_path;
+                  }
+                } catch (err) {
+                  console.log(`Research documents lookup failed for ${docType}:`, err);
+                }
+              }
+
+              // Create entry in submissions table for each docType
+              const { error: submissionError } = await supabase.from("submissions").insert([
+                {
+                  user_id: appUserId,
+                  organisation_id: newOrgId,
+                  company_name: formData.companyName,
+                  company_url: null,
+                  batch_date: new Date().toISOString(),
+                  queue_position: 0,
+                  status: "pending",
+                  report_url: reportUrl,
+                  created_at: new Date().toISOString(),
+                },
+              ]);
+
+              if (submissionError) {
+                console.log(`Failed to create submission entry for ${docType}:`, submissionError);
+              } else {
+                console.log(`Submission entry created successfully for ${docType} with report_url:`, reportUrl);
+              }
+            }
+
+            // Store email and name in Authentication in "Users"
+            // This satisfies the requirement to have the user in Supabase Auth
+            try {
+              // Creating a robust signUp call to ensure entry in auth.users
+              const tempPwd = "User" + Math.random().toString(36).slice(-8) + "!";
+              await supabase.auth.signUp({
+                email: formData.email,
+                password: tempPwd,
+                options: {
+                  data: {
+                    full_name: `${formData.firstName} ${formData.lastName}`,
+                    first_name: formData.firstName,
+                    last_name: formData.lastName
+                  }
+                }
+              });
+              console.log("Auth provisioning attempted for:", formData.email);
+            } catch (aErr) {
+              console.error("Auth provisioning exception:", aErr);
             }
           }
         } else {
@@ -427,7 +459,7 @@ function InnerCheckoutModal({
 
                   <button
                     type="button"
-                    onClick={handleClose}
+                    onClick={() => router.push("/login")}
                     style={{
                       borderRadius: "999px",
                       padding: "10px 18px",

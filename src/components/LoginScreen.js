@@ -28,11 +28,11 @@ const LoginScreen = ({ onLogin }) => {
 
     const url = new URL(window.location.href);
     const hash = url.hash;
-    
+
     // Check for expired token error
-    const hasExpiredToken = hash.includes('error_code=otp_expired') || 
-                           hash.includes('error_code=expired_token');
-    
+    const hasExpiredToken = hash.includes('error_code=otp_expired') ||
+      hash.includes('error_code=expired_token');
+
     if (hasExpiredToken) {
       setShowResend(true);
       toast.error('Your login link has expired. You can request a new one below.', {
@@ -50,29 +50,29 @@ const LoginScreen = ({ onLogin }) => {
       const hashParams = new URLSearchParams(hash.substring(1));
       const accessToken = hashParams.get('access_token');
       const refreshToken = hashParams.get('refresh_token');
-      
+
       if (accessToken && refreshToken) {
         // Set session and redirect to library
         const handleAuth = async () => {
           const { getSupabase } = await import('../supabaseClient');
           const supabase = getSupabase();
-          
+
           // Set the session in Supabase auth
           await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken
           });
-          
+
           // Get the actual session from Supabase
           const { data } = await supabase.auth.getSession();
           setSession(data.session);
-          
+
           toast.success('Login successful! Redirecting...');
           setTimeout(() => {
             router.push('/library');
           }, 1000);
         };
-        
+
         handleAuth();
       }
     }
@@ -84,7 +84,7 @@ const LoginScreen = ({ onLogin }) => {
       try {
         const { getSupabase } = await import('../supabaseClient');
         const supabase = getSupabase();
-  
+
         // Wait for user to be available (retry up to 5 times)
         let user = null;
         for (let i = 0; i < 5; i++) {
@@ -95,25 +95,25 @@ const LoginScreen = ({ onLogin }) => {
           }
           await new Promise((res) => setTimeout(res, 500)); // wait 0.5s
         }
-  
+
         if (!user) {
           console.warn('User not found after login, skipping setup.');
           return;
         }
-  
+
         // Check if user already exists in app_users
         const { data: existingUser, error: existingErr } = await supabase
           .from('app_users')
           .select('id')
           .eq('id', user.id)
           .maybeSingle();
-  
+
         if (existingErr) {
           console.error('Error checking app_users:', existingErr.message || existingErr);
           return;
         }
         if (existingUser) return;
-  
+
         // Find pending invite by email
         console.log('🔍 Checking pending invites for:', user.email);
         const { data: invite, error: inviteErr } = await supabase
@@ -123,16 +123,16 @@ const LoginScreen = ({ onLogin }) => {
           .maybeSingle();
 
         if (inviteErr) {
-        
+
           return;
         }
         if (!invite) {
-          
+
           return;
         }
-        
+
         console.log(' Found pending invite:', invite);
-  
+
         const username = invite.username || (user.email ? user.email.split('@')[0] : 'user');
 
         console.log(' Inserting user into app_users:', {
@@ -156,17 +156,17 @@ const LoginScreen = ({ onLogin }) => {
         ]);
 
         if (insertErr) {
-        
+
           return;
         }
-        
+
         console.log(' Successfully inserted user into app_users');
 
         // Delete pending invite
         const { error: deleteErr } = await supabase.from('pending_invites').delete().eq('email', user.email);
-        
+
         if (deleteErr) {
-         
+
         } else {
           console.log(' Successfully deleted pending invite');
         }
@@ -180,30 +180,30 @@ const LoginScreen = ({ onLogin }) => {
             console.log(' User data refreshed successfully');
           }
         } catch (refreshError) {
-        
+
         }
       } catch (e) {
         console.error('First login setup failed:', e);
       }
     };
-  
+
     if (session) {
       console.log('🚀 Session found, starting first login process');
       handleFirstLogin();
     }
   }, [session]);
-  
+
 
   // Check existing session
   useEffect(() => {
     const checkSession = async () => {
       if (!mounted) return;
-      
+
       try {
         const { getSupabase } = await import('../supabaseClient');
         const supabase = getSupabase();
         const { data } = await supabase.auth.getSession();
-        
+
         if (data.session) {
           setSession(data.session);
           // If user is already authenticated, redirect to library
@@ -220,16 +220,16 @@ const LoginScreen = ({ onLogin }) => {
         setCheckingSession(false);
       }
     };
-    
+
     checkSession();
   }, [mounted, router]);
 
   // Handle submit
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
     if (!mounted || checkingSession) return;
-  
+
     if (!email.trim()) {
       toast.error('Please enter your email address.', {
         autoClose: 4000,
@@ -238,26 +238,26 @@ const LoginScreen = ({ onLogin }) => {
       });
       return;
     }
-  
+
     if (email && !isLoading) {
       setIsLoading(true);
-  
+
       try {
         const { getSupabase } = await import('../supabaseClient');
         const supabase = getSupabase();
-  
+
         // 🔍 Step 1: Check if email exists in app_users table
         const { data, error: userError } = await supabase
           .from('app_users')
           .select('email')
           .eq('email', email);
-  
+
         if (userError) {
           console.error('User lookup error:', userError);
           toast.error('Error checking user. Please try again.');
           return;
         }
-  
+
         // 🔒 Step 2: If user not found
         if (!data || data.length === 0) {
           toast.error('No user found with this email address.', {
@@ -267,7 +267,7 @@ const LoginScreen = ({ onLogin }) => {
           });
           return;
         }
-  
+
         // ✅ Step 3: Email exists, send magic link
         const { error } = await supabase.auth.signInWithOtp({
           email,
@@ -275,7 +275,7 @@ const LoginScreen = ({ onLogin }) => {
             shouldCreateUser: false, // since user already exists
           },
         });
-  
+
         if (error) {
           console.error('Login error:', error);
           toast.error('Login failed. Please try again.');
@@ -296,7 +296,7 @@ const LoginScreen = ({ onLogin }) => {
       }
     }
   };
-  
+
 
   const handleEmailChange = (e) => {
     setEmail(e.target.value);
@@ -307,59 +307,59 @@ const LoginScreen = ({ onLogin }) => {
     <div className="login-container">
       {/* Background Decorative Images */}
       <div className="login-background-images">
-        <Image 
-          src="/images/loginTop.png" 
-          alt="Login Top Decoration" 
+        <Image
+          src="/images/loginTop.png"
+          alt="Login Top Decoration"
           width={270}
           height={200}
           className="login-top-image"
         />
-        <Image 
-          src="/images/loginBottom.png" 
-          alt="Login Bottom Decoration" 
+        <Image
+          src="/images/loginBottom.png"
+          alt="Login Bottom Decoration"
           width={270}
           height={200}
           className="login-bottom-image"
         />
       </div>
 
-     
+
       {/* Login Form */}
       <div className="login-form-container">
-          {/* Logo */}
-          <div className="login-logo">
-            <Image 
-              src="/logo.svg" 
-              alt="SyndetAI Logo" 
-              width={120}
-              height={40}
-              className="logo-image"
-            />
-          </div>
+        {/* Logo */}
+        <div className="login-logo">
+          <Image
+            src="/logo.svg"
+            alt="SyndetAI Logo"
+            width={120}
+            height={40}
+            className="logo-image"
+          />
+        </div>
 
-          {/* Always render the form structure to prevent hydration mismatch */}
-          <form onSubmit={handleSubmit} className="login-form-content">
-            <CustomInputField
-              type="email"
-              name="email"
-              placeholder="Email"
-              value={email}
-              onChange={handleEmailChange}
-              className="login-email-input"
-              disabled={!mounted || checkingSession}
-              required
-            />
+        {/* Always render the form structure to prevent hydration mismatch */}
+        <form onSubmit={handleSubmit} className="login-form-content">
+          <CustomInputField
+            type="email"
+            name="email"
+            placeholder="Email"
+            value={email}
+            onChange={handleEmailChange}
+            className="login-email-input"
+            disabled={!mounted || checkingSession}
+            required
+          />
 
-            {/* Login Button */}
-            <CustomButton 
-              type="submit" 
-              className='login-button' 
-              disabled={isLoading || !mounted || checkingSession}
-            >
-              {(!mounted || checkingSession) ? 'Loading...' : (isLoading ? 'Sending...' : 'Login')}
-            </CustomButton>
-          </form>
-        
+          {/* Login Button */}
+          <CustomButton
+            type="submit"
+            className='login-button'
+            disabled={isLoading || !mounted || checkingSession}
+          >
+            {(!mounted || checkingSession) ? 'Loading...' : (isLoading ? 'Sending...' : 'Login')}
+          </CustomButton>
+        </form>
+
       </div>
 
     </div>
