@@ -7,6 +7,7 @@ import CustomInputField from './CustomInputField';
 import CustomButton from './CustomButton';
 import { toast } from 'react-toastify';
 import { useApp } from '../context/AppContext';
+import { logEvent } from '@/utils/eventLogger';
 
 const LoginScreen = ({ onLogin }) => {
   const router = useRouter();
@@ -67,6 +68,14 @@ const LoginScreen = ({ onLogin }) => {
           const { data } = await supabase.auth.getSession();
           setSession(data.session);
 
+          // Log user.login
+          if (data.session?.user) {
+            logEvent({
+              eventType: "user.login",
+              userId: data.session.user.id
+            });
+          }
+
           toast.success('Login successful! Redirecting...');
           setTimeout(() => {
             router.push('/library');
@@ -97,19 +106,19 @@ const LoginScreen = ({ onLogin }) => {
         }
 
         if (!user) {
-          console.warn('User not found after login, skipping setup.');
+          // console.warn('User not found after login, skipping setup.');
           return;
         }
 
         // Check if user already exists in app_users
         const { data: existingUser, error: existingErr } = await supabase
-          .from('app_users')
+          .from('users')
           .select('id')
           .eq('id', user.id)
           .maybeSingle();
 
         if (existingErr) {
-          console.error('Error checking app_users:', existingErr.message || existingErr);
+          console.log('Error checking app_users:', existingErr.message || existingErr);
           return;
         }
         if (existingUser) return;
@@ -143,7 +152,7 @@ const LoginScreen = ({ onLogin }) => {
         });
 
         // Insert user into app_users
-        const { error: insertErr } = await supabase.from('app_users').insert([
+        const { error: insertErr } = await supabase.from('users').insert([
           {
             id: user.id,
             email: user.email,
@@ -183,7 +192,7 @@ const LoginScreen = ({ onLogin }) => {
 
         }
       } catch (e) {
-        console.error('First login setup failed:', e);
+        console.log('First login setup failed:', e);
       }
     };
 
@@ -210,7 +219,7 @@ const LoginScreen = ({ onLogin }) => {
           router.push('/library');
         }
       } catch (error) {
-        console.error('Error checking session:', error);
+        console.log('Error checking session:', error);
         toast.error('Error checking authentication status. Please try again.', {
           autoClose: 4000,
           pauseOnHover: false,
@@ -248,23 +257,31 @@ const LoginScreen = ({ onLogin }) => {
 
         // 🔍 Step 1: Check if email exists in app_users table
         const { data, error: userError } = await supabase
-          .from('app_users')
+          .from('users')
           .select('email')
           .eq('email', email);
 
         if (userError) {
-          console.error('User lookup error:', userError);
+          console.log('User lookup error:', userError);
           toast.error('Error checking user. Please try again.');
           return;
         }
 
-        // 🔒 Step 2: If user not found
+        //  Step 2: If user not found
         if (!data || data.length === 0) {
           toast.error('No user found with this email address.', {
             autoClose: 4000,
             pauseOnHover: false,
             pauseOnFocusLoss: false,
           });
+
+          // Log user.login_failed
+          logEvent({
+            eventType: "user.login_failed",
+            // We don't have a userId here, we could log email but better to keep it anonymized or check if logger supports it.
+            // For now, just logging the failed event.
+          });
+
           return;
         }
 
@@ -277,8 +294,13 @@ const LoginScreen = ({ onLogin }) => {
         });
 
         if (error) {
-          console.error('Login error:', error);
+          console.log('Login error:', error);
           toast.error('Login failed. Please try again.');
+
+          // Log user.login_failed
+          logEvent({
+            eventType: "user.login_failed",
+          });
         } else {
           toast.success('Magic link sent! Please check your email.', {
             autoClose: 4000,
@@ -289,7 +311,7 @@ const LoginScreen = ({ onLogin }) => {
           setShowResend(false);
         }
       } catch (error) {
-        console.error('Login error:', error);
+        console.log('Login error:', error);
         toast.error('Login failed. Please try again.');
       } finally {
         setIsLoading(false);

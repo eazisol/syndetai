@@ -36,10 +36,12 @@ export function getSupabase() {
   }
 
   try {
-    cachedClient = createClient(supabaseUrl, supabaseAnonKey);
+    cachedClient = createClient(supabaseUrl, supabaseAnonKey, {
+      db: { schema: 'syndet' }
+    });
     return cachedClient;
   } catch (error) {
-    console.error('Failed to create Supabase client:', error);
+    console.log('Failed to create Supabase client:', error);
     // Return mock client as fallback
     return {
       auth: {

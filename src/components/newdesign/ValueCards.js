@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import { useCart } from "./CartContext"; 
+import { useCart } from "./CartContext";
 import { BUNDLE_PACKAGES } from "@/config/packagesConfig";
 import { logEvent } from "@/utils/eventLogger";
 

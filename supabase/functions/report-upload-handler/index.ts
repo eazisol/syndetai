@@ -21,7 +21,7 @@ async function processUpload(req: Request) {
     console.log("Background processing started:", { name, bucket_id });
 
     if (!name || !bucket_id) {
-      console.error("Missing name or bucket_id in event payload.");
+      console.log("Missing name or bucket_id in event payload.");
       return;
     }
 
@@ -29,7 +29,7 @@ async function processUpload(req: Request) {
     const submissionId = name.replace(".pdf", "");
 
     if (!submissionId || submissionId.length !== 36) {
-      console.error("Filename does not contain a valid UUID:", submissionId);
+      console.log("Filename does not contain a valid UUID:", submissionId);
       return;
     }
 
@@ -43,12 +43,12 @@ async function processUpload(req: Request) {
       .maybeSingle();
 
     if (findError) {
-      console.error("Error querying submissions:", findError);
+      console.log("Error querying submissions:", findError);
       return;
     }
 
     if (!submission) {
-      console.error("No matching pending submission found.");
+      console.log("No matching pending submission found.");
       return;
     }
 
@@ -62,13 +62,13 @@ async function processUpload(req: Request) {
       .eq('id', submission.id);
 
     if (updateError) {
-      console.error("Error updating submission:", updateError);
+      console.log("Error updating submission:", updateError);
       return;
     }
 
     console.log(`Submission ${submission.id} updated successfully.`);
 
   } catch (err) {
-    console.error("Unexpected error during background processing:", err);
+    console.log("Unexpected error during background processing:", err);
   }
 }

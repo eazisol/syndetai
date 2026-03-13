@@ -8,6 +8,7 @@ import { CartProvider } from "@/components/newdesign/CartContext";
 import Page404 from "@/components/newdesign/Page404";
 import TeaserPreview from "@/components/TeaserPreview";
 import { processConnectRedirect } from "@/utils/processConnectRedirect";
+import { logEvent } from "@/utils/eventLogger";
 
 function ProtectedHome() {
   const router = useRouter();
@@ -54,7 +55,7 @@ function ProtectedHome() {
 
       // Insert a new log entry for "landing" activity
       const { data: logData, error: logError } = await supabase
-        .from("event_logs")
+        .from("event_log")
         .insert([
           {
             company_id: companyId,
@@ -98,35 +99,83 @@ function ProtectedHome() {
         try {
           const supabase = getSupabase();
 
-          // 1. Verify UUID exists in company_people
+          // 1. Verify UUID exists in people
+          console.log("Checking UUID in people table:", uuid);
           const { data: userData, error: userError } = await supabase
-            .from("company_people")
-            .select("company_id")
+            .from("people")
+            .select("organisation_id")
             .eq("id", uuid)
             .maybeSingle();
 
-          if (userError || !userData || !userData.company_id) {
-            console.error("User not found or no company_id");
+          if (userError) {
+            console.log("Supabase error fetching person:", userError);
             setIsValidUuid(false);
             setIsLoadingUuid(false);
             return;
           }
 
-          const userCompanyId = userData.company_id;
+          if (!userData) {
+            console.log("Verification failed: UUID not found in people table");
+            setIsValidUuid(false);
+            setIsLoadingUuid(false);
+            return;
+          }
+
+          if (!userData.organisation_id) {
+            console.log("Verification failed: person found but organisation_id is missing");
+            setIsValidUuid(false);
+            setIsLoadingUuid(false);
+            return;
+          }
+
+          console.log("Found organisation_id:", userData.organisation_id);
+
+          // 1b. Fetch company_id from organisations
+          const { data: orgData, error: orgError } = await supabase
+            .from("organisations")
+            .select("company_id")
+            .eq("id", userData.organisation_id)
+            .maybeSingle();
+
+          if (orgError) {
+            console.log("Supabase error fetching organisation:", orgError);
+            setIsValidUuid(false);
+            setIsLoadingUuid(false);
+            return;
+          }
+
+          if (!orgData) {
+            console.log("Verification failed: organisation_id not found in organisations table");
+            setIsValidUuid(false);
+            setIsLoadingUuid(false);
+            return;
+          }
+
+          if (!orgData.company_id) {
+            console.log("Verification failed: organisation found but company_id is missing");
+            setIsValidUuid(false);
+            setIsLoadingUuid(false);
+            return;
+          }
+
+          const userCompanyId = orgData.company_id;
+          console.log("Successfully resolved company_id:", userCompanyId);
 
           // 2. Check for Teaser Document and get company_id from research_documents
+          console.log("Checking for teaser report for company_id:", userCompanyId);
           const { data: docData, error: docError } = await supabase
-            .from("research_documents")
-            .select("company_id, storage_path")
+            .from("reports")
+            .select("*")
             .eq("company_id", userCompanyId)
-            .eq("doc_type", "teaser")
+            .eq("report_type", "teaser")
             .limit(1);
 
-          if (docError || !docData || docData.length === 0) {
+          if (docError) {
+            console.log("Supabase error fetching report:", docError);
             setIsValidUuid(false);
-          } else {
+          } else if (docData && docData.length > 0) {
+            console.log("Teaser report found:", docData[0].storage_path);
             setIsValidUuid(true);
-            // Use company_id from research_documents table
             setCompanyId(docData[0].company_id);
             setPdfUrl(docData[0].storage_path);
 
@@ -134,34 +183,11 @@ function ProtectedHome() {
             if (!hasLoggedTeaser.current) {
               hasLoggedTeaser.current = true;
 
-              let ipAddress = null;
-              try {
-                const res = await fetch("https://api.ipify.org?format=json");
-                const data = await res.json();
-                ipAddress = data.ip;
-              } catch (ipError) {
-                console.log("Error fetching IP:", ipError);
-              }
-
-              const { data: logData, error: logError } = await supabase
-                .from("event_logs")
-                .insert([
-                  {
-                    company_id: docData[0].company_id,
-                    ip_address: ipAddress,
-                    event_type: "Teaser",
-                    user_id: uuid, //  Log user_id from UUID
-                  },
-                ])
-                .select();
-
-              if (logError) {
-                console.log("Error logging teaser view:", logError);
-              } else if (logData && logData.length > 0) {
-                // Store the log entry ID for later update
-                setTeaserLogId(logData[0].id);
-                console.log("Teaser log created with ID:", logData[0].id);
-              }
+              logEvent({
+                eventType: "Teaser",
+                companyId: docData[0].company_id,
+                userId: uuid
+              });
             }
           }
         } catch (err) {

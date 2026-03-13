@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useApp } from '../../context/AppContext';
 import CustomInputField from '../../components/CustomInputField';
 import CustomButton from '../../components/CustomButton';
@@ -16,8 +17,10 @@ import Image from 'next/image';
 import Protected from '../../components/Protected';
 import TransactionsTable from '../../components/TransactionsTable';
 import ReportPreviewModal from '../../components/ReportPreviewModal';
-function SuperadminPage() {
+function SuperadminContent() {
   const { submissions, refreshUserData } = useApp();
+  const searchParams = useSearchParams();
+  const orgIdFromUrl = searchParams.get('orgId');
   const [transactions, setTransactions] = useState([]);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
   // Organisations state with Supabase integration
@@ -59,7 +62,7 @@ function SuperadminPage() {
       companyName: ''
     });
   };
-// Fetch transactions from Supabase
+  // Fetch transactions from Supabase
   const fetchTransactions = async (orgId) => {
     try {
       setIsLoadingTransactions(true);
@@ -101,7 +104,7 @@ function SuperadminPage() {
     loadTransactions();
   }, [selectedOrgId]);
 
-  
+
 
   const selectedOrganisation = useMemo(() => {
     return organisations.find(o => o.id === selectedOrgId) || null;
@@ -119,17 +122,18 @@ function SuperadminPage() {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching organisations:', error);
+        console.log('Error fetching organisations:', error);
 
         return;
       }
 
       setOrganisations(data || []);
-      if (data && data.length > 0 && !selectedOrgId) {
+      // Only set default if there is no selectedOrgId AND no orgId in the URL
+      if (data && data.length > 0 && !selectedOrgId && !orgIdFromUrl) {
         setSelectedOrgId(data[0].id);
       }
     } catch (error) {
-      console.error('Error fetching organisations:', error);
+      console.log('Error fetching organisations:', error);
 
     } finally {
       setIsLoadingOrgs(false);
@@ -141,6 +145,13 @@ function SuperadminPage() {
     fetchOrganisations();
   }, []);
 
+  // Handle orgId from URL
+  useEffect(() => {
+    if (orgIdFromUrl) {
+      setSelectedOrgId(orgIdFromUrl);
+    }
+  }, [orgIdFromUrl]);
+
   // Load selected organization data when organizations are loaded and selectedOrgId is set
   useEffect(() => {
     if (selectedOrgId && organisations.length > 0) {
@@ -148,8 +159,8 @@ function SuperadminPage() {
       if (found) {
         setOrgForm({
           name: found.name || '',
-          type: found.type || '',
-          credits: String(found.credits || 0)
+          account_type: found.account_type || '',
+          credit_balance: String(found.credit_balance || 0)
         });
         setShowOrgForm(true);
       }
@@ -159,8 +170,8 @@ function SuperadminPage() {
   // Org form
   const [orgForm, setOrgForm] = useState({
     name: '',
-    type: '',
-    credits: '',
+    account_type: '',
+    credit_balance: '',
   });
 
   // Loading state for organization operations
@@ -170,7 +181,7 @@ function SuperadminPage() {
     const value = e.target.value;
     if (value === 'NEW') {
       setSelectedOrgId(null);
-      setOrgForm({ name: '', type: '', credits: '' });
+      setOrgForm({ name: '', account_type: '', credits: '' });
       setShowOrgForm(true);
     } else {
       setSelectedOrgId(value);
@@ -178,16 +189,16 @@ function SuperadminPage() {
       const found = organisations.find(o => o.id === value);
       if (found) setOrgForm({
         name: found.name || '',
-        type: found.type || '',
-        credits: String(found.credits || 0)
+        account_type: found.account_type || '',
+        credit_balance: String(found.credit_balance || 0)
       });
     }
   };
-//
+  //
   // Handle add new organization
   const handleAddNewOrganization = () => {
     setSelectedOrgId(null);
-    setOrgForm({ name: '', type: '', credits: '' });
+    setOrgForm({ name: '', account_type: '', credit_balance: '' });
     setShowOrgForm(true);
   };
 
@@ -200,9 +211,10 @@ function SuperadminPage() {
   // Handle save organisation
   const handleSaveOrganisation = async (e) => {
     e.preventDefault();
-    const creditsNum = Number(orgForm.credits || 0);
-    if (!orgForm.name || !orgForm.type || Number.isNaN(creditsNum)) {
-      toast.error('Please fill all fields correctly', {
+    const creditsNum = Number(orgForm.credit_balance || 0);
+    // account_type is now optional, only name is strictly required along with valid credits
+    if (!orgForm.name || Number.isNaN(creditsNum)) {
+      toast.error('Please fill the name correctly', {
         autoClose: 4000,
         pauseOnHover: false,
         pauseOnFocusLoss: false
@@ -222,8 +234,8 @@ function SuperadminPage() {
             {
               id: uuidv4(),
               name: orgForm.name,
-              type: orgForm.type,
-              credits: creditsNum,
+              account_type: orgForm.account_type || null,
+              credit_balance: creditsNum,
               created_at: new Date().toISOString()
             }
           ])
@@ -248,15 +260,15 @@ function SuperadminPage() {
       } else {
         // Update existing organisation - add credits instead of replacing
         const currentOrg = organisations.find(o => o.id === selectedOrgId);
-        const currentCredits = currentOrg?.credits || 0;
+        const currentCredits = currentOrg?.credit_balance || 0;
         const newCredits = currentCredits + creditsNum;
-        
+
         const { error } = await supabase
           .from('organisations')
           .update({
             name: orgForm.name,
-            type: orgForm.type,
-            credits: newCredits
+            account_type: orgForm.account_type || null,
+            credit_balance: newCredits
           })
           .eq('id', selectedOrgId);
 
@@ -278,7 +290,7 @@ function SuperadminPage() {
         refreshUserData(); // Refresh user data for real-time sidebar update
       }
     } catch (error) {
-      console.error('Error saving organisation:', error);
+      console.log('Error saving organisation:', error);
       toast.error('Failed to save organisation', {
         autoClose: 4000,
         pauseOnHover: false,
@@ -306,14 +318,14 @@ function SuperadminPage() {
       const { getSupabase } = await import('../../supabaseClient');
       const supabase = getSupabase();
       const { data, error } = await supabase
-        .from('app_users')
+        .from('users')
         .select('id, email, username, is_admin, is_active')
         .eq('organisation_id', orgId)
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching users:', error);
+        console.log('Error fetching users:', error);
 
 
         return;
@@ -321,7 +333,7 @@ function SuperadminPage() {
 
       setOrgUsers(data || []);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.log('Error fetching users:', error);
 
     } finally {
       setIsLoadingUsers(false);
@@ -344,12 +356,12 @@ function SuperadminPage() {
       if (!user) return;
 
       const { error } = await supabase
-        .from('app_users')
+        .from('users')
         .update({ is_admin: !user.is_admin })
         .eq('id', userId);
 
       if (error) {
-        console.error('Error updating admin status:', error);
+        console.log('Error updating admin status:', error);
         toast.error('Failed to update admin status', {
           autoClose: 4000,
           pauseOnHover: false,
@@ -365,7 +377,7 @@ function SuperadminPage() {
       });
       fetchOrgUsers(selectedOrgId); // Refresh users
     } catch (error) {
-      console.error('Error updating admin status:', error);
+      console.log('Error updating admin status:', error);
       toast.error('Failed to update admin status', {
         autoClose: 4000,
         pauseOnHover: false,
@@ -382,12 +394,12 @@ function SuperadminPage() {
       const { getSupabase } = await import('../../supabaseClient');
       const supabase = getSupabase();
       const { error } = await supabase
-        .from('app_users')
+        .from('users')
         .update({ is_active: false })
         .eq('id', userId);
 
       if (error) {
-        console.error('Error removing user:', error);
+        console.log('Error removing user:', error);
         toast.error('Failed to remove user', {
           autoClose: 4000,
           pauseOnHover: false,
@@ -403,7 +415,7 @@ function SuperadminPage() {
       });
       fetchOrgUsers(selectedOrgId); // Refresh users
     } catch (error) {
-      console.error('Error removing user:', error);
+      console.log('Error removing user:', error);
       toast.error('Failed to remove user', {
         autoClose: 4000,
         pauseOnHover: false,
@@ -482,7 +494,7 @@ function SuperadminPage() {
       setInviteForm({ username: '', email: '', isAdmin: false });
       setShowInviteForm(false); // Hide the form after successful invitation
     } catch (error) {
-      console.error('Error inviting user:', error);
+      console.log('Error inviting user:', error);
       toast.error('Failed to invite user', {
         autoClose: 4000,
         pauseOnHover: false,
@@ -496,12 +508,12 @@ function SuperadminPage() {
   // Submissions for selected organisation with Supabase integration
   const [orgSubmissions, setOrgSubmissions] = useState([]);
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
-  
+
   // Report preview modal state
-  const [previewModal, setPreviewModal] = useState({ 
-    isOpen: false, 
-    reportUrl: null, 
-    companyName: '' 
+  const [previewModal, setPreviewModal] = useState({
+    isOpen: false,
+    reportUrl: null,
+    companyName: ''
   });
 
   // Fetch submissions for selected organisation
@@ -519,32 +531,32 @@ function SuperadminPage() {
       const supabase = getSupabase();
       // Fetch submissions from Supabase
       const { data, error } = await supabase
-        .from('submissions')
+        .from('new_submissions')
         .select(`
           id,
           company_name,
           company_url,
-          user_id,
+          reviewed_by,
           status,
           batch_date,
           queue_position,
           report_url,
           organisation_id,
           created_at,
-          app_users!inner(username, email)
+          users!inner(username, email)
         `)
         .eq('organisation_id', orgId)
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching submissions:', error);
+        console.log('Error fetching submissions:', error);
 
         return;
       }
 
       setOrgSubmissions(data || []);
     } catch (error) {
-      console.error('Error fetching submissions:', error);
+      console.log('Error fetching submissions:', error);
 
     } finally {
       setIsLoadingSubmissions(false);
@@ -628,7 +640,7 @@ function SuperadminPage() {
                       </select>
                     </div>
                   </div>
-{/* Organization form */}
+                  {/* Organization form */}
                   <div className="col-12 col-lg-7 d-flex align-items-center" style={{ marginBottom: "-2%" }}>
                     {showOrgForm && (
                       <form onSubmit={handleSaveOrganisation} className="row gy-3 gx-4 gx-lg-5 align-items-center">
@@ -636,14 +648,14 @@ function SuperadminPage() {
                           <CustomInputField name="name" placeholder="Organisation Name" className='org-input' value={orgForm.name} onChange={handleOrgFormChange} />
                         </div>
                         <div className="col-12 col-md-3">
-                          <CustomInputField name="type" placeholder="Organisation Type" className='org-input' value={orgForm.type} onChange={handleOrgFormChange} />
+                          <CustomInputField name="account_type" placeholder="Account Type" className='org-input' value={orgForm.account_type} onChange={handleOrgFormChange} />
                         </div>
                         <div className="col-12 col-md-2">
-                          <CustomInputField name="credits" className='org-input-credits' placeholder="Credits" value={orgForm.credits} onChange={handleOrgFormChange} />
+                          <CustomInputField name="credit_balance" className='org-input-credits' placeholder="Credits" value={orgForm.credit_balance} onChange={handleOrgFormChange} />
                         </div>
                         <div className="col-12 col-md-4 d-flex justify-content-end">
-                          <CustomButton 
-                            type="submit" 
+                          <CustomButton
+                            type="submit"
                             className='btn-submit-manage-org'
                             disabled={isUpdatingOrg}
                           >
@@ -804,14 +816,14 @@ function SuperadminPage() {
                                 '-'
                               )}
                             </td>
-                            <td>{s.app_users?.email || s.app_users?.username || '-'}</td>
+                            <td>{s.users?.email || s.users?.username || '-'}</td>
                             <td style={{ textAlign: 'center' }}>
                               <span>
                                 {s.status || '-'}
                               </span>
                             </td>
                             <td style={{ textAlign: 'center' }}>{s.batch_date || s.created_at?.split('T')[0] || '-'}</td>
-                            <td style={{ textAlign: 'center',padding:"0px" }}>
+                            <td style={{ textAlign: 'center', padding: "0px" }}>
                               {s.report_url ? (
                                 <div className="action-buttons" style={{ justifyContent: 'center' }}>
                                   <button
@@ -853,7 +865,7 @@ function SuperadminPage() {
         onConfirm={confirmDelete}
         onCancel={closeConfirm}
       />
-      
+
       {/* Report Preview Modal */}
       <ReportPreviewModal
         isOpen={previewModal.isOpen}
@@ -866,4 +878,10 @@ function SuperadminPage() {
   );
 }
 
-export default SuperadminPage
+export default function SuperadminPage() {
+  return (
+    <Suspense fallback={null}>
+      <SuperadminContent />
+    </Suspense>
+  );
+}

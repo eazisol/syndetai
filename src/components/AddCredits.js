@@ -12,7 +12,7 @@ import { toast } from 'react-toastify';
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
 
 const InnerAddCredits = () => {
-    const { user,userData, refreshUserData } = useApp();
+    const { user, userData, refreshUserData } = useApp();
     const stripe = useStripe();
     const elements = useElements();
     const [credits, setCredits] = useState(10);
@@ -63,19 +63,19 @@ const InnerAddCredits = () => {
             [name]: validatedValue
         });
     };
-/**
-     * handleSubmit()
-     * Main payment function that:
-     * - Validates input fields
-     * - Creates a PaymentIntent via backend API
-     * - Confirms the payment with Stripe
-     * - Records transaction in Supabase
-     * - Updates organisation credits
-     */
+    /**
+         * handleSubmit()
+         * Main payment function that:
+         * - Validates input fields
+         * - Creates a PaymentIntent via backend API
+         * - Confirms the payment with Stripe
+         * - Records transaction in Supabase
+         * - Updates organisation credits
+         */
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-         // Step 1: Validate user input
+        // Step 1: Validate user input
         const { cardholderName, zip } = paymentForm;
 
         if (!cardholderName.trim()) {
@@ -93,7 +93,7 @@ const InnerAddCredits = () => {
         }
 
         setIsProcessing(true);
-// Step 2: Create a PaymentIntent on backend
+        // Step 2: Create a PaymentIntent on backend
         try {
             const organisationId = typeof window !== 'undefined' ? localStorage.getItem('organisation_id') : null;
             const piRes = await fetch('/api/payments/create-intent', {
@@ -121,7 +121,7 @@ const InnerAddCredits = () => {
                 setIsProcessing(false);
                 return;
             }
-//  Step 3: Confirm payment with Stripe
+            //  Step 3: Confirm payment with Stripe
             const confirmResult = await stripe.confirmCardPayment(clientSecret, {
                 payment_method: {
                     card,
@@ -144,14 +144,17 @@ const InnerAddCredits = () => {
                         const { getSupabase } = await import('../supabaseClient');
                         const supabase = getSupabase();
                         const { data: insertData, error: insertError } = await supabase
-                            .from('transactions')
+                            .from('credit_transactions')
                             .insert([
                                 {
                                     organisation_id: organisationId,
-                                    credits_added: credits,
+                                    // credits_added: credits,
+                                    transaction_type: 'credit_purchase',
                                     amount: total,
-                                    payment_provider: 'stripe',
-                                    payment_intent: paymentIntentId
+                                    //  payment_provider: 'stripe',
+                                    // payment_intent: paymentIntentId
+                                    balance_after: 0, 
+                                    created_at: new Date().toISOString()
                                 }
                             ])
                             .select();
@@ -165,24 +168,33 @@ const InnerAddCredits = () => {
                                 // Fetch current credits
                                 const { data: orgRow, error: orgFetchErr } = await supabase
                                     .from('organisations')
-                                    .select('credits')
+                                    .select('credit_balance')
                                     .eq('id', organisationId)
                                     .maybeSingle();
                                 if (orgFetchErr) {
                                     console.log('Failed to fetch organisation credits:', orgFetchErr);
                                 } else {
-                                    const currentCredits = Number(orgRow?.credits) || 0;
+                                    const currentCredits = Number(orgRow?.credit_balance) || 0;
                                     const updatedCredits = currentCredits + Number(credits || 0);
+
+                                    // Update transaction with actual balance_after
+                                    if (insertData && insertData.length > 0) {
+                                        await supabase
+                                            .from('credit_transactions')
+                                            .update({ balance_after: updatedCredits })
+                                            .eq('id', insertData[0].id);
+                                    }
+
                                     const { error: orgUpdateErr } = await supabase
                                         .from('organisations')
-                                        .update({ credits: updatedCredits })
+                                        .update({ credit_balance: updatedCredits })
                                         .eq('id', organisationId);
                                     if (orgUpdateErr) {
                                         console.log('Failed to update organisation credits:', orgUpdateErr);
                                     } else {
                                         console.log('Organisation credits updated to:', updatedCredits);
                                         // Refresh context so Sidebar and screens update immediately
-                                        try { await refreshUserData?.(); } catch {}
+                                        try { await refreshUserData?.(); } catch { }
                                     }
                                 }
                             } catch (orgErr) {
@@ -226,7 +238,7 @@ const InnerAddCredits = () => {
             <div className="credits-layout">
                 {/* Left Column - Add Credits */}
                 <div className="credits-column col-12">
-                    <h2 className="section-title">Add Credits ({userData?.organisation?.credits})</h2>
+                    <h2 className="section-title">Add Credits ({userData?.organisation?.credit_balance})</h2>
 
                     <div className="credits-subsection">
                         <h3 className="subsection-title">NUMBER OF CREDITS</h3>
@@ -270,23 +282,23 @@ const InnerAddCredits = () => {
                             <h3 className="subsection-title">CARD INFORMATION</h3>
                             <div className="card-input-group position-relative">
                                 <div className="card-number-input" style={{
-                                    width: '100%', padding: '10px 12px', backgroundColor: '#DEE3E9',color:"#0044EE !important", borderTopLeftRadius: '25px', borderTopRightRadius: '25px'
+                                    width: '100%', padding: '10px 12px', backgroundColor: '#DEE3E9', color: "#0044EE !important", borderTopLeftRadius: '25px', borderTopRightRadius: '25px'
                                 }}>
-                                    <CardNumberElement options={elementOptions} style={{color:"#0044EE !important"}}/>
+                                    <CardNumberElement options={elementOptions} style={{ color: "#0044EE !important" }} />
                                 </div>
                                 <div className="right-icon position-absolute top-0 end-0 ">
-                                    <Image src="/cards.svg" alt="" width={100} height={40} style={{marginRight:"10px"}} />
+                                    <Image src="/cards.svg" alt="" width={100} height={40} style={{ marginRight: "10px" }} />
                                 </div>
                             </div>
                             <div className="expiry-cvc-group row g-2">
                                 <div className="col-6">
-                                    <div className="expiry-input" style={{ width: '100%', padding: '10px 12px' ,backgroundColor: '#DEE3E9',borderBottomLeftRadius: '25px'}}>
-                                        <CardExpiryElement options={elementOptions} style={{color:"#0044EE !important"}}/>
+                                    <div className="expiry-input" style={{ width: '100%', padding: '10px 12px', backgroundColor: '#DEE3E9', borderBottomLeftRadius: '25px' }}>
+                                        <CardExpiryElement options={elementOptions} style={{ color: "#0044EE !important" }} />
                                     </div>
                                 </div>
                                 <div className="col-6">
-                                    <div className="cvc-input" style={{ width: '100%', padding: '10px 12px' ,backgroundColor: '#DEE3E9',borderBottomRightRadius: '25px'}}>
-                                        <CardCvcElement options={elementOptions} style={{color:"#0044EE !important"}}/>
+                                    <div className="cvc-input" style={{ width: '100%', padding: '10px 12px', backgroundColor: '#DEE3E9', borderBottomRightRadius: '25px' }}>
+                                        <CardCvcElement options={elementOptions} style={{ color: "#0044EE !important" }} />
                                     </div>
                                 </div>
                             </div>

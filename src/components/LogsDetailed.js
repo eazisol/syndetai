@@ -18,6 +18,12 @@ export default function LogsDetailed() {
   // Fetch logs from Supabase
   useEffect(() => {
     const fetchLogs = async () => {
+      // Security check: only superadmins should fetch logs
+      if (!userData?.is_superadmin) {
+        setIsLoading(false);
+        setError("Unauthorized access");
+        return;
+      }
       try {
         setIsLoading(true);
         setError(null);
@@ -25,7 +31,7 @@ export default function LogsDetailed() {
 
         // Fetch event_logs
         const { data: eventLogsData, error: logsError } = await supabase
-          .from("event_logs")
+          .from("event_log")
           .select("*")
           .order("created_at", { ascending: false });
 
@@ -48,7 +54,7 @@ export default function LogsDetailed() {
         console.log(companyIds, "companyIds");
         // Fetch company_people data for these company_ids
         const { data: companyPeopleData, error: peopleError } = await supabase
-          .from("company_people")
+          .from("people")
           .select("company_id, full_name")
           .in("company_id", companyIds);
 
@@ -73,7 +79,7 @@ export default function LogsDetailed() {
         console.log(enrichedLogs, "enrichedLogs");
         setLogs(enrichedLogs);
       } catch (err) {
-        // console.error("Error fetching logs:", err);
+        // console.log("Error fetching logs:", err);
         setError(err.message || "Failed to fetch logs");
       } finally {
         setIsLoading(false);
@@ -90,8 +96,8 @@ export default function LogsDetailed() {
         "postgres_changes",
         {
           event: "*",
-          schema: "public",
-          table: "event_logs",
+          schema: "syndet",
+          table: "event_log",
         },
         async (payload) => {
           console.log("Real-time update:", payload);
@@ -248,7 +254,7 @@ export default function LogsDetailed() {
                       {log.event_type ? (
                         <span
                         //  style={badgeStyle}
-                         >{displayActivity}</span>
+                        >{displayActivity}</span>
                       ) : (
                         "N/A"
                       )}

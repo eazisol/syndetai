@@ -30,7 +30,7 @@ export async function POST(req) {
 
     // Create app_users row for the organisation (idempotent)
     const { error: upsertErr } = await supabase
-      .from('app_users')
+      .from('users')
       .upsert({
         id: user.id,
         email: invite.email,

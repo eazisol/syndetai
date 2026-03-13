@@ -15,7 +15,7 @@ export async function POST(req) {
 
         const stripeSecret = process.env.STRIPE_SECRET_KEY;
         if (!stripeSecret) {
-            console.error('Stripe secret not configured (STRIPE_SECRET_KEY missing)');
+            console.log('Stripe secret not configured (STRIPE_SECRET_KEY missing)');
             return new Response(
                 JSON.stringify({ error: 'Stripe secret not configured' }),
                 { status: 500, headers: { 'Content-Type': 'application/json' } }
@@ -41,7 +41,7 @@ export async function POST(req) {
             { status: 200, headers: { 'Content-Type': 'application/json' } }
         );
     } catch (err) {
-        console.error('Create Report PI error', err);
+        console.log('Create Report PI error', err);
         return new Response(
             JSON.stringify({ error: 'Internal server error' }),
             { status: 500, headers: { 'Content-Type': 'application/json' } }

@@ -10,12 +10,12 @@ const PreviousSubmissions = () => {
   const [libraryData, setLibraryData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const userId = userData?.id;
-  
+
   // Report preview modal state
-  const [previewModal, setPreviewModal] = useState({ 
-    isOpen: false, 
-    reportUrl: null, 
-    companyName: '' 
+  const [previewModal, setPreviewModal] = useState({
+    isOpen: false,
+    reportUrl: null,
+    companyName: ''
   });
   // Fetch library data
   const fetchLibraryData = async (userId, organisationId) => {
@@ -23,23 +23,30 @@ const PreviousSubmissions = () => {
       setIsLoading(true);
       const { getSupabase } = await import('../supabaseClient');
       const supabase = getSupabase();
-      const { data, error } = await supabase
-        .from('submissions')
+      
+      let query = supabase
+        .from('new_submissions')
         .select(`
           id,
           company_name,
           company_url,
-          user_id,
+          reviewed_by,
           status,
           batch_date,
           queue_position,
           report_url,
           organisation_id,
           created_at,
-          app_users!inner(username, email)
-        `)
-        .eq('organisation_id', organisationId)
-        .order('created_at', { ascending: false });
+          users!inner(username, email)
+        `);
+
+      // If user is not superadmin, restrict by organisation_id
+      if (!userData?.is_superadmin) {
+        if (!organisationId) return [];
+        query = query.eq('organisation_id', organisationId);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
       if (error) {
         console.log('Supabase error:', error);
         return [];
@@ -54,22 +61,25 @@ const PreviousSubmissions = () => {
   };
   // Load library data
   useEffect(() => {
-    if (userData?.id && userData?.organisation_id) {
-      const loadLibraryData = async () => {
-        const data = await fetchLibraryData(userData?.id, userData?.organisation_id);
-        setLibraryData(data);
-      };
-      loadLibraryData();
+    if (userData?.id) {
+      // For normal users, we need organisation_id. For superadmins, we don't.
+      if (userData?.is_superadmin || userData?.organisation_id) {
+        const loadLibraryData = async () => {
+          const data = await fetchLibraryData(userData?.id, userData?.organisation_id);
+          setLibraryData(data);
+        };
+        loadLibraryData();
+      }
     }
-  }, [userData?.id, userData?.organisation_id]);
+  }, [userData?.id, userData?.organisation_id, userData?.is_superadmin]);
 
   const filteredSubmissions = libraryData.filter(submission =>
     submission.company_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     submission.company_url?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    submission.app_users?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    submission.app_users?.username?.toLowerCase().includes(searchQuery.toLowerCase())
+    submission.users?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    submission.users?.username?.toLowerCase().includes(searchQuery.toLowerCase())
   );
-// Handle download
+  // Handle download
   const handleDownload = async (reportUrl, companyName) => {
     try {
       if (!reportUrl) {
@@ -99,7 +109,7 @@ const PreviousSubmissions = () => {
       console.log('Error downloading report:', error);
     }
   };
-// Handle view report
+  // Handle view report
   const handleViewReport = (reportUrl, companyName) => {
     setPreviewModal({
       isOpen: true,
@@ -107,7 +117,7 @@ const PreviousSubmissions = () => {
       companyName: companyName || 'Report'
     });
   };
-// Close preview modal
+  // Close preview modal
   const closePreviewModal = () => {
     setPreviewModal({
       isOpen: false,
@@ -115,7 +125,7 @@ const PreviousSubmissions = () => {
       companyName: ''
     });
   };
-// Return previous submissions
+  // Return previous submissions
   return (
     <div className="submissions-section ">
       <div className="row g-3 mb-2 align-items-center justify-content-between">
@@ -133,7 +143,7 @@ const PreviousSubmissions = () => {
         </div>
       </div>
 
-{/* library table */}
+      {/* library table */}
       <div className="table-container">
         {isLoading ? (
           <div style={{ padding: '20px', textAlign: 'center' }}>
@@ -179,12 +189,12 @@ const PreviousSubmissions = () => {
                         '-'
                       )}
                     </td>
-                    <td>{submission.app_users?.email || submission.app_users?.username || '-'}</td>
+                    <td>{submission.users?.email || submission.users?.username || '-'}</td>
                     <td style={{ textAlign: 'center' }}>
                       {submission.status || '-'}
                     </td>
                     <td style={{ textAlign: 'center' }}>{submission.batch_date || submission.created_at?.split('T')[0] || '-'}</td>
-                    <td style={{ textAlign: 'center' ,padding:"0px"}}>
+                    <td style={{ textAlign: 'center', padding: "0px" }}>
                       {submission?.report_url && <div className="action-buttons" style={{ justifyContent: 'center' }}>
                         <button className="link-button download-button" onClick={() => handleViewReport(submission?.report_url, submission.company_name)} title="View Report">
                           <Eye className="action-icon" />
@@ -202,7 +212,7 @@ const PreviousSubmissions = () => {
           </table>
         )}
       </div>
-      
+
       {/* Report Preview Modal */}
       <ReportPreviewModal
         isOpen={previewModal.isOpen}

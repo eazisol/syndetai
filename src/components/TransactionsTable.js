@@ -10,13 +10,13 @@ const TransactionsTable = ({ organisationId = null, title = 'Transactions', wrap
     const { getSupabase } = await import('../supabaseClient');
     const supabase = getSupabase();
     let query = supabase
-      .from('transactions')
+      .from('credit_transactions')
       .select(`
         id,
-        credits_added,
+        transaction_type,
         amount,
+        balance_after,
         organisation_id,
-        payment_intent,
         created_at,
         organisations!inner(name)
       `)
@@ -61,9 +61,9 @@ const TransactionsTable = ({ organisationId = null, title = 'Transactions', wrap
           <thead>
             <tr>
               <th>ORGANIZATION</th>
-              <th>PAYMENT INTENT</th>
+              <th>TYPE</th>
               <th style={{ textAlign: 'center', width: '100px' }}>AMOUNT</th>
-              <th style={{ textAlign: 'center', width: '120px' }}>CREDITS ADDED</th>
+              <th style={{ textAlign: 'center', width: '120px' }}>BALANCE AFTER</th>
               <th style={{ textAlign: 'center' }}>CREATED AT</th>
             </tr>
           </thead>
@@ -84,9 +84,9 @@ const TransactionsTable = ({ organisationId = null, title = 'Transactions', wrap
               transactions.map((t) => (
                 <tr key={t.id}>
                   <td>{t.organisations?.name || ''}</td>
-                  <td>{t.payment_intent || ''}</td>
-                  <td style={{ textAlign: 'center', width: '100px' }}>{t.amount ? `£${parseFloat(t.amount).toFixed(2)}` : ''}</td>
-                  <td style={{ textAlign: 'center', width: '120px' }}>{t.credits_added ?? ''}</td>
+                  <td>{t.transaction_type || ''}</td>
+                  <td style={{ textAlign: 'center', width: '100px' }}>{t.amount ?? ''}</td>
+                  <td style={{ textAlign: 'center', width: '120px' }}>{t.balance_after ?? ''}</td>
                   <td style={{ textAlign: 'center' }}>{t.created_at ? t.created_at.split('T')[0] : '-'}</td>
                 </tr>
               ))

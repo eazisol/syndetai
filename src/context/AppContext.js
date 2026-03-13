@@ -11,7 +11,7 @@ export const AppProvider = ({ children }) => {
   // User state
   const [user, setUser] = useState({
     email: 'partha@syndeticai.com',
-    credits: 46
+    credit_balance: 46
   });
 
   // Submissions data
@@ -25,7 +25,7 @@ export const AppProvider = ({ children }) => {
       batchDate: '2025-01-15',
       queuePosition: 0
     },
-    
+
   ]);
 
   // Users data
@@ -36,18 +36,18 @@ export const AppProvider = ({ children }) => {
       email: 'antonia@syndeticai.com',
       isAdmin: true
     },
-   
+
   ]);
 
   // Other states
   const [searchQuery, setSearchQuery] = useState('');
   const [activePage, setActivePage] = useState('Library');
-  const [userData,setUserData]=useState(null)
-  const getUserData= async()=> {
+  const [userData, setUserData] = useState(null)
+  const getUserData = async () => {
     try {
       const supabase = getSupabase();
       const { data: { user }, error } = await supabase.auth.getUser()
-    
+
       if (error) {
         console.log('Error fetching user:', error.message)
         return null
@@ -56,13 +56,24 @@ export const AppProvider = ({ children }) => {
       if (user) {
         // Fetch user details from app_users table including organisation_id
         const { data: userDetails, error: userError } = await supabase
-          .from('app_users')
-          .select('id, email, username, is_admin, is_superadmin, organisation_id')
+          .from('users')
+          .select('id, email, username, is_admin, is_superadmin, organisation_id, account_type')
           .eq('id', user.id)
           .maybeSingle();
 
         if (userError) {
-          console.log('Error fetching user details:', userError);
+          console.log('Error fetching user details from syndet.users:', userError);
+        }
+
+        // Check if user is superadmin from either DB or auth metadata
+        const isSuperadmin = Boolean(userDetails?.is_superadmin) ||
+          Boolean(user.app_metadata?.is_superadmin) ||
+          Boolean(user.user_metadata?.is_superadmin);
+
+        const isAdmin = Boolean(userDetails?.is_admin) || isSuperadmin;
+
+        if (isSuperadmin) {
+          console.log('User identified as superadmin:', user.email);
         }
 
         let organisation = null;
@@ -81,6 +92,8 @@ export const AppProvider = ({ children }) => {
         const combinedUserData = {
           ...user,
           ...userDetails,
+          is_admin: isAdmin,
+          is_superadmin: isSuperadmin,
           organisation_id: userDetails?.organisation_id || null,
           organisation
         };
@@ -108,7 +121,7 @@ export const AppProvider = ({ children }) => {
       authListener?.subscription?.unsubscribe?.();
     }
   }, [])
-    // Simple functions
+  // Simple functions
   const addSubmission = (newSubmission) => {
     setSubmissions([newSubmission, ...submissions]);
   };
@@ -127,7 +140,7 @@ export const AppProvider = ({ children }) => {
 
   const value = {
     user,
-      users,
+    users,
     userData,
     refreshUserData: getUserData,
     submissions,

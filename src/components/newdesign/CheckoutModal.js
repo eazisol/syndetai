@@ -34,6 +34,7 @@ function InnerCheckoutModal({
   const router = useRouter();
   const [view, setView] = useState("checkout");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [createdUserId, setCreatedUserId] = useState(null); // Track the newly created/synced user ID
   const [cvcLen, setCvcLen] = useState(0);
 
   // Form state
@@ -65,7 +66,7 @@ function InnerCheckoutModal({
 
       logEvent({
         companyId,
-        userId,
+        // userId removed here as it is currently a person_id which violates event_log FK
         eventType: fieldNames[field],
       });
     }
@@ -77,8 +78,15 @@ function InnerCheckoutModal({
   const stop = (e) => e.stopPropagation();
 
   useEffect(() => {
-    if (open) setView("checkout");
-  }, [open]);
+    if (open) {
+      setView("checkout");
+      logEvent({
+        companyId,
+        // userId removed here as it is currently a person_id which violates event_log FK
+        eventType: "checkout.viewed",
+      });
+    }
+  }, [open, companyId, userId]);
 
   useEffect(() => {
     if (!open) return;
@@ -126,7 +134,7 @@ function InnerCheckoutModal({
 
     logEvent({
       companyId,
-      userId,
+      // userId removed here as it is currently a person_id which violates event_log FK
       eventType: "Click on Pay now button",
     });
 
@@ -169,55 +177,112 @@ function InnerCheckoutModal({
       }
 
       if (paymentIntent.status === "succeeded") {
-        // 3. Record Transaction in Supabase
         const { getSupabase } = await import("@/supabaseClient");
         const supabase = getSupabase();
 
-        // Note: Using exact column names including typos (comapny_id, creadits_added, comapny_name) as requested by user
-        const { error: dbError } = await supabase.from("transactions").insert([
-          {
-            company_id: companyId,
-            creadits_added: 0,
-            payment_provider: "stripe",
-            payment_intent: paymentIntent.id,
-            name: `${formData.firstName} ${formData.lastName}`,
-            amount: total,
-            email: formData.email,
-            company_name: formData.companyName,
-            created_at: new Date().toISOString(),
-          },
-        ]);
+        // 3. Upsert Organisation
+        let newOrgId = null;
+        let currentCredits = 0;
 
-        console.log("Transaction recorded in transactions table:", { dbError });
-
-        // Add to organisations table
-        const { data: orgData, error: orgError } = await supabase
+        // Check if organisation exists for this companyId
+        const { data: existingOrg, error: fetchOrgError } = await supabase
           .from("organisations")
-          .insert([
-            {
+          .select("id, credit_balance")
+          .eq("company_id", companyId)
+          .maybeSingle();
+
+        if (fetchOrgError) {
+          console.log("Error fetching organisation:", fetchOrgError);
+        }
+
+        if (existingOrg) {
+          newOrgId = existingOrg.id;
+          currentCredits = existingOrg.credit_balance || 0;
+          console.log("Existing organisation found:", newOrgId, "credits:", currentCredits);
+          // Optional: update name/status
+          await supabase
+            .from("organisations")
+            .update({
               name: `${formData.firstName} ${formData.lastName}`,
-              type: "startup",
-              credits: 0,
-              is_active: true,
-              created_at: new Date().toISOString(),
-            },
-          ])
-          .select();
+              is_active: true
+            })
+            .eq("id", newOrgId);
+        } else {
+          // Create new
+          const { data: orgData, error: orgError } = await supabase
+            .from("organisations")
+            .insert([
+              {
+                name: `${formData.firstName} ${formData.lastName}`,
+                type: "startup",
+                credit_balance: 0,
+                is_active: true,
+                created_at: new Date().toISOString(),
+                company_id: companyId
+              },
+            ])
+            .select();
 
-        if (orgError) {
-          console.error("Failed to create organisation entry:", orgError);
-        } else if (orgData && orgData.length > 0) {
-          const newOrgId = orgData[0].id;
-          console.log("Organisation created successfully in Database, ID:", newOrgId);
+          if (orgError) {
+            console.log("Failed to create organisation entry:", orgError);
+            toast.error("Failed to create/link organisation: " + orgError.message);
+            setIsProcessing(false);
+            return;
+          }
 
-          // Hamesha naya UUID banayein taaki jitni baar purchase ho, utni baar naye entry ho sake
-          // (Duplicate key error se bachne ke liye)
-          const appUserId = uuidv4();
+          if (orgData && orgData.length > 0) {
+            newOrgId = orgData[0].id;
+            currentCredits = 0;
+            console.log("Organisation created successfully, ID:", newOrgId);
+          }
+        }
 
-          // Create entry in app_users table
-          const { error: userError } = await supabase.from("app_users").insert([
+        if (newOrgId) {
+
+          // Log account.created
+          logEvent({
+            eventType: "account.created",
+            organisationId: newOrgId,
+            companyId: companyId
+          });
+
+          // Store email and name in Authentication in "Users"
+          // This satisfies the requirement to have the user in Supabase Auth
+          let authUserId = null;
+          try {
+            // Creating a robust signUp call to ensure entry in auth.users
+            const tempPwd = "User" + Math.random().toString(36).slice(-8) + "!";
+            const { data: authData, error: authErr } = await supabase.auth.signUp({
+              email: formData.email,
+              password: tempPwd,
+              options: {
+                data: {
+                  full_name: `${formData.firstName} ${formData.lastName}`,
+                  first_name: formData.firstName,
+                  last_name: formData.lastName
+                }
+              }
+            });
+
+            if (authErr) {
+              console.log("Auth provisioning error:", authErr);
+              toast.error("Auth provisioning failed: " + authErr.message);
+            } else if (authData && authData.user) {
+              authUserId = authData.user.id;
+              console.log("Auth provisioning successful for:", formData.email, "ID:", authUserId);
+            }
+          } catch (aErr) {
+            console.log("Auth provisioning exception:", aErr);
+            toast.error("An error occurred during auth setup.");
+          }
+
+          // Picking the ID from auth to use as User ID
+          const appUserId = authUserId;
+
+          // Create entry in app_users table (using upsert to handle existing records)
+          const { error: userError } = await supabase.from("users").upsert([
             {
-              id: appUserId,
+              id: appUserId, // Use the authUserId here
               organisation_id: newOrgId,
               email: formData.email,
               username: `${formData.firstName} ${formData.lastName}`,
@@ -225,13 +290,23 @@ function InnerCheckoutModal({
               is_superadmin: false,
               is_active: true,
               created_at: new Date().toISOString(),
+              auth_user_id: authUserId, // Store Supabase Auth ID here
+              person_id: userId,     // Store people table UUID here
             },
           ]);
 
           if (userError) {
-            console.log("Failed to create app_user entry in Database:", userError);
+            console.log("Failed to create user profile in Database:", userError);
           } else {
-            console.log("App user entry created successfully in Database");
+            console.log("User profile entry created/updated successfully in Database");
+
+            // Log user.created
+            logEvent({
+              eventType: "user.created",
+              userId: appUserId,
+              organisationId: newOrgId,
+              companyId: companyId
+            });
 
             // Define mapping for multiple entries
             const productTypeMap = {
@@ -255,10 +330,10 @@ function InnerCheckoutModal({
               if (companyId) {
                 try {
                   const { data: rdData, error: rdError } = await supabase
-                    .from("research_documents")
+                    .from("reports")
                     .select("storage_path")
                     .eq("company_id", companyId)
-                    .eq("doc_type", docType)
+                    .eq("report_type", docType)
                     .maybeSingle();
 
                   if (rdError) {
@@ -272,12 +347,14 @@ function InnerCheckoutModal({
               }
 
               // Create entry in submissions table for each docType
-              const { error: submissionError } = await supabase.from("submissions").insert([
+              const { error: submissionError } = await supabase.from("new_submissions").insert([
                 {
-                  user_id: appUserId,
+                  reviewed_by: appUserId, // instead of user_id
                   organisation_id: newOrgId,
                   company_name: formData.companyName,
-                  company_url: null,
+                  persona_type: "company",
+                  full_name: `${formData.firstName} ${formData.lastName}`,
+                  email: formData.email,
                   batch_date: new Date().toISOString(),
                   queue_position: 0,
                   status: "pending",
@@ -292,54 +369,48 @@ function InnerCheckoutModal({
                 console.log(`Submission entry created successfully for ${docType} with report_url:`, reportUrl);
               }
             }
+          }
 
-            // Store email and name in Authentication in "Users"
-            // This satisfies the requirement to have the user in Supabase Auth
-            try {
-              // Creating a robust signUp call to ensure entry in auth.users
-              const tempPwd = "User" + Math.random().toString(36).slice(-8) + "!";
-              await supabase.auth.signUp({
-                email: formData.email,
-                password: tempPwd,
-                options: {
-                  data: {
-                    full_name: `${formData.firstName} ${formData.lastName}`,
-                    first_name: formData.firstName,
-                    last_name: formData.lastName
-                  }
-                }
-              });
-              console.log("Auth provisioning attempted for:", formData.email);
-            } catch (aErr) {
-              console.error("Auth provisioning exception:", aErr);
-            }
+          // 7. Finally Record Transaction (credit_transactions)
+          console.log("Recording credit transaction for organisation:", newOrgId);
+          const { error: txError } = await supabase.from("credit_transactions").insert([
+            {
+              organisation_id: newOrgId,
+              transaction_type: "synapto",
+              amount: total,
+              balance_after: currentCredits,
+              created_at: new Date().toISOString(),
+            },
+          ]);
+
+          if (txError) {
+            console.log("Failed to record credit transaction (ignoring toast):", txError);
+          } else {
+            console.log("Credit transaction recorded successfully");
           }
         } else {
-          console.log("No organisation data returned from insert (check RLS policies)");
+          console.log("No organisation ID available for processing (newOrgId is null)");
         }
 
-        if (dbError) {
-          console.log("Failed to record transaction:", dbError);
-          toast.error("Payment succeeded but failed to save record: " + dbError.message);
-        } else {
-          // Clear fields on success
-          setFormData({
-            firstName: "",
-            lastName: "",
-            companyName: "",
-            email: "",
-            agreeTerms: false,
-            marketing: false,
-          });
-          setView("success");
-          toast.success("Payment successful!");
+        // Success and Cleanup
+        setFormData({
+          firstName: "",
+          lastName: "",
+          companyName: "",
+          email: "",
+          agreeTerms: false,
+          marketing: false,
+        });
+        setView("success");
+        toast.success("Payment successful!");
 
-          logEvent({
-            companyId,
-            userId,
-            eventType: "Payment successful",
-          });
-        }
+        setCreatedUserId(appUserId); // Save for subsequent logs
+
+        logEvent({
+          companyId,
+          userId: appUserId, // Use the synced Auth ID
+          eventType: "Payment successful",
+        });
       }
     } catch (err) {
       console.log("Checkout error:", err);
@@ -347,6 +418,25 @@ function InnerCheckoutModal({
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleTakeToDocuments = async () => {
+    // Log "Click on Take me to my documents button"
+    await logEvent({
+      companyId,
+      userId: createdUserId, // Use the synced ID stored in state
+      eventType: "Click on Take me to my documents button",
+    });
+
+    // Log "Redirect to login page"
+    await logEvent({
+      companyId,
+      userId: createdUserId, // Use the synced ID stored in state
+      eventType: "Redirect to login page",
+    });
+
+    // Final redirect
+    router.push("/login");
   };
 
   const elementOptions = {
@@ -459,7 +549,7 @@ function InnerCheckoutModal({
 
                   <button
                     type="button"
-                    onClick={() => router.push("/login")}
+                    onClick={handleTakeToDocuments}
                     style={{
                       borderRadius: "999px",
                       padding: "10px 18px",

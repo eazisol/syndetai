@@ -21,7 +21,7 @@ export async function POST(req) {
   try {
     event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
   } catch (err) {
-    console.error("Webhook signature verification failed", err);
+    console.log("Webhook signature verification failed", err);
     return new Response("Bad signature", { status: 400 });
   }
 
@@ -34,23 +34,34 @@ export async function POST(req) {
       if (organisationId && credits > 0) {
         const supabase = createClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL,
-          process.env.SUPABASE_SERVICE_ROLE_KEY
+          process.env.SUPABASE_SERVICE_ROLE_KEY,
+          { db: { schema: 'syndet' } }
         );
 
-        const { error } = await supabase.from("transactions").insert([
+        // Fetch current credits for balance_after
+        const { data: orgData } = await supabase
+          .from("organisations")
+          .select("credit_balance")
+          .eq("id", organisationId)
+          .maybeSingle();
+
+        const currentCredits = orgData?.credit_balance || 0;
+
+        const { error } = await supabase.from("credit_transactions").insert([
           {
             organisation_id: organisationId,
-            credits_added: credits,
-            payment_provider: "stripe",
-            payment_intent: pi.id,
+            transaction_type: "credit_purchase",
+            amount: credits,
+            balance_after: currentCredits + credits,
+            created_at: new Date().toISOString(),
           },
         ]);
 
-        if (error) console.error("Webhook insert error:", error);
+        if (error) console.log("Webhook insert error:", error);
       }
     }
   } catch (err) {
-    console.error("Webhook handling error", err);
+    console.log("Webhook handling error", err);
     return new Response("Webhook error", { status: 500 });
   }
 

@@ -15,7 +15,7 @@ Deno.serve(async (_req: Request) => {
     const { data: files, error: listError } = await supabase.storage.from('documents').list('', { limit: 1000 });
 
     if (listError) {
-      console.error("Error listing files in documents bucket:", listError);
+      console.log("Error listing files in documents bucket:", listError);
       return new Response("Failed to list files", { status: 500 });
     }
 
@@ -37,7 +37,7 @@ Deno.serve(async (_req: Request) => {
         const submissionId = name.replace('.pdf', '');
 
         if (!submissionId || submissionId.length !== 36) {
-          console.error(`Invalid UUID filename: ${name}`);
+          console.log(`Invalid UUID filename: ${name}`);
           continue;
         }
 
@@ -51,7 +51,7 @@ Deno.serve(async (_req: Request) => {
           .maybeSingle();
 
         if (findError) {
-          console.error("Error querying submission:", findError);
+          console.log("Error querying submission:", findError);
           continue;
         }
 
@@ -68,14 +68,14 @@ Deno.serve(async (_req: Request) => {
           .eq('id', submission.id);
 
         if (updateError) {
-          console.error(`Error updating submission ID ${submission.id}:`, updateError);
+          console.log(`Error updating submission ID ${submission.id}:`, updateError);
           continue;
         }
 
         console.log(`Submission ${submission.id} updated successfully.`);
 
       } catch (fileErr) {
-        console.error("Unexpected error processing a file:", fileErr);
+        console.log("Unexpected error processing a file:", fileErr);
       }
     }
 
@@ -83,7 +83,7 @@ Deno.serve(async (_req: Request) => {
     return new Response("Scheduled processing completed", { status: 200 });
 
   } catch (err) {
-    console.error("Unexpected error in scheduled processing:", err);
+    console.log("Unexpected error in scheduled processing:", err);
     return new Response("Internal Server Error", { status: 500 });
   }
 });

@@ -10,7 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import ConfirmModal from './ConfirmModal';
 
 const RequestNewReport = () => {
-  const { user, updateCredits,userData, refreshUserData } = useApp();
+  const { user, updateCredits, userData, refreshUserData } = useApp();
   const [formData, setFormData] = useState({
     company: '',
     website: ''
@@ -18,20 +18,20 @@ const RequestNewReport = () => {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  
+
   const organizationId =
     (userData?.organisation_id) ||
     (userData?.organisation && userData.organisation.id) ||
     (typeof window !== 'undefined' ? localStorage.getItem('organisation_id') : null);
-  
+
   const userId = userData?.id;
 
-  
+
 
   // Calculate credits needed
   const creditsNeeded = selectedFiles.length > 0 ? 15 : 10;
-  const hasEnoughCredits = (userData?.organisation?.credits || 0) >= creditsNeeded;
-// Request new report
+  const hasEnoughCredits = (userData?.organisation?.credit_balance || 0) >= creditsNeeded;
+  // Request new report
   const submitReport = async () => {
     // If no company or website, show error
     if (!formData.company || !formData.website) {
@@ -73,7 +73,7 @@ const RequestNewReport = () => {
       // Check organisation has enough credits
       const { data: orgRow, error: orgErr } = await supabase
         .from('organisations')
-        .select('credits')
+        .select('credit_balance')
         .eq('id', organizationId)
         .maybeSingle();
 
@@ -87,7 +87,7 @@ const RequestNewReport = () => {
         return;
       }
 
-      const currentCredits = Number(orgRow?.credits) || 0;
+      const currentCredits = Number(orgRow?.credit_balance) || 0;
       if (currentCredits < creditsNeeded) {
         toast.error(`Insufficient credits. Need ${creditsNeeded}, available ${currentCredits}.`, {
           autoClose: 4000,
@@ -96,11 +96,11 @@ const RequestNewReport = () => {
         });
         return;
       }
-      
+
       // Ensure app_users row exists for this user
       try {
         const { data: existingUser, error: existingErr } = await supabase
-          .from('app_users')
+          .from('users')
           .select('id')
           .eq('id', userId)
           .maybeSingle();
@@ -114,7 +114,7 @@ const RequestNewReport = () => {
           }
           const fallbackUsername = emailToUse ? emailToUse.split('@')[0] : 'user';
 
-          await supabase.from('app_users').insert([
+          await supabase.from('users').insert([
             {
               id: userId,
               email: emailToUse,
@@ -129,17 +129,20 @@ const RequestNewReport = () => {
         console.log('Error ensuring app_users row exists:', provisionErr);
         // Continue; insert may still fail and be handled below
       }
-      
+
       // Create new report in Supabase
       const { data, error } = await supabase
-        .from('submissions')
+        .from('new_submissions')
         .insert([
           {
             id: uuidv4(),
             company_name: formData.company,
             company_url: formData.website,
-            user_id: userData?.id,
+            reviewed_by: userData?.id,
             status: 'pending',
+            persona_type: 'company',
+            full_name: userData?.username || userData?.email || 'User',
+            email: userData?.email,
             batch_date: new Date().toISOString().split('T')[0],
             queue_position: 0,
             organisation_id: organizationId,
@@ -150,7 +153,7 @@ const RequestNewReport = () => {
         .select();
 
       if (error) {
-        // console.error('Supabase error:', error);
+        // console.log('Supabase error:', error);
         toast.error('Failed to submit request', {
           autoClose: 4000,
           pauseOnHover: false,
@@ -189,7 +192,7 @@ const RequestNewReport = () => {
             // Insert record into documents table
             try {
               await supabase
-                .from('documents')
+                .from('new_submission_documents')
                 .insert([
                   {
                     // id will be default uuid if table has default
@@ -219,7 +222,7 @@ const RequestNewReport = () => {
         const updatedCredits = currentCredits - creditsNeeded;
         const { error: decErr } = await supabase
           .from('organisations')
-          .update({ credits: updatedCredits })
+          .update({ credit_balance: updatedCredits })
           .eq('id', organizationId);
         if (decErr) {
           console.log('Failed to deduct organisation credits:', decErr);
@@ -229,7 +232,7 @@ const RequestNewReport = () => {
       }
 
       // Refresh user/organisation data
-      try { await refreshUserData?.(); } catch {}
+      try { await refreshUserData?.(); } catch { }
 
       // Show success message
       toast.success(`Request submitted for ${formData.company}!`, {
@@ -276,7 +279,7 @@ const RequestNewReport = () => {
       return;
     }
     if (!hasEnoughCredits) {
-      toast.error(`Insufficient credits. You need ${creditsNeeded} credits but have ${(userData?.organisation?.credits || 0)}`, {
+      toast.error(`Insufficient credits. You need ${creditsNeeded} credits but have ${(userData?.organisation?.credit_balance || 0)}`, {
         autoClose: 4000,
         pauseOnHover: false,
         pauseOnFocusLoss: false
@@ -307,11 +310,11 @@ const RequestNewReport = () => {
   return (
     <div className="request-section">
       {/* Temporary debug component - remove after fixing the issue with uploads */}
-    
-      
+
+
       <div className="request-form-container">
         <form onSubmit={handleSubmit} className="request-form">
-        <h2 className="section-title text-center mb-5">Request New Report</h2>
+          <h2 className="section-title text-center mb-5">Request New Report</h2>
           <div className="row g-3">
             <div className="col-12 col-md-6">
               <CustomInputField
@@ -324,7 +327,7 @@ const RequestNewReport = () => {
                 className="form-field"
               />
             </div>
-            
+
             <div className="col-12 col-md-6">
               <CustomInputField
                 type="text"
@@ -349,8 +352,8 @@ const RequestNewReport = () => {
           </div>
           <div className="row g-3 mt-2">
             <div className="col-12">
-              <CustomButton 
-                type="submit" 
+              <CustomButton
+                type="submit"
                 className="submit-btn form-button w-100"
                 disabled={isSubmitting}
               >
@@ -382,18 +385,18 @@ const RequestNewReport = () => {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                 <span style={{ color: 'var(--placeholder-color)' }}>Current credits</span>
-                <span style={{ fontWeight: 600 }}>{(userData?.organisation?.credits || 0)}</span>
+                <span style={{ fontWeight: 600 }}>{(userData?.organisation?.credit_balance || 0)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-color)', paddingTop: 8 }}>
                 <span style={{ color: 'var(--placeholder-color)' }}>Remaining after submit</span>
                 <span style={{ fontWeight: 700 }}>
-                  {(userData?.organisation?.credits || 0) - creditsNeeded}
+                  {(userData?.organisation?.credit_balance || 0) - creditsNeeded}
                 </span>
               </div>
             </div>
           </div>
         }
-        
+
         confirmText={isSubmitting ? 'Submitting...' : 'Confirm & Submit'}
         cancelText={'Cancel'}
         onConfirm={() => { if (!isSubmitting) submitReport(); }}

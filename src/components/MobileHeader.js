@@ -12,6 +12,8 @@ const MobileHeader = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuperadmin, setIsSuperadmin] = useState(false);
+  const [isInvestor, setIsInvestor] = useState(false);
+  const [isCompany, setIsCompany] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -35,8 +37,12 @@ const MobileHeader = () => {
     // Prefer context values; fall back to cached flags to avoid flicker
     const admin = Boolean(userData?.is_admin);
     const superadmin = Boolean(userData?.is_superadmin);
+    const investor = userData?.account_type === 'Investor';
+    const company = userData?.account_type === 'Company';
     setIsAdmin(admin);
     setIsSuperadmin(superadmin);
+    setIsInvestor(investor);
+    setIsCompany(company);
     if (!admin || !superadmin) {
       try {
         const cachedAdmin = localStorage.getItem('is_admin');
@@ -47,13 +53,15 @@ const MobileHeader = () => {
     }
   }, [userData]);
   // Menu items
-  const orgCredits = userData?.organisation?.credits;
+  const orgCredits = userData?.organisation?.credit_balance;
   const menuItems = [
     { id: 'Library', label: 'Library', href: '/library', icon: '/library.svg', inactiveIcon: '/library-inactive.svg', visible: true },
-    { id: 'New Request', label: 'New Request', href: '/new-request', icon: '/new-request.svg', inactiveIcon: '/new-request-inactive.svg', visible: true },
-    { id: 'Manage Account', label: 'Manage Account', href: '/manage-account', icon: '/settingactive.svg', inactiveIcon: '/setting.svg', visible: isAdmin },
-    { id: 'Add Credits', label: `Add Credits${Number.isFinite(orgCredits) ? ` (${orgCredits})` : ''}`, href: '/add-credits', icon: '/criedtactive.svg', inactiveIcon: '/credit.svg', visible: isAdmin },
-    { id: 'Logs', label: 'Logs', href: '/Logs', icon: '/Logs.svg', inactiveIcon: '/Logs-inactive.svg', visible: true },
+    { id: 'Store', label: (isCompany && !isSuperadmin) ? 'Purchase Reports' : 'Store', href: '/product', icon: '/library.svg', inactiveIcon: '/library-inactive.svg', visible: isInvestor || isCompany || isSuperadmin },
+    { id: 'New Request', label: 'New Request', href: '/new-request', icon: '/new-request.svg', inactiveIcon: '/new-request-inactive.svg', visible: !isCompany || isSuperadmin },
+    { id: 'Manage Account', label: 'Manage Account', href: '/manage-account', icon: '/settingactive.svg', inactiveIcon: '/setting.svg', visible: isAdmin || isInvestor || isCompany },
+    { id: 'Add Credits', label: `Add Credits${Number.isFinite(orgCredits) ? ` (${orgCredits})` : ''}`, href: '/add-credits', icon: '/criedtactive.svg', inactiveIcon: '/credit.svg', visible: isAdmin || isInvestor },
+    { id: 'Organization', label: 'Organization', href: '/superadmin/organizations', icon: '/library.svg', inactiveIcon: '/library-inactive.svg', visible: isSuperadmin },
+    { id: 'Logs', label: 'Logs', href: '/logs', icon: '/Logs.svg', inactiveIcon: '/Logs-inactive.svg', visible: isSuperadmin },
     { id: 'Superadmin', label: 'Superadmin', href: '/superadmin', icon: '/superadmin.svg', inactiveIcon: '/superadmin-inactive.svg', visible: isSuperadmin }
   ].filter(item => item.visible);
 

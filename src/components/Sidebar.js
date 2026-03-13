@@ -14,6 +14,8 @@ const Sidebar = () => {
   // Use userData from AppContext instead of local state
   const isAdmin = Boolean(userData?.is_admin);
   const isSuperadmin = Boolean(userData?.is_superadmin);
+  const isInvestor = userData?.account_type === 'Investor';
+  const isCompany = userData?.account_type === 'Company';
 
   const handleLogout = async () => {
     try {
@@ -34,49 +36,79 @@ const Sidebar = () => {
       label: 'Library',
       href: '/library',
       icon: '/library.svg',
-      inactiveIcon: '/library-inactive.svg'
+      inactiveIcon: '/library-inactive.svg',
+      visible: true
     },
     {
       id: 'New Request',
       label: 'New Request',
       href: '/new-request',
       icon: '/new-request.svg',
-      inactiveIcon: '/new-request-inactive.svg'
+      inactiveIcon: '/new-request-inactive.svg',
+      visible: !isCompany || isSuperadmin
     },
-    // Admin only
-    ...(isAdmin ? [
+    // Store / Purchase Reports
+    ...((isInvestor || isCompany || isAdmin) ? [
+      {
+        id: 'Store',
+        label: (isCompany && !isSuperadmin) ? 'Purchase Reports' : 'Store',
+        href: '/product',
+        icon: '/library.svg',
+        inactiveIcon: '/library-inactive.svg',
+        visible: true
+      }
+    ] : []),
+    // Admin, Investor or Company
+    ...((isAdmin || isInvestor || isCompany) ? [
       {
         id: 'Manage Account',
         label: 'Manage Account',
         href: '/manage-account',
         icon: '/settingactive.svg',
-        inactiveIcon: '/setting.svg'
-      },
+        inactiveIcon: '/setting.svg',
+        visible: true
+      }
+    ] : []),
+    // Admin or Investor only
+    ...((isAdmin || isInvestor) ? [
       {
         id: 'Add Credits',
         label: `Add Credits`,
         href: '/add-credits',
         icon: '/criedtactive.svg',
-        inactiveIcon: '/credit.svg'
+        inactiveIcon: '/credit.svg',
+        visible: true
+      },
+    ] : []),
+
+    // Superadmin only
+    ...(isSuperadmin ? [
+      {
+        id: 'Organization',
+        label: 'Organization',
+        href: '/superadmin/organizations',
+        icon: '/library.svg', // Reusing library icon as it fits "collection" theme
+        inactiveIcon: '/library-inactive.svg',
+        visible: true
       },
       {
         id: 'Logs',
         label: 'Logs',
         href: '/logs',
         icon: '/Logsinactve.svg',
-        inactiveIcon: '/Logs.svg'
+        inactiveIcon: '/Logs.svg',
+        visible: true
       },
-    ] : []),
-
-    // Superadmin only
-    ...(isSuperadmin ? [{
-      id: 'Superadmin',
-      label: 'Superadmin',
-      href: '/superadmin',
-      icon: '/superadmin.svg',
-      inactiveIcon: '/superadmin-inactive.svg'
-    }] : [])
-  ];
+      {
+        id: 'Superadmin',
+        label: 'Superadmin',
+        href: '/superadmin',
+        icon: '/superadmin.svg',
+        inactiveIcon: '/superadmin-inactive.svg',
+        visible: true
+      }
+    ] : [])
+  ].filter(item => item.visible !== false);
 
   return (
     <div className="sidebar">
@@ -130,7 +162,7 @@ const Sidebar = () => {
             />
           </button>
         </div>
-        <div className="user-credits" style={{ color: '#5F6368', fontSize: 12 }}>Credits: {userData?.organisation?.credits}</div>
+        <div className="user-credits" style={{ color: '#5F6368', fontSize: 12 }}>Credits: {userData?.organisation?.credit_balance}</div>
 
       </div>
     </div>
