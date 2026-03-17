@@ -52,9 +52,9 @@ const Sidebar = () => {
       {
         id: 'Store',
         label: (isCompany && !isSuperadmin) ? 'Purchase Reports' : 'Store',
-        href: '/product',
-        icon: '/library.svg',
-        inactiveIcon: '/library-inactive.svg',
+        href: '/store',
+        icon: '/cartB.svg',
+        inactiveIcon: '/cart.svg',
         visible: true
       }
     ] : []),
@@ -77,18 +77,26 @@ const Sidebar = () => {
         href: '/add-credits',
         icon: '/criedtactive.svg',
         inactiveIcon: '/credit.svg',
-        visible: true
+        visible: !isCompany // Explicitly hide from company accounts, even if isAdmin is somehow true
       },
     ] : []),
 
     // Superadmin only
     ...(isSuperadmin ? [
       {
+        id: 'User',
+        label: 'User',
+        href: '/superadmin/submissions',
+        icon: '/new-request.svg',
+        inactiveIcon: '/new-request-inactive.svg',
+        visible: true
+      },
+      {
         id: 'Organization',
         label: 'Organization',
         href: '/superadmin/organizations',
-        icon: '/library.svg', // Reusing library icon as it fits "collection" theme
-        inactiveIcon: '/library-inactive.svg',
+        icon: '/images/organizaB.png',
+        inactiveIcon: '/images/organization.png',
         visible: true
       },
       {

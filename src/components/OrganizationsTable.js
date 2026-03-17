@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import CustomInputField from './CustomInputField';
+import CustomButton from './CustomButton';
 import { useRouter } from 'next/navigation';
 
 const OrganizationsTable = () => {
@@ -55,13 +56,34 @@ const OrganizationsTable = () => {
                 <div className="col-12 col-md-6">
                     <h2 className="section-title">Organizations</h2>
                 </div>
-                <div className="col-12 col-md-6 text-end">
+                <div className="col-12 col-md-6 d-flex justify-content-end align-items-center gap-3">
+                    <button
+                        className="btn btn-primary"
+                        onClick={() => router.push('/superadmin?action=new')}
+                        style={{
+                            background: 'var(--primary-color, #0044EE)',
+                            color: 'white',
+                            border: 'none',
+                            padding: '10px 24px',
+                            borderRadius: '24px',
+                            fontSize: '14px',
+                            fontWeight: '400',
+                            whiteSpace: 'nowrap',
+                            height: '36px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}
+                    >
+                        Add Organization
+                    </button>
                     <CustomInputField
                         type="text"
                         placeholder="Search"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-50"
+                        wrapperClassName="w-50 m-0"
+                        className="w-100 m-0"
                     />
                 </div>
             </div>

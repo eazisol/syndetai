@@ -57,8 +57,8 @@ export const AppProvider = ({ children }) => {
         // Fetch user details from app_users table including organisation_id
         const { data: userDetails, error: userError } = await supabase
           .from('users')
-          .select('id, email, username, is_admin, is_superadmin, organisation_id, account_type')
-          .eq('id', user.id)
+          .select('id, auth_user_id, email, username, is_admin, is_superadmin, organisation_id, account_type')
+          .eq('auth_user_id', user.id)
           .maybeSingle();
 
         if (userError) {

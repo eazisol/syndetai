@@ -3818,7 +3818,7 @@ body {
 
 /* Hero Section */
 .hero-section {
-  padding: 80px 0;
+  padding: 40px 0;
   text-align: center;
   background: radial-gradient(circle at top center, rgba(0, 68, 238, 0.05) 0%, transparent 70%);
 }
@@ -3867,60 +3867,59 @@ body {
 
 /* Persona Selector */
 .persona-section {
-  padding: 60px 0;
+  padding: 40px 0;
   background: var(--lp-white);
 }
 
-.persona-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-  max-width: 900px;
-  margin: 0 auto;
+/* Persona Tabs */
+.persona-tabs {
+  display: inline-flex;
+  background: rgba(0, 0, 0, 0.04);
+  padding: 6px;
+  border-radius: 999px;
+  position: relative;
+  gap: 8px;
 }
 
-.persona-card {
-  padding: 2.5rem;
-  border-radius: 24px;
-  border: 2px solid var(--lp-border);
-  background: var(--lp-white);
+.persona-tab {
+  position: relative;
+  border: none;
+  background: transparent;
+  padding: 12px 32px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--lp-text-muted);
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1rem;
-}
-
-.persona-card:hover {
-  border-color: var(--lp-primary);
-  transform: translateY(-5px);
-  box-shadow: 0 20px 25px -5px rgba(0, 68, 238, 0.1);
-}
-
-.persona-card.active {
-  border-color: var(--lp-primary);
-  background: rgba(0, 68, 238, 0.02);
-  box-shadow: 0 0 0 1px var(--lp-primary);
-}
-
-.persona-icon {
-  width: 64px;
-  height: 64px;
-  background: rgba(0, 68, 238, 0.1);
-  border-radius: 16px;
+  border-radius: 999px;
+  transition: color 0.3s ease;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--lp-primary);
-  font-size: 2rem;
 }
 
-.persona-card h3 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin: 0;
+.persona-tab:hover {
+  color: var(--lp-text-main);
+}
+
+.persona-tab.active {
+  color: var(--lp-primary);
+}
+
+.tab-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+}
+
+.active-tab-bg {
+  position: absolute;
+  inset: 0;
+  background: var(--lp-white);
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(0, 68, 238, 0.1);
+  z-index: 0;
 }
 
 /* Form Area */
@@ -4029,6 +4028,49 @@ body {
 
 .success-card h2 {
   margin-bottom: 1rem;
+}
+
+/* Split Layout Landing Page */
+.main-content-split {
+  padding: 40px 0 80px 0;
+  min-height: calc(100vh - 100px);
+  display: flex;
+  align-items: flex-start; /* Changed from center to prevent jumping */
+  background: radial-gradient(circle at right top, rgba(0, 68, 238, 0.03) 0%, transparent 50%);
+}
+
+.hero-content-split {
+  display: flex;
+  flex-direction: column;
+  padding-top: 20px;
+}
+
+.persona-selection-area {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+@media (max-width: 991px) {
+  .main-content-split {
+    padding: 20px 0 60px 0;
+  }
+  .hero-content-split {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-top: 0;
+  }
+  .hero-headline, .hero-subtext {
+    text-align: center !important;
+  }
+  .persona-selection-area {
+    justify-content: center;
+  }
+}
+
+.file-dropzone:hover {
+  background-color: rgba(0, 68, 238, 0.05);
+  border-color: #0044ee !important;
 }
 
 @media (max-width: 768px) {

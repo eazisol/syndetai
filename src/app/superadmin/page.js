@@ -21,6 +21,7 @@ function SuperadminContent() {
   const { submissions, refreshUserData } = useApp();
   const searchParams = useSearchParams();
   const orgIdFromUrl = searchParams.get('orgId');
+  const actionFromUrl = searchParams.get('action');
   const [transactions, setTransactions] = useState([]);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
   // Organisations state with Supabase integration
@@ -128,8 +129,8 @@ function SuperadminContent() {
       }
 
       setOrganisations(data || []);
-      // Only set default if there is no selectedOrgId AND no orgId in the URL
-      if (data && data.length > 0 && !selectedOrgId && !orgIdFromUrl) {
+      // Only set default if there is no selectedOrgId AND no orgId in the URL AND action is not 'new'
+      if (data && data.length > 0 && !selectedOrgId && !orgIdFromUrl && actionFromUrl !== 'new') {
         setSelectedOrgId(data[0].id);
       }
     } catch (error) {
@@ -149,8 +150,12 @@ function SuperadminContent() {
   useEffect(() => {
     if (orgIdFromUrl) {
       setSelectedOrgId(orgIdFromUrl);
+    } else if (actionFromUrl === 'new') {
+      setSelectedOrgId(null);
+      setOrgForm({ name: '', account_type: '', credit_balance: '' });
+      setShowOrgForm(true);
     }
-  }, [orgIdFromUrl]);
+  }, [searchParams]);
 
   // Load selected organization data when organizations are loaded and selectedOrgId is set
   useEffect(() => {
@@ -582,6 +587,33 @@ function SuperadminContent() {
     );
   }, [orgSubmissions, companyFilter]);
 
+  const [isApproving, setIsApproving] = useState(null);
+
+  const handleApprove = async (submissionId) => {
+    try {
+      setIsApproving(submissionId);
+      const res = await fetch('/api/approve-submission', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ submissionId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Submission approved and account provisioned successfully!');
+        fetchOrgSubmissions(selectedOrgId); // Refresh submissions
+      } else {
+        toast.error(data.error || 'Failed to approve submission');
+      }
+    } catch (err) {
+      console.log('Approval error:', err);
+      toast.error('An unexpected error occurred during approval');
+    } finally {
+      setIsApproving(null);
+    }
+  };
+
   return (
     <Protected requireSuperadmin>
       <div className="app">
@@ -783,6 +815,7 @@ function SuperadminContent() {
                         <th style={{ textAlign: 'center' }}>STATUS</th>
                         <th style={{ textAlign: 'center' }}>BATCH DATE</th>
                         <th style={{ textAlign: 'center' }}>REPORT</th>
+                        <th style={{ textAlign: 'center' }}>ACTIONS</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -823,7 +856,7 @@ function SuperadminContent() {
                               </span>
                             </td>
                             <td style={{ textAlign: 'center' }}>{s.batch_date || s.created_at?.split('T')[0] || '-'}</td>
-                            <td style={{ textAlign: 'center', padding: "0px" }}>
+                             <td style={{ textAlign: 'center', padding: "0px" }}>
                               {s.report_url ? (
                                 <div className="action-buttons" style={{ justifyContent: 'center' }}>
                                   <button
@@ -843,7 +876,28 @@ function SuperadminContent() {
                                   </button>
                                 </div>
                               ) : (
-                                <span></span>
+                                <span>-</span>
+                              )}
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
+                              {s.status === 'pending' && (
+                                <button
+                                  className="btn-approve"
+                                  onClick={() => handleApprove(s.id)}
+                                  disabled={isApproving === s.id}
+                                  style={{
+                                    padding: '4px 12px',
+                                    borderRadius: '4px',
+                                    backgroundColor: '#10b981',
+                                    color: 'white',
+                                    border: 'none',
+                                    fontSize: '12px',
+                                    cursor: 'pointer',
+                                    opacity: isApproving === s.id ? 0.7 : 1
+                                  }}
+                                >
+                                  {isApproving === s.id ? 'Approving...' : 'Approve'}
+                                </button>
                               )}
                             </td>
                           </tr>
