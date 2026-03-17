@@ -16,7 +16,7 @@ import {
     HelpCircle,
     Loader2
 } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { logEvent } from "@/utils/eventLogger";
 
 function LandingPageContent() {
@@ -29,6 +29,7 @@ function LandingPageContent() {
     const [uploadProgress, setUploadProgress] = useState(null); // 'uploading', 'success', 'error'
 
     const searchParams = useSearchParams();
+    const router = useRouter();
     const campaign_recipient_id = searchParams?.get("campaign_recipient_id") || null;
 
     const validate = () => {
@@ -111,105 +112,132 @@ function LandingPageContent() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (validate()) {
+        if (!validate()) return;
+
+        // For founder/company flow: just save locally and navigate to pricing page,
+        // without creating any Supabase entries.
+        if (persona === "founder") {
             setLoading(true);
             try {
-                const { getSupabase } = await import('../../supabaseClient');
-                const supabase = getSupabase();
-
-                const commonData = {
-                    full_name: formData.fullName,
-                    email: formData.email,
-                    status: 'pending',
+                const payload = {
+                    persona: "founder",
+                    fullName: formData.fullName || "",
+                    email: formData.email || "",
+                    companyName: formData.companyName || "",
+                    website: formData.website || "",
                     campaign_recipient_id: campaign_recipient_id,
-                    metadata: {
-                        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown',
-                        submittedAt: new Date().toISOString()
-                    },
-                    reviewed_by: null,
-                    source: 'Landing Page'
+                    timestamp: new Date().toISOString(),
                 };
 
-                let insertData;
-                if (persona === 'investor') {
-                    insertData = {
-                        ...commonData,
-                        persona_type: 'investor',
-                        company_fund_name: formData.fundName || null,
-                        target_company_name: formData.targetCompany,
-                        target_company_url: formData.website,
-                        free_text: formData.reason || null
-                    };
-                } else {
-                    insertData = {
-                        ...commonData,
-                        persona_type: 'company',
-                        own_company_name: formData.companyName,
-                        own_company_url: formData.website,
-                        free_text: formData.lookingFor || null
-                    };
-                }
-
-                const { data: submissionData, error: submissionError } = await supabase
-                    .from('new_submissions')
-                    .insert([insertData])
-                    .select()
-                    .single();
-
-                if (submissionError) throw submissionError;
-
-                const submissionId = submissionData.id;
-
-                // Handle File Uploads
-                if (selectedFiles.length > 0) {
-                    setUploadProgress('uploading');
-                    for (const file of selectedFiles) {
-                        const fileExt = file.name.split('.').pop();
-                        const fileName = `${submissionId}/${Math.random().toString(36).substring(2)}.${fileExt}`;
-                        const filePath = `new_submissions/${fileName}`;
-
-                        const { error: uploadError } = await supabase.storage
-                            .from('submissions')
-                            .upload(filePath, file);
-
-                        if (uploadError) {
-                            console.log(`Error uploading ${file.name}:`, uploadError);
-                            continue;
-                        }
-
-                        // Record file in syndet.new_submission_documents
-                        const { error: docError } = await supabase
-                            .from('new_submission_documents')
-                            .insert([{
-                                submission_id: submissionId,
-                                file_name: file.name,
-                                storage_path: filePath,
-                                file_type: file.type,
-                                file_size: file.size
-                            }]);
-
-                        if (docError) {
-                            console.log(`Error recording metadata for ${file.name}:`, docError);
-                        }
+                if (typeof window !== "undefined") {
+                    try {
+                        window.localStorage.setItem("syndet_founder_form", JSON.stringify(payload));
+                    } catch (storageError) {
+                        console.log("Error saving founder form to localStorage:", storageError);
                     }
-                    setUploadProgress('success');
                 }
 
-                // Log the successful submission event
                 logEvent({
-                    eventType: `landing_page_submission_${persona}`
+                    eventType: "landing_page_start_founder",
                 });
 
-                setSubmitted(true);
-                setSelectedFiles([]);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                router.push("/founder-product");
             } catch (err) {
-                console.log("Submission failed:", err);
+                console.log("Founder flow navigation failed:", err);
                 alert("An unexpected error occurred. Please try again.");
-                setUploadProgress('error');
             } finally {
                 setLoading(false);
             }
+            return;
+        }
+
+        // Investor flow: keep existing Supabase-backed submission
+        setLoading(true);
+        try {
+            const { getSupabase } = await import('../../supabaseClient');
+            const supabase = getSupabase();
+
+            const commonData = {
+                full_name: formData.fullName,
+                email: formData.email,
+                status: 'pending',
+                campaign_recipient_id: campaign_recipient_id,
+                metadata: {
+                    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown',
+                    submittedAt: new Date().toISOString()
+                },
+                reviewed_by: null,
+                source: 'Landing Page'
+            };
+
+            const insertData = {
+                ...commonData,
+                persona_type: 'investor',
+                company_fund_name: formData.fundName || null,
+                target_company_name: formData.targetCompany,
+                target_company_url: formData.website,
+                free_text: formData.reason || null
+            };
+
+            const { data: submissionData, error: submissionError } = await supabase
+                .from('new_submissions')
+                .insert([insertData])
+                .select()
+                .single();
+
+            if (submissionError) throw submissionError;
+
+            const submissionId = submissionData.id;
+
+            // Handle File Uploads
+            if (selectedFiles.length > 0) {
+                setUploadProgress('uploading');
+                for (const file of selectedFiles) {
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `${submissionId}/${Math.random().toString(36).substring(2)}.${fileExt}`;
+                    const filePath = `new_submissions/${fileName}`;
+
+                    const { error: uploadError } = await supabase.storage
+                        .from('submissions')
+                        .upload(filePath, file);
+
+                    if (uploadError) {
+                        console.log(`Error uploading ${file.name}:`, uploadError);
+                        continue;
+                    }
+
+                    // Record file in syndet.new_submission_documents
+                    const { error: docError } = await supabase
+                        .from('new_submission_documents')
+                        .insert([{
+                            submission_id: submissionId,
+                            file_name: file.name,
+                            storage_path: filePath,
+                            file_type: file.type,
+                            file_size: file.size
+                        }]);
+
+                    if (docError) {
+                        console.log(`Error recording metadata for ${file.name}:`, docError);
+                    }
+                }
+                setUploadProgress('success');
+            }
+
+            // Log the successful submission event
+            logEvent({
+                eventType: `landing_page_submission_investor`
+            });
+
+            setSubmitted(true);
+            setSelectedFiles([]);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } catch (err) {
+            console.log("Submission failed:", err);
+            alert("An unexpected error occurred. Please try again.");
+            setUploadProgress('error');
+        } finally {
+            setLoading(false);
         }
     };
 
