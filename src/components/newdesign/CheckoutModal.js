@@ -142,7 +142,7 @@ function InnerCheckoutModal({
 
     try {
       // 1. Create PaymentIntent
-      const res = await fetch("/api/payments/create-report-intent", {
+      const res = await fetch("/api/payments/create-report-intent", { 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -444,7 +444,7 @@ function InnerCheckoutModal({
       }
     } catch (err) {
       console.log("Checkout error:", err);
-      // toast.error(err.message || "An error occurred during checkout");
+      toast.error(err.message || "An error occurred during checkout");
     } finally {
       setIsProcessing(false);
     }
