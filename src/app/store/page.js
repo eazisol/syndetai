@@ -19,42 +19,70 @@ function StoreContent() {
       setIsLoading(true);
       const { getSupabase } = await import('../../supabaseClient');
       const supabase = getSupabase();
-      
-      // We need to fetch from store_items, join reports (investor variant), and then join companies
-      // Since it's syndet schema and standard Supabase client, we'll try dot notation if FKs exist
-      // If not, we might need to fetch and manual join, but we'll try a clean select first
-      const { data, error } = await supabase
-        .from('store_items')
-        .select(`
-          *,
-          reports!inner (
-            id,
-            company_id,
-            report_type,
-            status,
-            persona_variant,
-            generated_at,
-            companies!inner (
-              name,
-              sector,
-              geography
-            )
-          )
-        `)
-        .eq('is_active', true)
-        .eq('reports.persona_variant', 'investor')
-        .order('created_at', { ascending: false });
 
-      if (error) {
-        console.log('Error fetching store items:', error);
-        // Fallback or empty state
+      const { data: storeItemsData, error: storeError } = await supabase
+        .schema('syndet')
+        .from('store_items')
+        .select('*')
+        .eq('store_status', 'active')
+        .order('added_to_store', { ascending: false });
+
+      if (storeError) {
+        console.log('Error fetching store_items:', storeError);
         setItems([]);
-      } else {
-        setItems(data || []);
+        return;
       }
+
+      if (!storeItemsData || storeItemsData.length === 0) {
+        setItems([]);
+        return;
+      }
+
+      const reportIds = [...new Set(storeItemsData.map((item) => item.report_id).filter(Boolean))];
+      const { data: reportsData, error: reportsError } = await supabase
+        .schema('syndet')
+        .from('reports')
+        .select('id, company_id, report_type_id, report_type, status, generated_at')
+        .in('id', reportIds);
+
+      if (reportsError) {
+        console.log('Error fetching reports for store items:', reportsError);
+        setItems([]);
+        return;
+      }
+
+      const companyIds = [...new Set((reportsData || []).map((r) => r.company_id).filter(Boolean))];
+      const { data: companiesData, error: companiesError } = await supabase
+        .schema('syndet')
+        .from('companies')
+        .select('id, name, sector, geography')
+        .in('id', companyIds);
+
+      if (companiesError) {
+        console.log('Error fetching companies for store items:', companiesError);
+        setItems([]);
+        return;
+      }
+
+      const reportMap = Object.fromEntries((reportsData || []).map((r) => [r.id, r]));
+      const companyMap = Object.fromEntries((companiesData || []).map((c) => [c.id, c]));
+
+      const normalizedItems = storeItemsData.map((item) => {
+        const report = reportMap[item.report_id] || null;
+        const company = report?.company_id ? companyMap[report.company_id] : null;
+
+        return {
+          ...item,
+          report,
+          company,
+        };
+      });
+
+      setItems(normalizedItems);
     } catch (error) {
       console.log('Unexpected error in fetchStoreItems:', error);
       toast.error('Failed to load store items');
+      setItems([]);
     } finally {
       setIsLoading(false);
     }
@@ -152,7 +180,7 @@ function StoreContent() {
                         <th>TAGS</th>
                         <th>DATE</th>
                         <th>STATUS</th>
-                        <th style={{ textAlign: 'center' }}>ACTION</th>
+                        {/* <th style={{ textAlign: 'center' }}>ACTION</th> */}
                       </tr>
                     </thead>
                     <tbody>
@@ -188,23 +216,23 @@ function StoreContent() {
                             </td>
                             <td>
                               <span className="badge rounded-pill" style={{ backgroundColor: '#eff6ff', color: '#2563eb', padding: '6px 12px', fontSize: '11px', textTransform: 'uppercase', fontWeight: '600' }}>
-                                {item.reports?.report_type || 'Standard'}
+                                {item.report?.report_type || item.report_type || 'Standard'}
                               </span>
                             </td>
                             <td style={{ maxWidth: '250px' }}>
-                              <div className="text-truncate-2 small" title={item.summary_line}>
-                                {item.summary_line || 'No summary available.'}
+                              <div className="text-truncate-2 small" title={item.summary_line || (item.report && item.report.report_type) || 'No summary available.'}>
+                                {item.summary_line || item.report?.report_type || 'No summary available.'}
                               </div>
                             </td>
                             <td>
                               <div className="d-flex flex-column gap-1">
                                 <div className="small d-flex align-items-center">
                                   <Briefcase size={12} className="me-1 text-muted" />
-                                  {item.reports?.companies?.sector || 'N/A'}
+                                  {item.company?.sector || 'N/A'}
                                 </div>
                                 <div className="small d-flex align-items-center text-muted">
                                   <Globe size={12} className="me-1" />
-                                  {item.reports?.companies?.geography || 'Global'}
+                                  {item.company?.geography || 'Global'}
                                 </div>
                               </div>
                             </td>
@@ -219,14 +247,14 @@ function StoreContent() {
                               </div>
                             </td>
                             <td className="small text-muted">
-                              {item.reports?.generated_at ? new Date(item.reports.generated_at).toLocaleDateString() : 'N/A'}
+                              {item.added_to_store ? new Date(item.added_to_store).toLocaleDateString() : item.report?.generated_at ? new Date(item.report.generated_at).toLocaleDateString() : 'N/A'}
                             </td>
                             <td>
                               <span className="badge rounded-pill bg-light text-dark border px-2 py-1" style={{ fontSize: '10px' }}>
-                                {item.reports?.status || 'Available'}
+                                {item.store_status || item.report?.status || 'Available'}
                               </span>
                             </td>
-                            <td>
+                            {/* <td>
                               <div className="d-flex justify-content-center gap-2">
                                 <button className="btn btn-sm btn-outline-primary rounded-pill d-flex align-items-center px-3" style={{ fontSize: '12px' }}>
                                   <Eye size={14} className="me-1" /> View
@@ -235,7 +263,7 @@ function StoreContent() {
                                   <ShoppingCart size={14} className="me-1" /> Buy
                                 </button>
                               </div>
-                            </td>
+                            </td> */}
                           </tr>
                         ))
                       )}
