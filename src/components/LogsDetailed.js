@@ -182,8 +182,8 @@ export default function LogsDetailed() {
           <table className="submissions-table">
             <thead>
               <tr>
-                <th>Company Name</th>
-                <th>User ID</th>
+                {/* <th>Company Name</th> */}
+                <th>IP Address</th>
                 <th style={{ textAlign: "left" }}>Event Type</th>
                 <th style={{ textAlign: "center" }}>Date</th>
                 <th style={{ textAlign: "center" }}> Time</th>
@@ -248,8 +248,8 @@ export default function LogsDetailed() {
 
                 return (
                   <tr key={log.id}>
-                    <td>{log.company_name || "N/A"}</td>
-                    <td>{log.user_id || "N/A"}</td>
+                    {/* <td>{log.company_name || "N/A"}</td> */}
+                    <td>{log.ip_address || "N/A"}</td>
                     <td style={{ textAlign: "left" }}>
                       {log.event_type ? (
                         <span
