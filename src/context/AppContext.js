@@ -95,7 +95,8 @@ export const AppProvider = ({ children }) => {
           is_admin: isAdmin,
           is_superadmin: isSuperadmin,
           organisation_id: userDetails?.organisation_id || null,
-          organisation
+          organisation,
+          account_type: organisation?.account_type || null // Centralized account_type from organisation
         };
 
         setUserData(combinedUserData);

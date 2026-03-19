@@ -37,8 +37,9 @@ const MobileHeader = () => {
     // Prefer context values; fall back to cached flags to avoid flicker
     const admin = Boolean(userData?.is_admin);
     const superadmin = Boolean(userData?.is_superadmin);
-    const investor = userData?.account_type === 'Investor';
-    const company = userData?.account_type === 'Company';
+    const accountType = (userData?.account_type || '').toLowerCase();
+    const investor = accountType === 'investor';
+    const company = accountType === 'company';
     setIsAdmin(admin);
     setIsSuperadmin(superadmin);
     setIsInvestor(investor);
@@ -63,7 +64,13 @@ const MobileHeader = () => {
     { id: 'Organization', label: 'Organization', href: '/superadmin/organizations', icon: '/images/organizaB.png', inactiveIcon: '/images/organization.png', visible: isSuperadmin },
     { id: 'Logs', label: 'Logs', href: '/logs', icon: '/Logs.svg', inactiveIcon: '/Logs-inactive.svg', visible: isSuperadmin },
     { id: 'Superadmin', label: 'Superadmin', href: '/superadmin', icon: '/superadmin.svg', inactiveIcon: '/superadmin-inactive.svg', visible: isSuperadmin }
-  ].filter(item => item.visible);
+  ].filter(item => {
+    // Restrictions for Company users who are not superadmins
+    if (isCompany && !isSuperadmin) {
+      return ['Library', 'Store', 'Manage Account'].includes(item.id);
+    }
+    return item.visible;
+  });
 
   // Toggle menu
   const toggleMenu = () => {

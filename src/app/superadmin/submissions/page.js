@@ -176,14 +176,15 @@ function UserManagementContent() {
                                     borderRadius: '6px',
                                     border: '1px solid #e2e8f0',
                                     fontSize: '13px',
-                                    backgroundColor: s.status === 'approved' ? '#dcfce7' : (s.status === 'rejected' ? '#fee2e2' : '#fef9c3'),
-                                    color: s.status === 'approved' ? '#166534' : (s.status === 'rejected' ? '#991b1b' : '#854d0e'),
+                                    backgroundColor: s.status === 'approved' ? '#dcfce7' : (s.status === 'rejected' ? '#fee2e2' : (s.status === 'waitlist' ? '#e0f2fe' : '#fef9c3')),
+                                    color: s.status === 'approved' ? '#166534' : (s.status === 'rejected' ? '#991b1b' : (s.status === 'waitlist' ? '#0369a1' : '#854d0e')),
                                     cursor: 'pointer',
                                     outline: 'none'
                                   }}
                                   disabled={s.status === 'approved'}
                                 >
                                   <option value="pending">Pending</option>
+                                  <option value="waitlist">Waitlist</option>
                                   <option value="approved">Approved</option>
                                   <option value="rejected">Rejected</option>
                                 </select>

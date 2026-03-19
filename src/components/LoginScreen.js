@@ -9,6 +9,12 @@ import { toast } from 'react-toastify';
 import { useApp } from '../context/AppContext';
 import { logEvent } from '@/utils/eventLogger';
 
+const BYPASS_EMAILS = [
+  'ayesha654.rida@gmail.com',
+  'stepridaayesha@gmail.com',
+  'yolapac742@isfew.com',
+];
+
 const LoginScreen = ({ onLogin }) => {
   const router = useRouter();
   const { refreshUserData } = useApp();
@@ -285,7 +291,55 @@ const LoginScreen = ({ onLogin }) => {
           return;
         }
 
-        // ✅ Step 3: Email exists, send magic link
+        // ✅ Step 3: Handle Bypass Emails
+        if (BYPASS_EMAILS.includes(email.toLowerCase())) {
+          console.log('🚀 Bypass email detected, calling bypass API...');
+          const response = await fetch('/api/auth/bypass', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              email,
+              origin: window.location.origin
+            }),
+          });
+
+          const bypassData = await response.json();
+
+          if (bypassData.success) {
+            if (bypassData.tokens) {
+              console.log('🚀 Tokens received on server! Setting session...');
+              toast.success('Logging you in...');
+              
+              const { getSupabase } = await import('../supabaseClient');
+              const supabase = getSupabase();
+              
+              const { error: sessionError } = await supabase.auth.setSession({
+                access_token: bypassData.tokens.access_token,
+                refresh_token: bypassData.tokens.refresh_token
+              });
+
+              if (!sessionError) {
+                // Get session to set it in state
+                const { data: sessionData } = await supabase.auth.getSession();
+                setSession(sessionData.session);
+                router.push('/library');
+                return;
+              } else {
+                console.error('Session error:', sessionError);
+                toast.error('Failed to set login session.');
+              }
+            } else if (bypassData.action_link) {
+              toast.success('Logging you in...');
+              window.location.href = bypassData.action_link;
+              return;
+            }
+          } else {
+            console.error('Bypass error:', bypassData.error);
+            toast.error('Direct login failed. Sending magic link instead...');
+          }
+        }
+
+        // ✅ Step 4: Regular flow - Send magic link
         const { error } = await supabase.auth.signInWithOtp({
           email,
           options: {

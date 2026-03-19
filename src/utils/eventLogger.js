@@ -20,7 +20,10 @@ export async function logEvent({
   organisationId = null,
   reportId = null,
   campaignId = null,
-  ipAddress = null
+  submissionId = null,
+  subscriptionId = null,
+  ipAddress = null,
+  metadata = null
 }) {
   // At least one identifier should be present, though we primarily check for eventType
   if (!eventType) {
@@ -53,8 +56,11 @@ export async function logEvent({
           organisation_id: organisationId,
           report_id: reportId,
           campaign_id: campaignId,
+          submission_id: submissionId,
+          subscription_id: subscriptionId,
           ip_address: ipAddress,
           event_type: eventType,
+          metadata: metadata
         },
       ])
       .select();

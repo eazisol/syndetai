@@ -29,6 +29,7 @@ function InnerCheckoutModal({
   onEditBasket,
   companyId,
   userId,
+  persona = null,
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -181,11 +182,12 @@ function InnerCheckoutModal({
         const { getSupabase } = await import("@/supabaseClient");
         const supabase = getSupabase();
 
-        const isFounderFlow = !companyId;
+        const isFounderFlow = !companyId || persona === "company";
 
         console.log("Checkout: payment succeeded", {
           isFounderFlow,
           companyId,
+          persona,
           itemsCount: items.length,
         });
 
@@ -199,6 +201,8 @@ function InnerCheckoutModal({
               formData,
               items,
               total,
+              existingCompanyId: companyId,
+              existingPersonId: userId,
             });
             paymentUserId = result?.authUserId || null;
           } catch (provErr) {
@@ -330,14 +334,20 @@ function InnerCheckoutModal({
               const productTypeMap = {
                 "Pre-Diligence Assessment": ["due_diligence"],
                 "Company Research Report": ["due_diligence"],
+                "due_diligence": ["due_diligence"],
+
                 "Competitive Positioning Assessment": ["competitor_analysis", "due_diligence"],
                 "Competitive Analysis": ["competitor_analysis", "due_diligence"],
+                "competitor_analysis": ["competitor_analysis", "due_diligence"],
+
                 "Fundraising Readiness Diagnostic": ["due_diligence", "competitor_analysis", "full_research_report"],
-                "Company Deep Dive": ["due_diligence", "competitor_analysis", "full_research_report"]
+                "Company Deep Dive": ["due_diligence", "competitor_analysis", "full_research_report"],
+                "full_research_report": ["due_diligence", "competitor_analysis", "full_research_report"]
               };
 
+              // First try by title, then check if title is actually an ID
               const itemTitle = items[0]?.title || "";
-              const docTypesToSubmit = productTypeMap[itemTitle] || [];
+              let docTypesToSubmit = productTypeMap[itemTitle] || productTypeMap[items[0]?.id] || [];
 
               if (docTypesToSubmit.length === 0) {
                 console.log("No matching doc types found for title:", itemTitle);

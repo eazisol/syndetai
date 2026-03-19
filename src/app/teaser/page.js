@@ -25,68 +25,32 @@ function TeaserInner() {
       try {
         const supabase = getSupabase();
 
-        // Step 1: Get User's Organisation ID from people
-        const { data: userData, error: userError } = await supabase
-          .from("people")
-          .select("organisation_id")
-          .eq("id", uuid)
-          .maybeSingle();
-
-        if (userError || !userData || !userData.organisation_id) {
-          console.log(
-            "User not found in people or no organisation_id:",
-            userError
-          );
-          setIsValid(false);
-          setIsLoading(false);
-          return;
-        }
-
-        const orgId = userData.organisation_id;
-
-        // Step 1b: Get Company ID from organisations
-        const { data: orgData, error: orgError } = await supabase
-          .from("organisations")
-          .select("company_id")
-          .eq("id", orgId)
-          .maybeSingle();
-
-        if (orgError || !orgData || !orgData.company_id) {
-          console.log("Organisation not found or no company_id:", orgError);
-          setIsValid(false);
-          setIsLoading(false);
-          return;
-        }
-
-        const companyId = orgData.company_id;
-
-        // Step 2: Check for Teaser document for this Company
-        const { data: docData, error: docError } = await supabase
-          .from("reports")
+        // Check for Teaser Document in teasers table using uuid as company_id
+        console.log("Checking for teaser document for company_id (uuid):", uuid);
+        const { data: teaserData, error: teaserError } = await supabase
+          .from("teasers")
           .select("*")
-          .eq("company_id", companyId)
-          .eq("report_type", "teaser")
-          .limit(1);
+          .eq("company_id", uuid)
+          .eq("is_active", true)
+          .maybeSingle();
 
-        if (docError) {
-          console.log("Error checking documents:", docError);
+        if (teaserError) {
+          console.log("Supabase error fetching teaser:", teaserError);
           setIsValid(false);
-        } else if (docData && docData.length > 0) {
+        } else if (teaserData) {
+          console.log("Teaser found:", teaserData.storage_path);
           setIsValid(true);
-          setCompanyId(companyId);
-          setPdfUrl(docData[0].storage_path);
-
-          setIsValid(true);
-          setCompanyId(companyId);
-          setPdfUrl(docData[0].storage_path);
+          setCompanyId(teaserData.company_id);
+          setPdfUrl(teaserData.storage_path);
 
           // Log Teaser view
           logEvent({
             eventType: "Teaser",
-            companyId: companyId,
+            companyId: teaserData.company_id,
             userId: uuid
           });
         } else {
+          console.log("No teaser found for this uuid/company_id");
           setIsValid(false);
         }
       } catch (err) {

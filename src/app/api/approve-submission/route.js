@@ -6,6 +6,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { runApprovalProvisioningFlow } from "@/lib/approvalProvisioning";
+import { EVENTS } from "@/utils/activityTracker";
 
 export const runtime = "nodejs";
 
@@ -22,6 +23,7 @@ function normalizeStatus(raw) {
   const value = String(raw || "").trim().toLowerCase();
   if (value === "approved") return "approved";
   if (value === "pending") return "pending";
+  if (value === "waitlist") return "waitlist";
   if (value === "reject" || value === "rejected") return REJECTED_DB_VALUE;
   return null;
 }
@@ -52,7 +54,7 @@ export async function POST(req) {
     if (!targetStatus) {
       return jsonResponse(
         {
-          error: "Invalid status. Allowed values: approved, rejected, reject, pending",
+          error: "Invalid status. Allowed values: approved, rejected, reject, pending, waitlist",
           receivedStatus: body.status ?? null,
         },
         400
@@ -97,15 +99,43 @@ export async function POST(req) {
 
     console.log(`Submission ${submissionId} status → "${targetStatus}"`);
 
+    // ── LOG EVENT ────────────────────────────────────────────────────────────
+    let statusEventName = null;
+    const persona = (submission.persona_type || "").toLowerCase();
+    
+    if (targetStatus === "approved") {
+        if (submission.status === "waitlist") {
+            // It was waitlisted, now reactivated
+            const reactivatedEvent = persona === "investor" ? EVENTS.INVESTOR.SUBMISSION_REACTIVATED : null;
+            if (reactivatedEvent) {
+                await supabaseAdmin.schema("syndet").from("event_log").insert([{ event_type: reactivatedEvent }]);
+            }
+        }
+        statusEventName = persona === "investor" ? EVENTS.INVESTOR.SUBMISSION_APPROVED : EVENTS.FOUNDER.SUBMISSION_APPROVED;
+    } else if (targetStatus === REJECTED_DB_VALUE) {
+        statusEventName = persona === "investor" ? EVENTS.INVESTOR.SUBMISSION_DECLINED : EVENTS.FOUNDER.SUBMISSION_DECLINED;
+    } else if (targetStatus === "waitlist") {
+        statusEventName = persona === "investor" ? EVENTS.INVESTOR.SUBMISSION_WAITLISTED : EVENTS.FOUNDER.SUBMISSION_WAITLISTED;
+    } else if (targetStatus === "pending") {
+        // Technically waitlisted -> approved is already handled above, but if it goes from waitlist to pending? No specific event provided.
+    }
+
+    if (statusEventName) {
+        const { error: eventError } = await supabaseAdmin.schema("syndet").from("event_log").insert([{
+            event_type: statusEventName
+        }]);
+        if (eventError) console.warn("Failed to log status change event:", eventError.message);
+    }
+
     // ── If not "approved", we're done ────────────────────────────────────────
     if (targetStatus !== "approved") {
-      return jsonResponse({
-        success: true,
-        step: "status_updated",
-        submissionId,
-        newStatus: targetStatus,
-        message: `Submission status updated to "${targetStatus}"`,
-      });
+        return jsonResponse({
+            success: true,
+            step: "status_updated",
+            submissionId,
+            newStatus: targetStatus,
+            message: `Submission status updated to "${targetStatus}"`,
+        });
     }
 
     // ── Steps 2–8: Full provisioning flow ────────────────────────────────────

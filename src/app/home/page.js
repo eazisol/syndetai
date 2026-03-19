@@ -17,7 +17,7 @@ import {
     Loader2
 } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { logEvent } from "@/utils/eventLogger";
+import { trackActivity, EVENTS } from "@/utils/activityTracker";
 
 function LandingPageContent() {
     const [persona, setPersona] = useState('investor'); // 'investor' or 'founder'
@@ -114,44 +114,6 @@ function LandingPageContent() {
         e.preventDefault();
         if (!validate()) return;
 
-        // For founder/company flow: just save locally and navigate to pricing page,
-        // without creating any Supabase entries.
-        if (persona === "founder") {
-            setLoading(true);
-            try {
-                const payload = {
-                    persona: "founder",
-                    fullName: formData.fullName || "",
-                    email: formData.email || "",
-                    companyName: formData.companyName || "",
-                    website: formData.website || "",
-                    campaign_recipient_id: campaign_recipient_id,
-                    timestamp: new Date().toISOString(),
-                };
-
-                if (typeof window !== "undefined") {
-                    try {
-                        window.localStorage.setItem("syndet_founder_form", JSON.stringify(payload));
-                    } catch (storageError) {
-                        console.log("Error saving founder form to localStorage:", storageError);
-                    }
-                }
-
-                logEvent({
-                    eventType: "landing_page_start_founder",
-                });
-
-                router.push("/founder-product");
-            } catch (err) {
-                console.log("Founder flow navigation failed:", err);
-                alert("An unexpected error occurred. Please try again.");
-            } finally {
-                setLoading(false);
-            }
-            return;
-        }
-
-        // Investor flow: keep existing Supabase-backed submission
         setLoading(true);
         try {
             const { getSupabase } = await import('../../supabaseClient');
@@ -170,14 +132,25 @@ function LandingPageContent() {
                 source: 'Landing Page'
             };
 
-            const insertData = {
-                ...commonData,
-                persona_type: 'investor',
-                company_fund_name: formData.fundName || null,
-                target_company_name: formData.targetCompany,
-                target_company_url: formData.website,
-                free_text: formData.reason || null
-            };
+            let insertData;
+            if (persona === 'investor') {
+                insertData = {
+                    ...commonData,
+                    persona_type: 'investor',
+                    company_fund_name: formData.fundName || null,
+                    target_company_name: formData.targetCompany,
+                    target_company_url: formData.website,
+                    free_text: formData.reason || null
+                };
+            } else {
+                insertData = {
+                    ...commonData,
+                    persona_type: 'company',
+                    company_fund_name: formData.companyName,
+                    target_company_name: formData.companyName,
+                    target_company_url: formData.website,
+                };
+            }
 
             const { data: submissionData, error: submissionError } = await supabase
                 .from('new_submissions')
@@ -223,10 +196,14 @@ function LandingPageContent() {
                 }
                 setUploadProgress('success');
             }
-
             // Log the successful submission event
-            logEvent({
-                eventType: `landing_page_submission_investor`
+            const eventName = persona === 'investor' 
+                ? EVENTS.INVESTOR.SUBMISSION_CREATED 
+                : EVENTS.FOUNDER.SUBMISSION_CREATED;
+                
+            trackActivity(eventName, { 
+                // Any identifiers you have, since user is merely submitting, they might just have an email?
+                // The API doesn't have an ID yet.
             });
 
             setSubmitted(true);
@@ -264,8 +241,8 @@ function LandingPageContent() {
             <main className="main-content-split">
                 <div className="container">
                     <div className="row g-5 align-items-start">
-                        {/* Left Side: Form Area */}
-                        <div className="col-lg-6 order-2 order-lg-1">
+                        {/* Left Side: Form Area (Now Right on Desktop) */}
+                        <div className="col-lg-6 order-lg-2">
                             <div className="persona-selection-area mb-4">
                                 <div className="persona-tabs">
                                     <button
@@ -377,6 +354,7 @@ function LandingPageContent() {
                                                 </>
                                             )}
 
+                                            {/* FILE UPLOAD COMMENTED OUT REQ 
                                             <div className="form-group">
                                                 <label><FileText size={14} className="me-1" /> Upload additional info (Optional)</label>
                                                 <div 
@@ -419,12 +397,13 @@ function LandingPageContent() {
                                                     )}
                                                 </div>
                                             </div>
+                                            */}
 
                                             <button type="submit" className="submit-btn" disabled={loading}>
                                                 {loading ? (
                                                     <><Loader2 className="animate-spin" size={20} /> Processing...</>
                                                 ) : (
-                                                    <>Get Started <ArrowRight size={20} /></>
+                                                    <>Submit Information <ArrowRight size={20} /></>
                                                 )}
                                             </button>
                                         </form>
@@ -458,8 +437,8 @@ function LandingPageContent() {
                             </div>
                         </div>
 
-                        {/* Right Side: Hero Content */}
-                        <div className="col-lg-6 order-1 order-lg-2">
+                        {/* Right Side: Hero Content (Now Left on Desktop) */}
+                        <div className="col-lg-6 order-lg-1">
                             <div className="hero-content-split">
                                 <motion.h1
                                     className="hero-headline text-start"

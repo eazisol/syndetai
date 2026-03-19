@@ -1,0 +1,1 @@
+Keys: id, name, account_type, lifecycle_status, credit_balance, is_active, company_id, source, metadata, created_at, updated_at

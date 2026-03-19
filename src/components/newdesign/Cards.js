@@ -6,7 +6,7 @@ import Image from "next/image";
 import { PRODUCT_PACKAGES } from "@/config/packagesConfig";
 import { logEvent } from "@/utils/eventLogger";
 
-export default function Cards() {
+export default function Cards({ showHero = true }) {
   const { addToCart, companyId, userId } = useCart();
 
   // Initialize plans with billing state from config
@@ -21,34 +21,37 @@ export default function Cards() {
   return (
     <section className="mi-section py-5">
       <div className="container">
-        <div className="text-center">
-          <div className="mi-top-pill mx-auto">
-            <Image
-              className="mi-top-pill-icon"
-              src="/images/logo.png"
-              alt=""
-              width={24}
-              height={24}
-            />
+        {showHero && (
+          <div className="text-center">
+            <div className="mi-top-pill mx-auto">
+              <Image
+                className="mi-top-pill-icon"
+                src="/images/logo.png"
+                alt=""
+                width={24}
+                height={24}
+              />
+              <span>Premium Research Products</span>
+            </div>
 
-            <span>Premium Research Products</span>
+            <h1 className="mi-hero-title mt-3">
+              Unlock Market <span className="mi-accent">Intelligence</span>
+            </h1>
+
+            <p className="mi-hero-subtitle mx-auto mb-0">
+              Professional research reports and competitive analysis to drive your
+              <br className="d-none d-md-block" />
+              business forward
+            </p>
           </div>
+        )}
 
-          <h1 className="mi-hero-title mt-3">
-            Unlock Market <span className="mi-accent">Intelligence</span>
-          </h1>
-
-          <p className="mi-hero-subtitle mx-auto mb-0">
-            Professional research reports and competitive analysis to drive your
-            <br className="d-none d-md-block" />
-            business forward
-          </p>
-        </div>
-
-        <div className="d-flex justify-content-between align-items-center mt-5 mb-5">
-          <div className="mi-section-left">Individual Reports</div>
-          <div className="mi-section-right">Choose your research package</div>
-        </div>
+        {showHero && (
+          <div className="d-flex justify-content-between align-items-center mt-5 mb-5">
+            <div className="mi-section-left">Individual Reports</div>
+            <div className="mi-section-right">Choose your research package</div>
+          </div>
+        )}
 
         <div className="row row-cols-1 row-cols-lg-3 g-4 align-items-stretch">
           {plans.map((plan, idx) => {

@@ -14,8 +14,9 @@ const Sidebar = () => {
   // Use userData from AppContext instead of local state
   const isAdmin = Boolean(userData?.is_admin);
   const isSuperadmin = Boolean(userData?.is_superadmin);
-  const isInvestor = userData?.account_type === 'Investor';
-  const isCompany = userData?.account_type === 'Company';
+  const accountType = (userData?.account_type || '').toLowerCase();
+  const isInvestor = accountType === 'investor';
+  const isCompany = accountType === 'company';
 
   const handleLogout = async () => {
     try {
@@ -29,94 +30,130 @@ const Sidebar = () => {
     }
   };
 
+
   const menuItems = [
-    // Public (visible to all logged-in users)
     {
       id: 'Library',
       label: 'Library',
       href: '/library',
       icon: '/library.svg',
       inactiveIcon: '/library-inactive.svg',
-      visible: true
+      visible: true,
     },
-    {
-      id: 'New Request',
-      label: 'New Request',
-      href: '/new-request',
-      icon: '/new-request.svg',
-      inactiveIcon: '/new-request-inactive.svg',
-      visible: !isCompany || isSuperadmin
-    },
-    // Store / Purchase Reports
-    ...((isInvestor || isCompany || isAdmin) ? [
-      {
-        id: 'Store',
-        label: (isCompany && !isSuperadmin) ? 'Purchase Reports' : 'Store',
-        href: '/store',
-        icon: '/cartB.svg',
-        inactiveIcon: '/cart.svg',
-        visible: true
-      }
-    ] : []),
-    // Admin, Investor or Company
-    ...((isAdmin || isInvestor || isCompany) ? [
-      {
-        id: 'Manage Account',
-        label: 'Manage Account',
-        href: '/manage-account',
-        icon: '/settingactive.svg',
-        inactiveIcon: '/setting.svg',
-        visible: true
-      }
-    ] : []),
-    // Admin or Investor only
-    ...((isAdmin || isInvestor) ? [
-      {
-        id: 'Add Credits',
-        label: `Add Credits`,
-        href: '/add-credits',
-        icon: '/criedtactive.svg',
-        inactiveIcon: '/credit.svg',
-        visible: !isCompany // Explicitly hide from company accounts, even if isAdmin is somehow true
-      },
-    ] : []),
 
-    // Superadmin only
-    ...(isSuperadmin ? [
-      {
-        id: 'User',
-        label: 'User',
-        href: '/superadmin/submissions',
-        icon: '/new-request.svg',
-        inactiveIcon: '/new-request-inactive.svg',
-        visible: true
-      },
-      {
-        id: 'Organization',
-        label: 'Organization',
-        href: '/superadmin/organizations',
-        icon: '/images/organizaB.png',
-        inactiveIcon: '/images/organization.png',
-        visible: true
-      },
-      {
-        id: 'Logs',
-        label: 'Logs',
-        href: '/logs',
-        icon: '/Logsinactve.svg',
-        inactiveIcon: '/Logs.svg',
-        visible: true
-      },
-      {
-        id: 'Superadmin',
-        label: 'Superadmin',
-        href: '/superadmin',
-        icon: '/superadmin.svg',
-        inactiveIcon: '/superadmin-inactive.svg',
-        visible: true
-      }
-    ] : [])
-  ].filter(item => item.visible !== false);
+    // Investor only order
+    ...((isInvestor || isAdmin || isSuperadmin)
+      ? [
+          {
+            id: 'Store',
+            label: 'Store',
+            href: '/store',
+            icon: '/images/storeb.png',
+            inactiveIcon: '/images/store.png',
+            visible: true,
+          },
+        ]
+      : []),
+
+    ...((!isCompany || isSuperadmin)
+      ? [
+          {
+            id: 'New Request',
+            label: 'New Request',
+            href: '/new-request',
+            icon: '/new-request.svg',
+            inactiveIcon: '/new-request-inactive.svg',
+            visible: true,
+          },
+        ]
+      : []),
+
+    ...((isAdmin || isInvestor)
+      ? [
+          {
+            id: 'Add Credits',
+            label: 'Add Credits',
+            href: '/add-credits',
+            icon: '/criedtactive.svg',
+            inactiveIcon: '/credit.svg',
+            visible: true,
+          },
+        ]
+      : []),
+
+    ...((isCompany || isSuperadmin)
+      ? [
+          {
+            id: 'Purchase Reports',
+            label: 'Purchase Reports',
+            href: '/purchase-reports',
+            icon: '/images/storeb.png',
+            inactiveIcon: '/images/store.png',
+            visible: true,
+          },
+        ]
+      : []),
+
+    ...((isAdmin || isInvestor || isCompany)
+      ? [
+          {
+            id: 'Manage Account',
+            label: 'Manage Account',
+            href: '/manage-account',
+            icon: '/settingactive.svg',
+            inactiveIcon: '/setting.svg',
+            visible: true,
+          },
+        ]
+      : []),
+
+    ...(isSuperadmin
+      ? [
+          {
+            id: 'User',
+            label: 'User',
+            href: '/superadmin/submissions',
+            icon: '/new-request.svg',
+            inactiveIcon: '/new-request-inactive.svg',
+            visible: true,
+          },
+          {
+            id: 'Organization',
+            label: 'Organization',
+            href: '/superadmin/organizations',
+            icon: '/images/organizaB.png',
+            inactiveIcon: '/images/organization.png',
+            visible: true,
+          },
+          {
+            id: 'Logs',
+            label: 'Logs',
+            href: '/logs',
+            icon: '/Logsinactve.svg',
+            inactiveIcon: '/Logs.svg',
+            visible: true,
+          },
+          {
+            id: 'Superadmin',
+            label: 'Superadmin',
+            href: '/superadmin',
+            icon: '/superadmin.svg',
+            inactiveIcon: '/superadmin-inactive.svg',
+            visible: true,
+          },
+        ]
+      : []),
+  ].filter((item) => {
+    if (isCompany && !isSuperadmin) {
+      return ['Library', 'Purchase Reports', 'Manage Account'].includes(item.id);
+    }
+
+    if (isInvestor && !isSuperadmin) {
+      return ['Library', 'Store', 'New Request', 'Add Credits', 'Manage Account'].includes(item.id);
+    }
+
+    return item.visible !== false;
+  });
 
   return (
     <div className="sidebar">

@@ -11,6 +11,7 @@
 //  6. createAppUser           → users table
 //  7. createReport            → reports table   (if company + reportType found)
 //  8. insertEventLog          → event_log table
+//  9. updateSubmissionWithOrg → new_submissions table (links submission to org)
 
 import { v4 as uuidv4 } from "uuid";
 
@@ -47,6 +48,37 @@ export async function findCompanyByUrl(supabaseAdmin, rawUrl) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 1b. Create company
+// ─────────────────────────────────────────────────────────────────────────────
+export async function createCompany(supabaseAdmin, name, url) {
+  const now = new Date().toISOString();
+  const id = uuidv4();
+
+  const { data, error } = await supabaseAdmin
+    .schema(SCHEMA)
+    .from("companies")
+    .insert([
+      {
+        id,
+        name: name || "Unknown Company",
+        website: url || null,
+        source: "auto-provision",
+        created_at: now,
+        updated_at: now,
+      },
+    ])
+    .select("id, name")
+    .single();
+
+  if (error) {
+    console.error("createCompany failed:", error.message);
+    return null;
+  }
+
+  return data;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 2. Get "Default Investor Report" type id from report_types
 // ─────────────────────────────────────────────────────────────────────────────
 export async function getDefaultReportTypeId(supabaseAdmin) {
@@ -77,6 +109,9 @@ export async function createOrganisation(supabaseAdmin, submission, submissionId
 
   const now = new Date().toISOString();
 
+  // "company" persona maps to "company" account_type; everything else "investor"
+  const accountType = submission.persona_type === "company" ? "company" : "investor";
+
   const { data, error } = await supabaseAdmin
     .schema(SCHEMA)
     .from("organisations")
@@ -84,7 +119,7 @@ export async function createOrganisation(supabaseAdmin, submission, submissionId
       {
         id: uuidv4(),
         name: orgName,
-        account_type: "investor",
+        account_type: accountType,
         lifecycle_status: "active",
         is_active: true,
         source: submission.source || "Landing Page",
@@ -113,6 +148,10 @@ export async function createOrganisation(supabaseAdmin, submission, submissionId
 export async function createPerson(supabaseAdmin, organisationId, submission) {
   const now = new Date().toISOString();
 
+  // If "company" persona (founder), is_founder = true, is_employee = false
+  const isFounder = submission.persona_type === "company";
+  const isEmployee = submission.persona_type !== "company";
+
   const { data, error } = await supabaseAdmin
     .schema(SCHEMA)
     .from("people")
@@ -122,8 +161,8 @@ export async function createPerson(supabaseAdmin, organisationId, submission) {
         organisation_id: organisationId,
         full_name: submission.full_name || null,
         email: submission.email || null,
-        is_employee: true,
-        is_founder: false,
+        is_employee: isEmployee,
+        is_founder: isFounder,
         is_board: false,
         created_at: now,
         updated_at: now,
@@ -144,6 +183,8 @@ export async function createPerson(supabaseAdmin, organisationId, submission) {
 //    Returns the Supabase Auth UUID
 // ─────────────────────────────────────────────────────────────────────────────
 export async function createOrFindAuthUser(supabaseAdmin, submission) {
+  console.log(`[Provisioning] Step 5: createOrFindAuthUser for ${submission.email}`);
+  
   // Try to create the auth user first
   const { data: created, error: createError } =
     await supabaseAdmin.auth.admin.createUser({
@@ -157,21 +198,24 @@ export async function createOrFindAuthUser(supabaseAdmin, submission) {
     });
 
   if (!createError) {
+    console.log(`[Provisioning] Auth user created: ${created?.user?.id}`);
     return created?.user?.id || null;
   }
 
   // If user already exists, look them up
   const msg = createError.message?.toLowerCase() || "";
   if (!msg.includes("already")) {
+    console.error(`[Provisioning] createUser error: ${createError.message}`);
     throw new Error(`createOrFindAuthUser failed: ${createError.message}`);
   }
 
-  console.warn("Auth user already exists, looking up by email:", submission.email);
+  console.warn(`[Provisioning] Auth user already exists (${submission.email}), looking up...`);
 
   const { data: listed, error: listError } =
     await supabaseAdmin.auth.admin.listUsers();
 
   if (listError) {
+    console.error(`[Provisioning] listUsers error: ${listError.message}`);
     throw new Error(`listUsers failed: ${listError.message}`);
   }
 
@@ -179,7 +223,14 @@ export async function createOrFindAuthUser(supabaseAdmin, submission) {
     (u) => u.email?.toLowerCase() === submission.email?.toLowerCase()
   );
 
-  return existing?.id || null;
+  if (!existing) {
+    console.error(`[Provisioning] User exists in Auth but not found in first batch of listUsers`);
+    // Fallback: we still throw because we can't link without an ID
+    throw new Error(`User exists in Auth but could not be retrieved. Please check Auth logs for ${submission.email}.`);
+  }
+
+  console.log(`[Provisioning] Existing Auth user found: ${existing.id}`);
+  return existing.id;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -235,43 +286,47 @@ export async function createReport(
   appUserId,
   submission
 ) {
-  if (!companyId || !reportTypeId) {
-    console.warn("createReport skipped: missing companyId or reportTypeId");
+  if (!reportTypeId) {
+    console.warn("[Provisioning] createReport skipped: reportTypeId not found");
     return null;
   }
 
   const now = new Date().toISOString();
 
+  const reportPayload = {
+    id: uuidv4(),
+    organisation_id: organisationId,
+    report_type_id: reportTypeId,
+    persona_variant: "investor",
+    version: 1,
+    // status intentionally omitted — let DB column default apply
+    //   (reports_status_check rejects arbitrary values like "pending")
+    visibility: "private",
+    source: "auto-provision",
+    title: `Investor Report – ${submission.target_company_name || "Requested Company"}`,
+    storage_path: null,
+    generated_at: null,
+    reviewed_by: appUserId,
+    reviewed_at: null,
+    created_at: now,
+    updated_at: now,
+  };
+
+  // Only include company_id if we have one (column may be NOT NULL in some schemas)
+  if (companyId) {
+    reportPayload.company_id = companyId;
+  }
+
   const { data, error } = await supabaseAdmin
     .schema(SCHEMA)
     .from("reports")
-    .insert([
-      {
-        id: uuidv4(),
-        company_id: companyId,
-        organisation_id: organisationId,
-        report_type_id: reportTypeId,
-        persona_variant: "investor",
-        version: 1,
-        // status intentionally omitted — let DB column default apply
-        //   (reports_status_check rejects arbitrary values like "pending")
-        visibility: "private",
-        source: "auto-provision",
-        title: `Investor Report – ${submission.target_company_name || "Requested Company"}`,
-        storage_path: null,
-        generated_at: null,
-        reviewed_by: appUserId,
-        reviewed_at: null,
-        created_at: now,
-        updated_at: now,
-      },
-    ])
+    .insert([reportPayload])
     .select()
     .single();
 
   if (error) {
     // Non-fatal: report creation failing shouldn't block the full approval
-    console.log("createReport failed (non-fatal):", error.message);
+    console.log("[Provisioning] createReport failed (non-fatal):", error.message);
     return null;
   }
 
@@ -304,7 +359,24 @@ export async function insertEventLog(
 
   if (error) {
     // Non-fatal: don't block approval for a logging failure
-    console.log("insertEventLog failed (non-fatal):", error.message);
+    console.log("[Provisioning] insertEventLog failed (non-fatal):", error.message);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 9. Update submission with organisation_id
+//    Ensures the submission is linked to the new org in Superadmin panel
+// ─────────────────────────────────────────────────────────────────────────────
+export async function updateSubmissionWithOrg(supabaseAdmin, submissionId, organisationId) {
+  console.log(`[Provisioning] Step 9: Updating submission ${submissionId} with org ${organisationId}`);
+  const { error } = await supabaseAdmin
+    .schema(SCHEMA)
+    .from("new_submissions")
+    .update({ organisation_id: organisationId })
+    .eq("id", submissionId);
+
+  if (error) {
+    console.warn(`[Provisioning] updateSubmissionWithOrg failed (non-fatal): ${error.message}`);
   }
 }
 
@@ -317,30 +389,77 @@ export async function runApprovalProvisioningFlow(
   submission,
   submissionId
 ) {
-  console.log("── Starting provisioning for submission:", submissionId);
+  console.log("── Starting provisioning for submission:", submissionId, "Persona:", submission.persona_type);
 
-  // Step 1: Lookup company (non-blocking)
-  const company = await findCompanyByUrl(supabaseAdmin, submission.target_company_url);
+  const isFounderFlow = submission.persona_type === "company";
+
+  // Step 1: Lookup or Create company (Must happen BEFORE organisation)
+  const targetUrl = submission.target_company_url;
+  const targetName = submission.target_company_name;
+
+  console.log(`[Provisioning] Step 1: Company lookup for URL: ${targetUrl}, Name: ${targetName}`);
+  let company = await findCompanyByUrl(supabaseAdmin, targetUrl);
+
+  if (!company && (targetName || targetUrl)) {
+    console.log("[Provisioning] Company not found, creating new company record...");
+    company = await createCompany(supabaseAdmin, targetName, targetUrl);
+  }
+
   const companyId = company?.id || null;
-  console.log("Company match:", company ? `${company.name} (${companyId})` : "none");
+  console.log(`[Provisioning] Company resolved: ${companyId ? `${company.name} (${companyId})` : "NONE"}`);
 
-  // Step 2: Get report type id (non-blocking)
-  const reportTypeId = await getDefaultReportTypeId(supabaseAdmin);
-  console.log("Report type id:", reportTypeId ?? "not found");
+  // Step 2: Skip report type for Founder flow
+  let reportTypeId = null;
+  if (!isFounderFlow) {
+    console.log("[Provisioning] Step 2: Getting report type ID...");
+    reportTypeId = await getDefaultReportTypeId(supabaseAdmin);
+    console.log(`[Provisioning] Report type ID resolved: ${reportTypeId ?? "NOT FOUND"}`);
+  }
 
   // Step 3: Create organisation
+  console.log("[Provisioning] Step 3: Creating organisation...");
   const organisation = await createOrganisation(supabaseAdmin, submission, submissionId);
-  console.log("Organisation created:", organisation.id);
+  console.log(`[Provisioning] Organisation created: ${organisation.id}`);
 
   // Step 4: Create person
+  console.log("[Provisioning] Step 4: Creating person record...");
   const person = await createPerson(supabaseAdmin, organisation.id, submission);
-  console.log("Person created:", person.id);
+  console.log(`[Provisioning] Person created: ${person.id}`);
 
-  // Step 5: Create / find auth user
+  // If it's a Founder flow, we stop here (company, organisation, people entry only)
+  if (isFounderFlow) {
+    console.log("[Provisioning] Founder flow: Skipping Auth/App User/Report creation as requested.");
+    
+    // Step 9: Link submission to organisation
+    await updateSubmissionWithOrg(supabaseAdmin, submissionId, organisation.id);
+
+    console.log("── Provisioning (Founder) complete for submission:", submissionId);
+    return {
+      organisationId: organisation.id,
+      personId: person.id,
+      authUserId: null,
+      appUserId: null,
+      reportId: null,
+      companyMatched: !!companyId,
+      reportTypeFound: false,
+    };
+  }
+
+  // Step 5: (Investor Only) Create / find auth user
   const authUserId = await createOrFindAuthUser(supabaseAdmin, submission);
-  console.log("Auth user id:", authUserId ?? "null");
+  if (!authUserId) {
+    throw new Error("Failed to resolve Auth User ID. Account provisioning cannot continue.");
+  }
 
-  // Step 6: Create app user
+  // LOG ACCOUNT_CREATED for Investor
+  await supabaseAdmin.schema(SCHEMA).from("event_log").insert([{
+    event_type: "investor.account.created",
+    organisation_id: organisation.id,
+    metadata: { submission_id: submissionId }
+  }]);
+
+  // Step 6: (Investor Only) Create app user
+  console.log("[Provisioning] Step 6: Creating app user...");
   const appUser = await createAppUser(
     supabaseAdmin,
     person.id,
@@ -348,9 +467,17 @@ export async function runApprovalProvisioningFlow(
     authUserId,
     submission
   );
-  console.log("App user created:", appUser.id);
+  console.log(`[Provisioning] App user created: ${appUser.id}`);
 
-  // Step 7: Create free report (non-fatal if it fails)
+  // LOG USER_CREATED for Investor
+  await supabaseAdmin.schema(SCHEMA).from("event_log").insert([{
+    event_type: "investor.user.created",
+    user_id: appUser.id,
+    organisation_id: organisation.id,
+  }]);
+
+  // Step 7: (Investor Only) Create free report (non-fatal if it fails)
+  console.log("[Provisioning] Step 7: Creating initial report...");
   const report = await createReport(
     supabaseAdmin,
     organisation.id,
@@ -359,11 +486,27 @@ export async function runApprovalProvisioningFlow(
     appUser.id,
     submission
   );
-  console.log("Report created:", report?.id ?? "skipped");
+  console.log(`[Provisioning] Report resolved: ${report?.id ?? "SKIPPED/FAILED"}`);
 
-  // Step 8: Event log (non-fatal)
+  if (report?.id) {
+    // LOG REPORT_REQUESTED for Investor
+    await supabaseAdmin.schema(SCHEMA).from("event_log").insert([{
+      event_type: "investor.report.requested",
+      user_id: appUser.id,
+      organisation_id: organisation.id,
+      report_id: report.id,
+      company_id: companyId
+    }]);
+  }
+
+  // Step 8: (Investor Only) Event log (non-fatal) - Default Submission Approved Log
+  console.log("[Provisioning] Step 8: Inserting event log...");
   await insertEventLog(supabaseAdmin, organisation.id, appUser.id, submissionId);
-  console.log("Event log inserted");
+
+  // Step 9: Link submission to organisation
+  await updateSubmissionWithOrg(supabaseAdmin, submissionId, organisation.id);
+
+  console.log("── Provisioning (Investor) complete for submission:", submissionId);
 
   return {
     organisationId: organisation.id,

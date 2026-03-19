@@ -25,19 +25,15 @@ const PreviousSubmissions = () => {
       const supabase = getSupabase();
       
       let query = supabase
-        .from('new_submissions')
+        .from('reports')
         .select(`
           id,
-          company_name,
-          company_url,
-          reviewed_by,
           status,
-          batch_date,
-          queue_position,
-          report_url,
-          organisation_id,
           created_at,
-          users!inner(username, email)
+          storage_path,
+          organisation_id,
+          title,
+          companies!inner(name, website)
         `);
 
       // If user is not superadmin, restrict by organisation_id
@@ -51,7 +47,17 @@ const PreviousSubmissions = () => {
         console.log('Supabase error:', error);
         return [];
       }
-      return data || [];
+
+      // Map data to match the component's expected structure
+      const mappedData = (data || []).map(item => ({
+        ...item,
+        company_name: item.companies?.name,
+        company_url: item.companies?.website,
+        report_url: item.storage_path,
+        batch_date: item.created_at?.split('T')[0]
+      }));
+
+      return mappedData;
     } catch (error) {
       console.log('Error fetching library data:', error);
       return [];
@@ -164,10 +170,10 @@ const PreviousSubmissions = () => {
               <tr>
                 <th>COMPANY</th>
                 <th>WEBSITE</th>
-                <th>REQUESTED BY</th>
+                <th>REPORT TYPE</th>
                 <th style={{ textAlign: 'center' }}>STATUS</th>
-                <th style={{ textAlign: 'center' }}>BATCH DATE</th>
-                <th style={{ textAlign: 'center' }}>REPORT</th>
+                <th style={{ textAlign: 'center' }}>DATE</th>
+                <th style={{ textAlign: 'center' }}>VIEW/DOWNLOAD</th>
               </tr>
             </thead>
             <tbody>
@@ -189,11 +195,11 @@ const PreviousSubmissions = () => {
                         '-'
                       )}
                     </td>
-                    <td>{submission.users?.email || submission.users?.username || '-'}</td>
+                    <td>{submission.title || '-'}</td>
                     <td style={{ textAlign: 'center' }}>
                       {submission.status || '-'}
                     </td>
-                    <td style={{ textAlign: 'center' }}>{submission.batch_date || submission.created_at?.split('T')[0] || '-'}</td>
+                    <td style={{ textAlign: 'center' }}>{submission.batch_date || '-'}</td>
                     <td style={{ textAlign: 'center', padding: "0px" }}>
                       {submission?.report_url && <div className="action-buttons" style={{ justifyContent: 'center' }}>
                         <button className="link-button download-button" onClick={() => handleViewReport(submission?.report_url, submission.company_name)} title="View Report">
