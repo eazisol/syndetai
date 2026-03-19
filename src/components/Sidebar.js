@@ -48,8 +48,8 @@ const Sidebar = () => {
             id: 'Store',
             label: 'Store',
             href: '/store',
-            icon: '/images/storeb.png',
-            inactiveIcon: '/images/store.png',
+            icon: '/library.svg',
+            inactiveIcon: '/library-inactive.svg',
             visible: true,
           },
         ]
@@ -87,8 +87,8 @@ const Sidebar = () => {
             id: 'Purchase Reports',
             label: 'Purchase Reports',
             href: '/purchase-reports',
-            icon: '/images/storeb.png',
-            inactiveIcon: '/images/store.png',
+            icon: '/library.svg',
+            inactiveIcon: '/library-inactive.svg',
             visible: true,
           },
         ]

@@ -57,7 +57,7 @@ const MobileHeader = () => {
   const orgCredits = userData?.organisation?.credit_balance;
   const menuItems = [
     { id: 'Library', label: 'Library', href: '/library', icon: '/library.svg', inactiveIcon: '/library-inactive.svg', visible: true },
-    { id: 'Store', label: (isCompany && !isSuperadmin) ? 'Purchase Reports' : 'Store', href: '/product', icon: '/images/storeB.png', inactiveIcon: '/images/store.png', visible: isInvestor || isCompany || isSuperadmin },
+    { id: 'Store', label: (isCompany && !isSuperadmin) ? 'Purchase Reports' : 'Store', href: '/product', icon: '/library-inactive.svg', inactiveIcon: '/images/store.png', visible: isInvestor || isCompany || isSuperadmin },
     { id: 'New Request', label: 'New Request', href: '/new-request', icon: '/new-request.svg', inactiveIcon: '/new-request-inactive.svg', visible: !isCompany || isSuperadmin },
     { id: 'Manage Account', label: 'Manage Account', href: '/manage-account', icon: '/settingactive.svg', inactiveIcon: '/setting.svg', visible: isAdmin || isInvestor || isCompany },
     { id: 'Add Credits', label: `Add Credits${Number.isFinite(orgCredits) ? ` (${orgCredits})` : ''}`, href: '/add-credits', icon: '/criedtactive.svg', inactiveIcon: '/credit.svg', visible: (isAdmin || isInvestor) && !isCompany },
