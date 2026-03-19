@@ -8,12 +8,15 @@ const REPORT_TYPE_NAME_BY_TITLE = {
   // 1 report
   "Pre-Diligence Assessment": ["due_diligence"],
   "Company Research Report": ["due_diligence"],
-  "due_diligence": ["due_diligence"],
+  due_diligence: ["due_diligence"],
 
   // 2 reports
-  "Competitive Positioning Assessment": ["due_diligence", "competitor_analysis"],
+  "Competitive Positioning Assessment": [
+    "due_diligence",
+    "competitor_analysis",
+  ],
   "Competitive Analysis": ["due_diligence", "competitor_analysis"],
-  "competitor_analysis": ["due_diligence", "competitor_analysis"],
+  competitor_analysis: ["due_diligence", "competitor_analysis"],
 
   // 3 reports
   "Fundraising Readiness Diagnostic": [
@@ -26,7 +29,7 @@ const REPORT_TYPE_NAME_BY_TITLE = {
     "competitor_analysis",
     "full_research_report",
   ],
-  "full_research_report": [
+  full_research_report: [
     "due_diligence",
     "competitor_analysis",
     "full_research_report",
@@ -36,7 +39,9 @@ const REPORT_TYPE_NAME_BY_TITLE = {
 function derivePricingModel(itemType) {
   if (itemType === "Annual") return "subscription";
   if (itemType === "One-off") return "one_off";
-  throw new Error(`Unknown billing type for pricing_model: ${itemType || "MISSING"}`);
+  throw new Error(
+    `Unknown billing type for pricing_model: ${itemType || "MISSING"}`,
+  );
 }
 
 function parseDomain(url) {
@@ -172,7 +177,9 @@ async function ensureFounderPerson({ supabase, organisation, founderData }) {
   const full_name = founderData.fullName?.trim() || founderData.name?.trim();
 
   if (!email || !full_name) {
-    throw new Error("Founder full name and email are required for people provisioning.");
+    throw new Error(
+      "Founder full name and email are required for people provisioning.",
+    );
   }
 
   const { data: existing, error } = await supabase
@@ -231,6 +238,35 @@ async function ensureUser({ supabase, organisation, person, authUserId, founderD
 
   const now = new Date().toISOString();
 
+  const { data: existingUser, error: existingUserError } = await supabase
+    .from("users")
+    .select("*")
+    .eq("person_id", person.id)
+    .maybeSingle();
+
+  if (existingUserError) throw existingUserError;
+
+  if (existingUser) {
+    const { data: updatedUser, error: updateError } = await supabase
+      .from("users")
+      .update({
+        organisation_id: organisation.id,
+        auth_user_id: authUserId,
+        email: founderData.email,
+        username: person.full_name,
+        is_admin: true,
+        is_superadmin: false,
+        is_active: true,
+        updated_at: now,
+      })
+      .eq("id", existingUser.id)
+      .select()
+      .single();
+
+    if (updateError) throw updateError;
+    return updatedUser;
+  }
+
   const payload = {
     id: authUserId,
     person_id: person.id,
@@ -245,11 +281,23 @@ async function ensureUser({ supabase, organisation, person, authUserId, founderD
     updated_at: now,
   };
 
-  const { error } = await supabase.from("users").upsert([payload]);
-  if (error) throw error;
+  const { data: createdUser, error: insertError } = await supabase
+    .from("users")
+    .insert([payload])
+    .select()
+    .single();
+
+  if (insertError) throw insertError;
+  return createdUser;
 }
 
-async function createPurchase({ supabase, organisation, cartItem, total, paymentIntent }) {
+async function createPurchase({
+  supabase,
+  organisation,
+  cartItem,
+  total,
+  paymentIntent,
+}) {
   const payload = {
     organisation_id: organisation.id,
     purchase_type: "product",
@@ -258,7 +306,7 @@ async function createPurchase({ supabase, organisation, cartItem, total, payment
     vat_amount_gbp: 0,
     total_amount_gbp: total,
     currency: "gbp",
-    payment_status: "succeeded",
+    payment_status: "completed",
     payment_ref: paymentIntent?.id || "manual",
     metadata: {
       items: [cartItem],
@@ -276,8 +324,9 @@ async function createPurchase({ supabase, organisation, cartItem, total, payment
 async function createReportForPurchase({ supabase, company, organisation, cartItem }) {
   const planTitleRaw = cartItem.title || "";
   const planIdRaw = cartItem.id || "";
-  
-  const reportTypeNames = REPORT_TYPE_NAME_BY_TITLE[planTitleRaw] || REPORT_TYPE_NAME_BY_TITLE[planIdRaw];
+
+  const reportTypeNames =
+    REPORT_TYPE_NAME_BY_TITLE[planTitleRaw] || REPORT_TYPE_NAME_BY_TITLE[planIdRaw];
 
   if (!reportTypeNames || reportTypeNames.length === 0) {
     console.warn(`[createReportForPurchase] No report type mapping for: ${planTitleRaw}`);
@@ -295,35 +344,67 @@ async function createReportForPurchase({ supabase, company, organisation, cartIt
     return;
   }
 
-  const now = new Date().toISOString();
-  const rows = reportTypes.map((rt) => {
-    return {
+  const rows = [];
+
+  for (const rt of reportTypes) {
+    const { data: existingReports, error: existingError } = await supabase
+      .from("reports")
+      .select("id, version, status")
+      .eq("company_id", company.id)
+      .eq("organisation_id", organisation.id)
+      .eq("report_type_id", rt.id)
+      .eq("persona_variant", "company")
+      .order("version", { ascending: false })
+      .limit(1);
+
+    if (existingError) throw existingError;
+
+    const latest = existingReports?.[0] || null;
+
+    if (latest && ["queued", "in_progress", "review", "completed"].includes(latest.status)) {
+      console.log(
+        `[createReportForPurchase] Report already exists for company ${company.id}, report_type ${rt.id}, latest version ${latest.version}, status ${latest.status}. Skipping new insert.`
+      );
+      continue;
+    }
+
+    const nextVersion = latest ? Number(latest.version || 0) + 1 : 1;
+
+    rows.push({
       company_id: company.id,
       organisation_id: organisation.id,
       report_type_id: rt.id,
-      report_type: rt.name,
       persona_variant: "company",
-      version: 1,
-      status: "queued",
-      visibility: "unlocked",
+      version: nextVersion,
       source: "founder_checkout",
-      title: planTitleRaw || rt.name,
-      created_at: now,
-      updated_at: now,
-    };
-  });
+    });
+  }
 
-  const { error: insertError } = await supabase
+  if (!rows.length) {
+    console.log("[createReportForPurchase] No new report rows to insert");
+    return;
+  }
+
+  const { data: insertedReports, error: insertError } = await supabase
     .from("reports")
-    .insert(rows);
+    .insert(rows)
+    .select();
 
   if (insertError) {
     console.error("createReportForPurchase insert failed:", insertError.message);
     throw insertError;
   }
+
+  console.log("Reports created successfully:", insertedReports);
 }
 
-async function createFounderSubmission({ supabase, company, organisation, founderData, cartItem }) {
+async function createFounderSubmission({
+  supabase,
+  company,
+  organisation,
+  founderData,
+  cartItem,
+}) {
   const payload = {
     persona_type: "company",
     full_name: founderData.fullName,
@@ -352,7 +433,8 @@ export async function provisionFounderPurchase({
 }) {
   if (!supabase) throw new Error("Supabase client is required.");
   if (!paymentIntent) throw new Error("paymentIntent is required.");
-  if (!items || items.length === 0) throw new Error("At least one cart item is required.");
+  if (!items || items.length === 0)
+    throw new Error("At least one cart item is required.");
 
   const cartItem = items[0];
 
@@ -381,13 +463,16 @@ export async function provisionFounderPurchase({
   // 1. Ensure/Resolve Company
   let company;
   if (existingCompanyId) {
-    console.log("provisionFounderPurchase: using existing companyId:", existingCompanyId);
+    console.log(
+      "provisionFounderPurchase: using existing companyId:",
+      existingCompanyId,
+    );
     const { data: extComp, error: compErr } = await supabase
       .from("companies")
       .select("*")
       .eq("id", existingCompanyId)
       .maybeSingle();
-      
+
     if (compErr) throw compErr;
     if (!extComp) {
       // Fallback if ID was invalid but provided
@@ -400,17 +485,29 @@ export async function provisionFounderPurchase({
   }
 
   // 2. Ensure/Resolve Organisation
-  const organisation = await ensureOrganisation({ supabase, company, founderData });
+  const organisation = await ensureOrganisation({
+    supabase,
+    company,
+    founderData,
+  });
 
   // 3. Provision auth user + users/people
   let authUserId = null;
-  
+
   // Check if user already exists for this email to avoid duplicate auth signup errors
-  const { data: existingUser } = await supabase.from("users").select("auth_user_id").eq("email", founderData.email).maybeSingle();
-  
+  const { data: existingUser } = await supabase
+    .from("users")
+    .select("id, auth_user_id, person_id, email")
+    .eq("email", founderData.email)
+    .maybeSingle();
+
+
   if (existingUser?.auth_user_id) {
     authUserId = existingUser.auth_user_id;
-    console.log("provisionFounderPurchase: user already exists in DB, using auth_user_id:", authUserId);
+    console.log(
+      "provisionFounderPurchase: user already exists in DB, using auth_user_id:",
+      authUserId,
+    );
   } else {
     try {
       const tempPwd = "User" + Math.random().toString(36).slice(-8) + "!";
@@ -427,12 +524,12 @@ export async function provisionFounderPurchase({
       if (authErr && !authErr.message.includes("already registered")) {
         throw authErr;
       }
-      
+
       if (authData?.user?.id) {
         authUserId = authData.user.id;
       } else {
         // If they were already registered, we might need to find them, but signUp sometimes doesn't return the user object on duplicate
-        // For simplicity, we assume if we reach here and authUserId is null but signup errored with "already registered", 
+        // For simplicity, we assume if we reach here and authUserId is null but signup errored with "already registered",
         // we might have a gap. But usually, ensureUser will handle it or fail gracefully.
       }
     } catch (e) {
@@ -445,42 +542,68 @@ export async function provisionFounderPurchase({
   // 4. Resolve/Provision Person
   let person;
   if (existingPersonId) {
-    console.log("provisionFounderPurchase: using existing personId:", existingPersonId);
+    console.log(
+      "provisionFounderPurchase: using existing personId:",
+      existingPersonId,
+    );
     const { data: extPerson, error: persErr } = await supabase
       .from("people")
       .select("*")
       .eq("id", existingPersonId)
       .maybeSingle();
-      
+
     if (persErr) throw persErr;
     if (extPerson) {
       person = extPerson;
     } else {
-      person = await ensureFounderPerson({ supabase, organisation, founderData });
+      person = await ensureFounderPerson({
+        supabase,
+        organisation,
+        founderData,
+      });
     }
   } else {
     person = await ensureFounderPerson({ supabase, organisation, founderData });
   }
 
   // 5. Ensure User row exists if authUserId was resolved
+  let userRow = null;
   if (authUserId) {
-    await ensureUser({ supabase, organisation, person, authUserId, founderData });
+    userRow = await ensureUser({
+      supabase,
+      organisation,
+      person,
+      authUserId,
+      founderData,
+    });
   }
 
   // 6. Create the report row based on the purchased plan and report_types mapping
   await createReportForPurchase({ supabase, company, organisation, cartItem });
 
   // 7. Then create the purchase record pointing at this organisation
-  await createPurchase({ supabase, organisation, cartItem, total, paymentIntent });
-  
+  await createPurchase({
+    supabase,
+    organisation,
+    cartItem,
+    total,
+    paymentIntent,
+  });
+
   // 8. Create a submission record to track this new request
-  await createFounderSubmission({ supabase, company, organisation, founderData, cartItem });
+  await createFounderSubmission({
+    supabase,
+    company,
+    organisation,
+    founderData,
+    cartItem,
+  });
 
   return {
     companyId: company.id,
     organisationId: organisation.id,
     personId: person.id,
     authUserId,
+    userId: userRow?.id || null,
   };
 }
-

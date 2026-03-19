@@ -20,6 +20,111 @@ const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ""
 );
 
+const createReportEntries = async ({ supabase, companyId, items, personaVariant = "founder" }) => {
+  if (!companyId) {
+    console.log("No companyId available for reports insert");
+    return;
+  }
+
+  const titleToSlugMap = {
+    "Pre-Diligence Assessment": "due_diligence",
+    "Company Research Report": "due_diligence",
+    "Competitive Positioning Assessment": "competitor_analysis",
+    "Competitive Analysis": "competitor_analysis",
+    "Fundraising Readiness Diagnostic": "full_research_report",
+    "Company Deep Dive": "full_research_report",
+  };
+
+  const uniqueSlugs = [...new Set(
+    items
+      .map((item) => item?.reportTypeId ? null : titleToSlugMap[item?.title])
+      .filter(Boolean)
+  )];
+
+  // If items already contain reportTypeId, we can skip fetching report type IDs.
+  const payloadRows = [];
+
+  for (const item of items) {
+    if (!item) continue;
+    if (item.reportTypeId) {
+      payloadRows.push({
+        company_id: companyId,
+        report_type_id: item.reportTypeId,
+        persona_variant: personaVariant,
+        source: "checkout",
+        status: "queued",
+        visibility: "locked",
+      });
+      continue;
+    }
+
+    const slug = titleToSlugMap[item.title];
+    if (slug) {
+      payloadRows.push({
+        company_id: companyId,
+        report_type_slug: slug,
+        persona_variant: personaVariant,
+        source: "checkout",
+        status: "queued",
+        visibility: "locked",
+      });
+    }
+  }
+
+  if (!payloadRows.length) {
+    console.log("No reportTypeId found in items, skipping reports insert");
+    return;
+  }
+
+  // Resolve any slug-based rows to real report_type_id via report_types table.
+  let slugToId = {};
+  if (uniqueSlugs.length > 0) {
+    const { data: reportTypes, error: reportTypesError } = await supabase
+      .schema("syndet")
+      .from("report_types")
+      .select("id, slug")
+      .in("slug", uniqueSlugs);
+
+    if (reportTypesError) {
+      console.log("Failed to fetch report types:", reportTypesError);
+      throw new Error(reportTypesError.message || "Failed to fetch report types");
+    }
+
+    slugToId = Object.fromEntries((reportTypes || []).map((rt) => [rt.slug, rt.id]));
+  }
+
+  const reportRows = payloadRows
+    .map((row) => {
+      if (row.report_type_id) return row;
+      const resolvedId = slugToId[row.report_type_slug];
+      if (!resolvedId) return null;
+      return {
+        ...row,
+        report_type_id: resolvedId,
+      };
+    })
+    .filter(Boolean)
+    .map(({ report_type_slug, ...rest }) => rest);
+
+  if (!reportRows.length) {
+    console.log("No valid report rows found, skipping reports insert");
+    return;
+  }
+
+  const reportsQuery = supabase.schema
+    ? supabase.schema("syndet").from("reports")
+    : supabase.from("reports");
+
+  const { data, error } = await reportsQuery.insert(reportRows).select();
+
+  if (error) {
+    console.log("Failed to create reports entries:", error);
+    throw new Error(error.message || "Failed to create reports entries");
+  }
+
+  console.log("Reports created successfully:", data);
+};
+
 function InnerCheckoutModal({
   open,
   onClose,
@@ -192,6 +297,7 @@ function InnerCheckoutModal({
         });
 
         let paymentUserId = null;
+        let finalCompanyId = companyId || null;
 
         if (isFounderFlow) {
           try {
@@ -204,15 +310,19 @@ function InnerCheckoutModal({
               existingCompanyId: companyId,
               existingPersonId: userId,
             });
-            paymentUserId = result?.authUserId || null;
+            paymentUserId = result?.userId || null;
+            finalCompanyId = result?.companyId || companyId || null;
           } catch (provErr) {
             console.log("Founder post-payment provisioning failed:", provErr);
             toast.error(
               provErr?.message ||
               "Account provisioning failed after payment. Please contact support."
             );
+            setIsProcessing(false);
+            return;
           }
         } else {
+          finalCompanyId = companyId || null;
           // Existing investor/company flow kept as-is
           let newOrgId = null;
           let currentCredits = 0;
@@ -416,6 +526,20 @@ function InnerCheckoutModal({
             }
           } else {
             console.log("No organisation ID available for processing (newOrgId is null)");
+          }
+        }
+
+        if (!isFounderFlow) {
+          try {
+            await createReportEntries({
+              supabase,
+              companyId: finalCompanyId,
+              items,
+              personaVariant: "company",
+            });
+          } catch (reportErr) {
+            console.log("Report creation failed:", reportErr);
+            toast.error(reportErr.message || "Payment succeeded, but report queueing failed.");
           }
         }
 
