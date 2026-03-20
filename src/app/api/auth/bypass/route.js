@@ -2,11 +2,12 @@ import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 
-const BYPASS_EMAILS = [
-  "ayesha654.rida@gmail.com",
-  "stepridaayesha@gmail.com",
-  "yolapac742@isfew.com",
-];
+// Bypass emails removed per request.
+// Previously allowed bypass addresses:
+// "ayesha654.rida@gmail.com"
+// "stepridaayesha@gmail.com"
+// "yolapac742@isfew.com"
+const BYPASS_EMAILS = []; // no bypass emails
 
 function jsonResponse(payload, status = 200) {
   return new Response(JSON.stringify(payload), {

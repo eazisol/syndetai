@@ -9,11 +9,12 @@ import { toast } from 'react-toastify';
 import { useApp } from '../context/AppContext';
 import { logEvent } from '@/utils/eventLogger';
 
-const BYPASS_EMAILS = [
-  'ayesha654.rida@gmail.com',
-  'stepridaayesha@gmail.com',
-  'yolapac742@isfew.com',
-];
+// Bypass emails removed per request.
+// Previously allowed bypass addresses:
+// 'ayesha654.rida@gmail.com'
+// 'stepridaayesha@gmail.com'
+// 'yolapac742@isfew.com'
+const BYPASS_EMAILS = []; // no bypass emails
 
 const LoginScreen = ({ onLogin }) => {
   const router = useRouter();
