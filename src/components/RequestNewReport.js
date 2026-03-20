@@ -1,65 +1,72 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
-import ImageUpload from './ImageUpload';
-import CustomInputField from './CustomInputField';
-import CustomButton from './CustomButton';
-import { toast } from 'react-toastify';
-import { v4 as uuidv4 } from 'uuid';
-import ConfirmModal from './ConfirmModal';
+import React, { useState } from "react";
+import { useApp } from "../context/AppContext";
+import ImageUpload from "./ImageUpload";
+import CustomInputField from "./CustomInputField";
+import CustomButton from "./CustomButton";
+import { toast } from "react-toastify";
+import { v4 as uuidv4 } from "uuid";
+import ConfirmModal from "./ConfirmModal";
 
 const RequestNewReport = () => {
   const { user, updateCredits, userData, refreshUserData } = useApp();
   const [formData, setFormData] = useState({
-    company: '',
-    website: ''
+    company: "",
+    website: "",
   });
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const organizationId =
-    (userData?.organisation_id) ||
+    userData?.organisation_id ||
     (userData?.organisation && userData.organisation.id) ||
-    (typeof window !== 'undefined' ? localStorage.getItem('organisation_id') : null);
+    (typeof window !== "undefined"
+      ? localStorage.getItem("organisation_id")
+      : null);
 
   const userId = userData?.id;
 
-
-
   // Calculate credits needed
   const creditsNeeded = selectedFiles.length > 0 ? 15 : 10;
-  const hasEnoughCredits = (userData?.organisation?.credit_balance || 0) >= creditsNeeded;
+  const hasEnoughCredits =
+    (userData?.organisation?.credit_balance || 0) >= creditsNeeded;
   // Request new report
   const submitReport = async () => {
     // If no company or website, show error
     if (!formData.company || !formData.website) {
-      toast.error('Please fill in all required fields', {
+      toast.error("Please fill in all required fields", {
         autoClose: 4000,
         pauseOnHover: false,
-        pauseOnFocusLoss: false
+        pauseOnFocusLoss: false,
       });
       return;
     }
 
     // If no organization ID or user ID, show error
     if (!organizationId || !userId) {
-      toast.error('User organization or ID not found. Please try logging in again.', {
-        autoClose: 4000,
-        pauseOnHover: false,
-        pauseOnFocusLoss: false
-      });
+      toast.error(
+        "User organization or ID not found. Please try logging in again.",
+        {
+          autoClose: 4000,
+          pauseOnHover: false,
+          pauseOnFocusLoss: false,
+        },
+      );
       return;
     }
 
     // If not enough credits, show error
     if (!hasEnoughCredits) {
-      toast.error(`Insufficient credits. You need ${creditsNeeded} credits but have ${userData?.credits}`, {
-        autoClose: 4000,
-        pauseOnHover: false,
-        pauseOnFocusLoss: false
-      });
+      toast.error(
+        `Insufficient credits. You need ${creditsNeeded} credits but have ${userData?.credits}`,
+        {
+          autoClose: 4000,
+          pauseOnHover: false,
+          pauseOnFocusLoss: false,
+        },
+      );
       return;
     }
 
@@ -67,42 +74,45 @@ const RequestNewReport = () => {
 
     try {
       // Import Supabase client
-      const { getSupabase } = await import('../supabaseClient');
+      const { getSupabase } = await import("../supabaseClient");
       const supabase = getSupabase();
 
       // Check organisation has enough credits
       const { data: orgRow, error: orgErr } = await supabase
-        .from('organisations')
-        .select('credit_balance')
-        .eq('id', organizationId)
+        .from("organisations")
+        .select("credit_balance")
+        .eq("id", organizationId)
         .maybeSingle();
 
       if (orgErr) {
-        console.log('Error fetching organisation credits:', orgErr);
-        toast.error('Could not verify credits. Please try again.', {
+        console.log("Error fetching organisation credits:", orgErr);
+        toast.error("Could not verify credits. Please try again.", {
           autoClose: 4000,
           pauseOnHover: false,
-          pauseOnFocusLoss: false
+          pauseOnFocusLoss: false,
         });
         return;
       }
 
       const currentCredits = Number(orgRow?.credit_balance) || 0;
       if (currentCredits < creditsNeeded) {
-        toast.error(`Insufficient credits. Need ${creditsNeeded}, available ${currentCredits}.`, {
-          autoClose: 4000,
-          pauseOnHover: false,
-          pauseOnFocusLoss: false
-        });
+        toast.error(
+          `Insufficient credits. Need ${creditsNeeded}, available ${currentCredits}.`,
+          {
+            autoClose: 4000,
+            pauseOnHover: false,
+            pauseOnFocusLoss: false,
+          },
+        );
         return;
       }
 
       // Ensure app_users row exists for this user
       try {
         const { data: existingUser, error: existingErr } = await supabase
-          .from('users')
-          .select('id')
-          .eq('id', userId)
+          .from("users")
+          .select("id")
+          .eq("id", userId)
           .maybeSingle();
 
         if (!existingUser && !existingErr) {
@@ -112,52 +122,52 @@ const RequestNewReport = () => {
             const { data: authData } = await supabase.auth.getUser();
             emailToUse = authData?.user?.email || null;
           }
-          const fallbackUsername = emailToUse ? emailToUse.split('@')[0] : 'user';
+          const fallbackUsername = emailToUse
+            ? emailToUse.split("@")[0]
+            : "user";
 
-          await supabase.from('users').insert([
+          await supabase.from("users").insert([
             {
               id: userId,
               email: emailToUse,
               username: fallbackUsername,
               is_admin: false,
               is_superadmin: false,
-              organisation_id: organizationId
-            }
+              organisation_id: organizationId,
+            },
           ]);
         }
       } catch (provisionErr) {
-        console.log('Error ensuring app_users row exists:', provisionErr);
+        console.log("Error ensuring app_users row exists:", provisionErr);
         // Continue; insert may still fail and be handled below
       }
 
       // Create new report in Supabase
       const { data, error } = await supabase
-        .from('new_submissions')
+        .schema("syndet")
+        .from("new_submissions")
         .insert([
           {
             id: uuidv4(),
-            company_name: formData.company,
-            company_url: formData.website,
-            reviewed_by: userData?.id,
-            status: 'pending',
-            persona_type: 'company',
-            full_name: userData?.username || userData?.email || 'User',
+            persona_type: "investor",
+            full_name: userData?.username || userData?.email || "User",
             email: userData?.email,
-            batch_date: new Date().toISOString().split('T')[0],
-            queue_position: 0,
-            organisation_id: organizationId,
-            report_url: null,
-            created_at: new Date().toISOString()
-          }
+            target_company_name: formData.company,
+            target_company_url: formData.website,
+            status: "pending",
+            source: "new_request",
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
         ])
         .select();
 
       if (error) {
         // console.log('Supabase error:', error);
-        toast.error('Failed to submit request', {
+        toast.error("Failed to submit request", {
           autoClose: 4000,
           pauseOnHover: false,
-          pauseOnFocusLoss: false
+          pauseOnFocusLoss: false,
         });
         return;
       }
@@ -168,22 +178,21 @@ const RequestNewReport = () => {
       if (selectedFiles.length > 0) {
         try {
           const uploadPromises = selectedFiles.map(async (file, index) => {
-            const fileExt = file.name.split('.').pop();
+            const fileExt = file.name.split(".").pop();
             const storedFileName = `${submissionId}_${index}.${fileExt}`;
-            const bucket = 'new_report_images';
+            const bucket = "new_report_images";
 
             const { error: uploadError } = await supabase.storage
               .from(bucket)
               .upload(storedFileName, file);
 
             if (uploadError) {
-              console.log('File upload error:', uploadError);
+              console.log("File upload error:", uploadError);
               throw uploadError;
             }
 
             // Build public URL for the uploaded file
-            const { data: publicUrlData } = supabase
-              .storage
+            const { data: publicUrlData } = supabase.storage
               .from(bucket)
               .getPublicUrl(storedFileName);
 
@@ -191,19 +200,17 @@ const RequestNewReport = () => {
 
             // Insert record into documents table
             try {
-              await supabase
-                .from('new_submission_documents')
-                .insert([
-                  {
-                    // id will be default uuid if table has default
-                    submission_id: submissionId,
-                    file_url: fileUrl,
-                    file_name: file.name,
-                    uploaded_at: new Date().toISOString()
-                  }
-                ]);
+              await supabase.from("new_submission_documents").insert([
+                {
+                  // id will be default uuid if table has default
+                  submission_id: submissionId,
+                  file_url: fileUrl,
+                  file_name: file.name,
+                  uploaded_at: new Date().toISOString(),
+                },
+              ]);
             } catch (docErr) {
-              console.log('Error inserting document row:', docErr);
+              console.log("Error inserting document row:", docErr);
               // Continue without blocking the whole request
             }
 
@@ -211,9 +218,9 @@ const RequestNewReport = () => {
           });
 
           await Promise.all(uploadPromises);
-          console.log('All files uploaded successfully');
+          console.log("All files uploaded successfully");
         } catch (uploadError) {
-          console.log('Error uploading files:', uploadError);
+          console.log("Error uploading files:", uploadError);
         }
       }
 
@@ -221,36 +228,37 @@ const RequestNewReport = () => {
       try {
         const updatedCredits = currentCredits - creditsNeeded;
         const { error: decErr } = await supabase
-          .from('organisations')
+          .from("organisations")
           .update({ credit_balance: updatedCredits })
-          .eq('id', organizationId);
+          .eq("id", organizationId);
         if (decErr) {
-          console.log('Failed to deduct organisation credits:', decErr);
+          console.log("Failed to deduct organisation credits:", decErr);
         }
       } catch (decEx) {
-        console.log('Credits deduction exception:', decEx);
+        console.log("Credits deduction exception:", decEx);
       }
 
       // Refresh user/organisation data
-      try { await refreshUserData?.(); } catch { }
+      try {
+        await refreshUserData?.();
+      } catch {}
 
       // Show success message
       toast.success(`Request submitted for ${formData.company}!`, {
         autoClose: 4000,
         pauseOnHover: false,
-        pauseOnFocusLoss: false
+        pauseOnFocusLoss: false,
       });
 
       // Reset form data
-      setFormData({ company: '', website: '' });
+      setFormData({ company: "", website: "" });
       setSelectedFiles([]);
-
     } catch (error) {
-      console.log('Error submitting request:', error);
-      toast.error('Failed to submit request', {
+      console.log("Error submitting request:", error);
+      toast.error("Failed to submit request", {
         autoClose: 4000,
         pauseOnHover: false,
-        pauseOnFocusLoss: false
+        pauseOnFocusLoss: false,
       });
     } finally {
       setIsSubmitting(false);
@@ -263,27 +271,33 @@ const RequestNewReport = () => {
     e.preventDefault();
     // Pre-checks before opening confirmation
     if (!formData.company || !formData.website) {
-      toast.error('Please fill in all required fields', {
+      toast.error("Please fill in all required fields", {
         autoClose: 4000,
         pauseOnHover: false,
-        pauseOnFocusLoss: false
+        pauseOnFocusLoss: false,
       });
       return;
     }
     if (!organizationId || !userId) {
-      toast.error('User organization or ID not found. Please try logging in again.', {
-        autoClose: 4000,
-        pauseOnHover: false,
-        pauseOnFocusLoss: false
-      });
+      toast.error(
+        "User organization or ID not found. Please try logging in again.",
+        {
+          autoClose: 4000,
+          pauseOnHover: false,
+          pauseOnFocusLoss: false,
+        },
+      );
       return;
     }
     if (!hasEnoughCredits) {
-      toast.error(`Insufficient credits. You need ${creditsNeeded} credits but have ${(userData?.organisation?.credit_balance || 0)}`, {
-        autoClose: 4000,
-        pauseOnHover: false,
-        pauseOnFocusLoss: false
-      });
+      toast.error(
+        `Insufficient credits. You need ${creditsNeeded} credits but have ${userData?.organisation?.credit_balance || 0}`,
+        {
+          autoClose: 4000,
+          pauseOnHover: false,
+          pauseOnFocusLoss: false,
+        },
+      );
       return;
     }
     setConfirmOpen(true);
@@ -296,21 +310,20 @@ const RequestNewReport = () => {
 
   // Handle image remove
   const handleImageRemove = (index) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   // Handle input change
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
   return (
     <div className="request-section">
       {/* Temporary debug component - remove after fixing the issue with uploads */}
-
 
       <div className="request-form-container">
         <form onSubmit={handleSubmit} className="request-form">
@@ -357,7 +370,7 @@ const RequestNewReport = () => {
                 className="submit-btn form-button w-100"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Submitting...' : `Submit Request`}
+                {isSubmitting ? "Submitting..." : `Submit Request`}
               </CustomButton>
             </div>
           </div>
@@ -368,39 +381,78 @@ const RequestNewReport = () => {
         title={`Submit report?`}
         description={
           <div>
-            <p style={{ color: 'var(--placeholder-color)', textAlign: 'center', marginBottom: 12 }}>
+            <p
+              style={{
+                color: "var(--placeholder-color)",
+                textAlign: "center",
+                marginBottom: 12,
+              }}
+            >
               This action will deduct credits from your organisation.
             </p>
-            <div style={{
-              background: 'var(--nav-active-color)',
-              border: '1px solid var(--border-color)',
-              borderRadius: 12,
-              padding: 12,
-              // maxWidth: 385,
-              margin: '0 auto'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ color: 'var(--placeholder-color)' }}>Credits required</span>
+            <div
+              style={{
+                background: "var(--nav-active-color)",
+                border: "1px solid var(--border-color)",
+                borderRadius: 12,
+                padding: 12,
+                // maxWidth: 385,
+                margin: "0 auto",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginBottom: 6,
+                }}
+              >
+                <span style={{ color: "var(--placeholder-color)" }}>
+                  Credits required
+                </span>
                 <span style={{ fontWeight: 600 }}>{creditsNeeded}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ color: 'var(--placeholder-color)' }}>Current credits</span>
-                <span style={{ fontWeight: 600 }}>{(userData?.organisation?.credit_balance || 0)}</span>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginBottom: 6,
+                }}
+              >
+                <span style={{ color: "var(--placeholder-color)" }}>
+                  Current credits
+                </span>
+                <span style={{ fontWeight: 600 }}>
+                  {userData?.organisation?.credit_balance || 0}
+                </span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-color)', paddingTop: 8 }}>
-                <span style={{ color: 'var(--placeholder-color)' }}>Remaining after submit</span>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  borderTop: "1px solid var(--border-color)",
+                  paddingTop: 8,
+                }}
+              >
+                <span style={{ color: "var(--placeholder-color)" }}>
+                  Remaining after submit
+                </span>
                 <span style={{ fontWeight: 700 }}>
-                  {(userData?.organisation?.credit_balance || 0) - creditsNeeded}
+                  {(userData?.organisation?.credit_balance || 0) -
+                    creditsNeeded}
                 </span>
               </div>
             </div>
           </div>
         }
-
-        confirmText={isSubmitting ? 'Submitting...' : 'Confirm & Submit'}
-        cancelText={'Cancel'}
-        onConfirm={() => { if (!isSubmitting) submitReport(); }}
-        onCancel={() => { if (!isSubmitting) setConfirmOpen(false); }}
+        confirmText={isSubmitting ? "Submitting..." : "Confirm & Submit"}
+        cancelText={"Cancel"}
+        onConfirm={() => {
+          if (!isSubmitting) submitReport();
+        }}
+        onCancel={() => {
+          if (!isSubmitting) setConfirmOpen(false);
+        }}
       />
     </div>
   );
