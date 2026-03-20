@@ -100,7 +100,7 @@ export async function getDefaultReportTypeId(supabaseAdmin) {
 // ─────────────────────────────────────────────────────────────────────────────
 // 3. Create organisation
 // ─────────────────────────────────────────────────────────────────────────────
-export async function createOrganisation(supabaseAdmin, submission, submissionId) {
+export async function createOrganisation(supabaseAdmin, submission, submissionId, companyId) {
   // Use fund/company name if given, else fall back to submitter's name
   const orgName =
     submission.company_fund_name ||
@@ -128,6 +128,7 @@ export async function createOrganisation(supabaseAdmin, submission, submissionId
           submission_id: submissionId,
           submitted_by: submission.email,
         },
+        company_id: companyId || null,
         created_at: now,
         updated_at: now,
       },
@@ -301,7 +302,7 @@ export async function createReport(
     version: 1,
     // status intentionally omitted — let DB column default apply
     //   (reports_status_check rejects arbitrary values like "pending")
-    visibility: "private",
+    visibility: "unlocked",
     source: "auto-provision",
     title: `Investor Report – ${submission.target_company_name || "Requested Company"}`,
     storage_path: null,
@@ -418,7 +419,7 @@ export async function runApprovalProvisioningFlow(
 
   // Step 3: Create organisation
   console.log("[Provisioning] Step 3: Creating organisation...");
-  const organisation = await createOrganisation(supabaseAdmin, submission, submissionId);
+  const organisation = await createOrganisation(supabaseAdmin, submission, submissionId, companyId);
   console.log(`[Provisioning] Organisation created: ${organisation.id}`);
 
   // Step 4: Create person
