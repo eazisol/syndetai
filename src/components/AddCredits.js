@@ -17,6 +17,7 @@ const InnerAddCredits = () => {
     const elements = useElements();
     const [credits, setCredits] = useState(10);
     const [isProcessing, setIsProcessing] = useState(false);
+
     // element options for stripe
     const elementOptions = {
         style: {
@@ -32,12 +33,14 @@ const InnerAddCredits = () => {
             }
         }
     };
+
     // payment form state
     const [paymentForm, setPaymentForm] = useState({
         cardholderName: '',
         country: 'United States',
         zip: ''
     });
+
     // handle credits change
     const handleCreditsChange = (e) => {
         const value = e.target.value;
@@ -46,6 +49,7 @@ const InnerAddCredits = () => {
             setCredits(parseInt(value) || 0);
         }
     };
+
     // handle payment change
     const handlePaymentChange = (e) => {
         const { name, value } = e.target;
@@ -63,15 +67,16 @@ const InnerAddCredits = () => {
             [name]: validatedValue
         });
     };
+
     /**
-         * handleSubmit()
-         * Main payment function that:
-         * - Validates input fields
-         * - Creates a PaymentIntent via backend API
-         * - Confirms the payment with Stripe
-         * - Records transaction in Supabase
-         * - Updates organisation credits
-         */
+     * handleSubmit()
+     * Main payment function that:
+     * - Validates input fields
+     * - Creates a PaymentIntent via backend API
+     * - Confirms the payment with Stripe
+     * - Records transaction in Supabase
+     * - Updates organisation credits
+     */
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -93,6 +98,7 @@ const InnerAddCredits = () => {
         }
 
         setIsProcessing(true);
+
         // Step 2: Create a PaymentIntent on backend
         try {
             const organisationId = typeof window !== 'undefined' ? localStorage.getItem('organisation_id') : null;
@@ -121,7 +127,8 @@ const InnerAddCredits = () => {
                 setIsProcessing(false);
                 return;
             }
-            //  Step 3: Confirm payment with Stripe
+
+            // Step 3: Confirm payment with Stripe
             const confirmResult = await stripe.confirmCardPayment(clientSecret, {
                 payment_method: {
                     card,
@@ -131,10 +138,12 @@ const InnerAddCredits = () => {
                     }
                 }
             });
+
             // if payment succeeded
             if (confirmResult.paymentIntent?.status === 'succeeded') {
                 const paymentIntentId = confirmResult.paymentIntent?.id;
                 console.log('Payment succeeded:', paymentIntentId);
+
                 // try to insert transaction
                 try {
                     const organisationId = typeof window !== 'undefined' ? localStorage.getItem('organisation_id') : null;
@@ -143,7 +152,9 @@ const InnerAddCredits = () => {
                     } else {
                         const { getSupabase } = await import('../supabaseClient');
                         const supabase = getSupabase();
+
                         const { data: insertData, error: insertError } = await supabase
+                            .schema('syndet')
                             .from('credit_transactions')
                             .insert([
                                 {
@@ -151,26 +162,30 @@ const InnerAddCredits = () => {
                                     // credits_added: credits,
                                     transaction_type: 'credit_purchase',
                                     amount: total,
-                                    //  payment_provider: 'stripe',
+                                    // payment_provider: 'stripe',
                                     // payment_intent: paymentIntentId
-                                    balance_after: 0, 
+                                    balance_after: 0,
                                     created_at: new Date().toISOString()
                                 }
                             ])
                             .select();
+
                         // if error inserting transaction
                         if (insertError) {
                             console.log('Failed to insert transaction:', insertError);
                         } else {
                             console.log('Transaction recorded:', insertData);
+
                             // After recording transaction, increment organisation credits
                             try {
                                 // Fetch current credits
                                 const { data: orgRow, error: orgFetchErr } = await supabase
+                                    .schema('syndet')
                                     .from('organisations')
                                     .select('credit_balance')
                                     .eq('id', organisationId)
                                     .maybeSingle();
+
                                 if (orgFetchErr) {
                                     console.log('Failed to fetch organisation credits:', orgFetchErr);
                                 } else {
@@ -180,15 +195,18 @@ const InnerAddCredits = () => {
                                     // Update transaction with actual balance_after
                                     if (insertData && insertData.length > 0) {
                                         await supabase
+                                            .schema('syndet')
                                             .from('credit_transactions')
                                             .update({ balance_after: updatedCredits })
                                             .eq('id', insertData[0].id);
                                     }
 
                                     const { error: orgUpdateErr } = await supabase
+                                        .schema('syndet')
                                         .from('organisations')
                                         .update({ credit_balance: updatedCredits })
                                         .eq('id', organisationId);
+
                                     if (orgUpdateErr) {
                                         console.log('Failed to update organisation credits:', orgUpdateErr);
                                     } else {
@@ -205,12 +223,14 @@ const InnerAddCredits = () => {
                 } catch (dbErr) {
                     console.log('Transaction insert exception:', dbErr);
                 }
+
                 // Clear elements and inputs
                 try {
                     elements.getElement(CardNumberElement)?.clear();
                     elements.getElement(CardExpiryElement)?.clear();
                     elements.getElement(CardCvcElement)?.clear();
                 } catch { }
+
                 setCredits(0);
                 setPaymentForm({ cardholderName: '', country: 'United States', zip: '' });
                 toast.success('Payment successful');
@@ -251,7 +271,6 @@ const InnerAddCredits = () => {
                                 onChange={handleCreditsChange}
                                 className="credits-input-field"
                                 required
-
                             />
                         </div>
                     </div>
@@ -266,7 +285,7 @@ const InnerAddCredits = () => {
                             <span>£{vat.toFixed(2)}</span>
                         </div>
                         <div className="borderBottom" style={{ marginTop: '2%' }} />
-                        <div className="summary-row total-row" >
+                        <div className="summary-row total-row">
                             <span>TOTAL</span>
                             <span>£{total.toFixed(2)}</span>
                         </div>
@@ -276,29 +295,53 @@ const InnerAddCredits = () => {
                 {/* Right Column - Payment Details */}
                 <div className="payment-column col-12">
                     <h2 className="section-title">Payment Details</h2>
-                    {/* <form onSubmit={()=>{}} className="payment-form"> */}
                     <form onSubmit={handleSubmit} className="payment-form">
                         <div className="form-subsection">
                             <h3 className="subsection-title">CARD INFORMATION</h3>
                             <div className="card-input-group position-relative">
-                                <div className="card-number-input" style={{
-                                    width: '100%', padding: '10px 12px', backgroundColor: '#DEE3E9', color: "#0044EE !important", borderTopLeftRadius: '25px', borderTopRightRadius: '25px'
-                                }}>
-                                    <CardNumberElement options={elementOptions} style={{ color: "#0044EE !important" }} />
+                                <div
+                                    className="card-number-input"
+                                    style={{
+                                        width: '100%',
+                                        padding: '10px 12px',
+                                        backgroundColor: '#DEE3E9',
+                                        color: '#0044EE !important',
+                                        borderTopLeftRadius: '25px',
+                                        borderTopRightRadius: '25px'
+                                    }}
+                                >
+                                    <CardNumberElement options={elementOptions} style={{ color: '#0044EE !important' }} />
                                 </div>
                                 <div className="right-icon position-absolute top-0 end-0 ">
-                                    <Image src="/cards.svg" alt="" width={100} height={40} style={{ marginRight: "10px" }} />
+                                    <Image src="/cards.svg" alt="" width={100} height={40} style={{ marginRight: '10px' }} />
                                 </div>
                             </div>
+
                             <div className="expiry-cvc-group row g-2">
                                 <div className="col-6">
-                                    <div className="expiry-input" style={{ width: '100%', padding: '10px 12px', backgroundColor: '#DEE3E9', borderBottomLeftRadius: '25px' }}>
-                                        <CardExpiryElement options={elementOptions} style={{ color: "#0044EE !important" }} />
+                                    <div
+                                        className="expiry-input"
+                                        style={{
+                                            width: '100%',
+                                            padding: '10px 12px',
+                                            backgroundColor: '#DEE3E9',
+                                            borderBottomLeftRadius: '25px'
+                                        }}
+                                    >
+                                        <CardExpiryElement options={elementOptions} style={{ color: '#0044EE !important' }} />
                                     </div>
                                 </div>
                                 <div className="col-6">
-                                    <div className="cvc-input" style={{ width: '100%', padding: '10px 12px', backgroundColor: '#DEE3E9', borderBottomRightRadius: '25px' }}>
-                                        <CardCvcElement options={elementOptions} style={{ color: "#0044EE !important" }} />
+                                    <div
+                                        className="cvc-input"
+                                        style={{
+                                            width: '100%',
+                                            padding: '10px 12px',
+                                            backgroundColor: '#DEE3E9',
+                                            borderBottomRightRadius: '25px'
+                                        }}
+                                    >
+                                        <CardCvcElement options={elementOptions} style={{ color: '#0044EE !important' }} />
                                     </div>
                                 </div>
                             </div>
@@ -313,7 +356,7 @@ const InnerAddCredits = () => {
                                 value={paymentForm.cardholderName}
                                 onChange={handlePaymentChange}
                                 required
-                                className='cardholder-name-input'
+                                className="cardholder-name-input"
                             />
                         </div>
 
@@ -349,7 +392,8 @@ const InnerAddCredits = () => {
                                 </div>
                             </div>
                         </div>
-                        <div className='pay-button-container'>
+
+                        <div className="pay-button-container">
                             <CustomButton
                                 type="submit"
                                 className="pay-button"
@@ -360,8 +404,11 @@ const InnerAddCredits = () => {
                                 Pay
                             </CustomButton>
                         </div>
+
                         <div className="payment-footer">
-                            <span className="powered-by">Powered by <span style={{ fontWeight: 'bold' }}>stripe</span></span>
+                            <span className="powered-by">
+                                Powered by <span style={{ fontWeight: 'bold' }}>stripe</span>
+                            </span>
                             <div className="footer-links">
                                 <a href="#" className="footer-link">Terms</a>
                                 <a href="#" className="footer-link">Privacy</a>
@@ -382,4 +429,5 @@ const AddCredits = () => {
         </Elements>
     );
 };
+
 export default AddCredits;

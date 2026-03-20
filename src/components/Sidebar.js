@@ -133,14 +133,14 @@ const Sidebar = () => {
             inactiveIcon: '/Logs.svg',
             visible: true,
           },
-          // {
-          //   id: 'Superadmin',
-          //   label: 'Superadmin',
-          //   href: '/superadmin',
-          //   icon: '/superadmin.svg',
-          //   inactiveIcon: '/superadmin-inactive.svg',
-          //   visible: true,
-          // },
+          {
+            id: 'Superadmin',
+            label: 'Superadmin',
+            href: '/superadmin',
+            icon: '/superadmin.svg',
+            inactiveIcon: '/superadmin-inactive.svg',
+            visible: true,
+          },
         ]
       : []),
   ].filter((item) => {
