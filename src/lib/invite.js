@@ -17,7 +17,7 @@ export async function sendInviteAndCreatePendingInvite(supabase, params) {
   const pendingInviteRow = {
     email: String(email).trim(),
     username: String(username).trim(),
-    organisation_id: organisationId,
+    organisation_id: organisationId,  
     is_admin: Boolean(isAdmin),
     invited_at: new Date().toISOString()
   };
