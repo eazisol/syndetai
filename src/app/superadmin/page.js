@@ -240,7 +240,11 @@ function SuperadminContent() {
               id: uuidv4(),
               name: orgForm.name,
               account_type: orgForm.account_type || null,
+              lifecycle_status: 'active',
+              is_active: true,
+              source: 'superadmin',
               credit_balance: creditsNum,
+              metadata: { origin: 'superadmin_manual' },
               created_at: new Date().toISOString()
             }
           ])

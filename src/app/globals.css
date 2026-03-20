@@ -226,6 +226,40 @@ body {
   box-shadow: 0px 0px 32px 0px #b4b4b480;
 }
 
+/* Sidebar + page vertical scrollbar theme */
+.sidebar,
+.main-content,
+.main-content-library {
+  scrollbar-width: thin;
+  scrollbar-color: #8eaed8 var(--sidebar-color);
+}
+
+.sidebar::-webkit-scrollbar,
+.main-content::-webkit-scrollbar,
+.main-content-library::-webkit-scrollbar {
+  width: 10px;
+}
+
+.sidebar::-webkit-scrollbar-track,
+.main-content::-webkit-scrollbar-track,
+.main-content-library::-webkit-scrollbar-track {
+  background: var(--sidebar-color);
+}
+
+.sidebar::-webkit-scrollbar-thumb,
+.main-content::-webkit-scrollbar-thumb,
+.main-content-library::-webkit-scrollbar-thumb {
+  background: #8eaed8;
+  border-radius: 10px;
+  border: 2px solid var(--sidebar-color);
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover,
+.main-content::-webkit-scrollbar-thumb:hover,
+.main-content-library::-webkit-scrollbar-thumb:hover {
+  background: #7c9fce;
+}
+
 /* Section Styles */
 .request-section,
 .submissions-section,

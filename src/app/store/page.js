@@ -145,7 +145,7 @@ function StoreContent() {
                     onChange={(e) => setSelectedCategory(e.target.value)}
                     style={{ width: '180px' }}
                   >
-                    <option value="All">All Categories</option>
+                    <option value="All">Filter report</option>
                     {categories.filter(c => c !== 'All').map(cat => (
                       <option key={cat} value={cat}>{cat}</option>
                     ))}

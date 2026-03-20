@@ -197,7 +197,7 @@ const PreviousSubmissions = () => {
                     </td>
                     <td>{submission.title || '-'}</td>
                     <td style={{ textAlign: 'center' }}>
-                      {submission.status || '-'}
+                      {submission.status ? submission.status.charAt(0).toUpperCase() + submission.status.slice(1) : '-'}
                     </td>
                     <td style={{ textAlign: 'center' }}>{submission.batch_date || '-'}</td>
                     <td style={{ textAlign: 'center', padding: "0px" }}>
