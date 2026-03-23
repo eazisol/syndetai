@@ -10,7 +10,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 async function checkReportTypes() {
   const { data, error } = await supabase.schema('syndet').from('report_types').select('*');
   if (error) {
-    console.error('Error fetching report types:', error);
+    console.log('Error fetching report types:', error);
   } else {
     console.log('Report Types:', JSON.stringify(data, null, 2));
   }

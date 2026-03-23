@@ -20,106 +20,90 @@ const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ""
 );
 
-const createReportEntries = async ({ supabase, companyId, items, personaVariant = "founder" }) => {
-  if (!companyId) {
-    console.log("No companyId available for reports insert");
+const createReportEntries = async ({ supabase, companyId, organisationId, items, personaVariant = "founder" }) => {
+  if (!companyId || !organisationId) {
+    console.log("Missing IDs for reports insert", { companyId, organisationId });
     return;
   }
 
-  const titleToSlugMap = {
-    "Pre-Diligence Assessment": "due_diligence",
-    "Company Research Report": "due_diligence",
-    "Competitive Positioning Assessment": "competitor_analysis",
-    "Competitive Analysis": "competitor_analysis",
-    "Fundraising Readiness Diagnostic": "full_research_report",
-    "Company Deep Dive": "full_research_report",
+  const titleToSlugsMap = {
+    "Pre-Diligence Assessment": ["due_diligence"],
+    "Company Research Report": ["due_diligence"],
+    "Competitive Positioning Assessment": ["due_diligence", "competitor_analysis"],
+    "Competitive Analysis": ["due_diligence", "competitor_analysis"],
+    "Fundraising Readiness Diagnostic": ["due_diligence", "competitor_analysis", "full_research_report"],
+    "Company Deep Dive": ["due_diligence", "competitor_analysis", "full_research_report"],
   };
 
-  const uniqueSlugs = [...new Set(
+  const allRequestedSlugs = [...new Set(
     items
-      .map((item) => item?.reportTypeId ? null : titleToSlugMap[item?.title])
+      .flatMap((item) => titleToSlugsMap[item?.title] || [])
       .filter(Boolean)
   )];
 
-  // If items already contain reportTypeId, we can skip fetching report type IDs.
-  const payloadRows = [];
-
-  for (const item of items) {
-    if (!item) continue;
-    if (item.reportTypeId) {
-      payloadRows.push({
-        company_id: companyId,
-        report_type_id: item.reportTypeId,
-        persona_variant: personaVariant,
-        source: "checkout",
-        status: "queued",
-        visibility: "locked",
-      });
-      continue;
-    }
-
-    const slug = titleToSlugMap[item.title];
-    if (slug) {
-      payloadRows.push({
-        company_id: companyId,
-        report_type_slug: slug,
-        persona_variant: personaVariant,
-        source: "checkout",
-        status: "queued",
-        visibility: "locked",
-      });
-    }
-  }
-
-  if (!payloadRows.length) {
-    console.log("No reportTypeId found in items, skipping reports insert");
+  if (!allRequestedSlugs.length) {
+    console.log("No report slugs found in items, skipping reports insert");
     return;
   }
 
-  // Resolve any slug-based rows to real report_type_id via report_types table.
-  let slugToId = {};
-  if (uniqueSlugs.length > 0) {
-    const { data: reportTypes, error: reportTypesError } = await supabase
-      .schema("syndet")
-      .from("report_types")
-      .select("id, slug")
-      .in("slug", uniqueSlugs);
+  // Check for existing reports for this company & organisation
+  const { data: existingReports, error: existingError } = await supabase
+    .schema("syndet")
+    .from("reports")
+    .select("report_types(name)")
+    .eq("company_id", companyId)
+    .eq("organisation_id", organisationId);
 
-    if (reportTypesError) {
-      console.log("Failed to fetch report types:", reportTypesError);
-      throw new Error(reportTypesError.message || "Failed to fetch report types");
-    }
-
-    slugToId = Object.fromEntries((reportTypes || []).map((rt) => [rt.slug, rt.id]));
+  if (existingError) {
+    console.log("Error checking existing reports:", existingError);
   }
 
-  const reportRows = payloadRows
-    .map((row) => {
-      if (row.report_type_id) return row;
-      const resolvedId = slugToId[row.report_type_slug];
-      if (!resolvedId) return null;
-      return {
-        ...row,
-        report_type_id: resolvedId,
-      };
-    })
-    .filter(Boolean)
-    .map(({ report_type_slug, ...rest }) => rest);
+  const existingSlugs = (existingReports || [])
+    .map(r => r.report_types?.name)
+    .filter(Boolean);
 
-  if (!reportRows.length) {
-    console.log("No valid report rows found, skipping reports insert");
+  const missingSlugs = allRequestedSlugs.filter(slug => !existingSlugs.includes(slug));
+
+  if (!missingSlugs.length) {
+    console.log("All requested reports already exist, skipping reports insert");
     return;
   }
 
-  const reportsQuery = supabase.schema
-    ? supabase.schema("syndet").from("reports")
-    : supabase.from("reports");
+  // Resolve missing slugs to real report_type_id
+  const { data: reportTypes, error: reportTypesError } = await supabase
+    .schema("syndet")
+    .from("report_types")
+    .select("id, name")
+    .in("name", missingSlugs);
 
-  const { data, error } = await reportsQuery.insert(reportRows).select();
+  if (reportTypesError) {
+    console.log("Failed to fetch report types:", reportTypesError);
+    throw new Error(reportTypesError.message);
+  }
+
+  const reportRows = (reportTypes || []).map((rt) => ({
+    company_id: companyId,
+    organisation_id: organisationId,
+    report_type_id: rt.id,
+    persona_variant: personaVariant,
+    source: "checkout",
+    status: "queued",
+    visibility: "locked",
+    version: 1,
+    title: `${rt.name.replace(/_/g, ' ')} report`,
+  }));
+
+  if (!reportRows.length) return;
+
+  const { data, error } = await supabase
+    .schema("syndet")
+    .from("reports")
+    .insert(reportRows)
+    .select();
 
   if (error) {
     console.log("Failed to create reports entries:", error);
-    throw new Error(error.message || "Failed to create reports entries");
+    throw new Error(error.message);
   }
 
   console.log("Reports created successfully:", data);
@@ -135,6 +119,7 @@ function InnerCheckoutModal({
   companyId,
   userId,
   persona = null,
+  isPurchaseReportsFlow = false,
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -524,22 +509,48 @@ function InnerCheckoutModal({
             } else {
               console.log("Credit transaction recorded successfully");
             }
+
+            if (isPurchaseReportsFlow) {
+              console.log("Recording purchase for organization:", newOrgId);
+              const cartItem = items[0];
+              const purchasePayload = {
+                organisation_id: newOrgId,
+                purchase_type: "product",
+                pricing_model: cartItem.type === "Annual" ? "annual" : "one_off",
+                amount_gbp: total,
+                vat_amount_gbp: 0,
+                total_amount_gbp: total,
+                currency: "gbp",
+                payment_status: "completed",
+                payment_ref: paymentIntent?.id || "manual",
+                metadata: {
+                  items: items,
+                },
+                created_at: new Date().toISOString(),
+              };
+
+              const { error: purchaseError } = await supabase.from("purchases").insert([purchasePayload]);
+              if (purchaseError) {
+                console.log("Failed to record purchase:", purchaseError.message);
+              } else {
+                console.log("Purchase recorded successfully");
+              }
+            }
+
+            try {
+              await createReportEntries({
+                supabase,
+                companyId: finalCompanyId,
+                organisationId: newOrgId,
+                items,
+                personaVariant: "company",
+              });
+            } catch (reportErr) {
+              console.log("Report creation failed:", reportErr);
+              toast.error(reportErr.message || "Payment succeeded, but report queueing failed.");
+            }
           } else {
             console.log("No organisation ID available for processing (newOrgId is null)");
-          }
-        }
-
-        if (!isFounderFlow) {
-          try {
-            await createReportEntries({
-              supabase,
-              companyId: finalCompanyId,
-              items,
-              personaVariant: "company",
-            });
-          } catch (reportErr) {
-            console.log("Report creation failed:", reportErr);
-            toast.error(reportErr.message || "Payment succeeded, but report queueing failed.");
           }
         }
 

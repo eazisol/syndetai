@@ -71,7 +71,7 @@ export async function createCompany(supabaseAdmin, name, url) {
     .single();
 
   if (error) {
-    console.error("createCompany failed:", error.message);
+    console.log("createCompany failed:", error.message);
     return null;
   }
 
@@ -206,7 +206,7 @@ export async function createOrFindAuthUser(supabaseAdmin, submission) {
   // If user already exists, look them up
   const msg = createError.message?.toLowerCase() || "";
   if (!msg.includes("already")) {
-    console.error(`[Provisioning] createUser error: ${createError.message}`);
+    console.log(`[Provisioning] createUser error: ${createError.message}`);
     throw new Error(`createOrFindAuthUser failed: ${createError.message}`);
   }
 
@@ -216,7 +216,7 @@ export async function createOrFindAuthUser(supabaseAdmin, submission) {
     await supabaseAdmin.auth.admin.listUsers();
 
   if (listError) {
-    console.error(`[Provisioning] listUsers error: ${listError.message}`);
+    console.log(`[Provisioning] listUsers error: ${listError.message}`);
     throw new Error(`listUsers failed: ${listError.message}`);
   }
 
@@ -225,7 +225,7 @@ export async function createOrFindAuthUser(supabaseAdmin, submission) {
   );
 
   if (!existing) {
-    console.error(`[Provisioning] User exists in Auth but not found in first batch of listUsers`);
+    console.log(`[Provisioning] User exists in Auth but not found in first batch of listUsers`);
     // Fallback: we still throw because we can't link without an ID
     throw new Error(`User exists in Auth but could not be retrieved. Please check Auth logs for ${submission.email}.`);
   }

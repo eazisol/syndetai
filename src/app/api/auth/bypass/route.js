@@ -51,7 +51,7 @@ export async function POST(req) {
     });
 
     if (error) {
-      console.error("Error generating magic link:", error);
+      console.log("Error generating magic link:", error);
       return jsonResponse({ error: "Failed to generate login link" }, 500);
     }
 
@@ -93,7 +93,7 @@ export async function POST(req) {
             }
         }
     } catch (consumeError) {
-        console.error("Error consuming link on server:", consumeError);
+        console.log("Error consuming link on server:", consumeError);
         // Fall back to returning the action_link if server-side consumption fails
     }
 
@@ -104,7 +104,7 @@ export async function POST(req) {
     });
 
   } catch (error) {
-    console.error("Auth bypass error:", error);
+    console.log("Auth bypass error:", error);
     return jsonResponse({ error: error.message || "Something went wrong" }, 500);
   }
 }

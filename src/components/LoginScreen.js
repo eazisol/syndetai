@@ -326,7 +326,7 @@ const LoginScreen = ({ onLogin }) => {
                 router.push('/library');
                 return;
               } else {
-                console.error('Session error:', sessionError);
+                console.log('Session error:', sessionError);
                 toast.error('Failed to set login session.');
               }
             } else if (bypassData.action_link) {
@@ -335,7 +335,7 @@ const LoginScreen = ({ onLogin }) => {
               return;
             }
           } else {
-            console.error('Bypass error:', bypassData.error);
+            console.log('Bypass error:', bypassData.error);
             toast.error('Direct login failed. Sending magic link instead...');
           }
         }

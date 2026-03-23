@@ -6,7 +6,7 @@ import CheckoutModal from "./CheckoutModal";
 
 const CartContext = createContext(null);
 
-export function CartProvider({ children, companyId, userId, persona = null }) {
+export function CartProvider({ children, companyId, userId, persona = null, isPurchaseReportsFlow = false }) {
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [items, setItems] = useState([]);
@@ -58,6 +58,7 @@ export function CartProvider({ children, companyId, userId, persona = null }) {
         companyId={companyId}
         userId={userId}
         persona={persona}
+        isPurchaseReportsFlow={isPurchaseReportsFlow}
         onRemove={removeFromCart}
         onEditBasket={() => {
           setCheckoutOpen(false);

@@ -7,7 +7,7 @@ async function test() {
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     
     if (!supabaseUrl || !supabaseServiceKey) {
-        console.error('Missing env vars');
+        console.log('Missing env vars');
         return;
     }
 
@@ -23,7 +23,7 @@ async function test() {
     });
 
     if (error) {
-        console.error('Error:', error);
+        console.log('Error:', error);
         return;
     }
 
@@ -44,7 +44,7 @@ async function test() {
             console.log('Refresh Token exists:', !!params.get('refresh_token'));
         }
     } catch (e) {
-        console.error('Fetch error:', e);
+        console.log('Fetch error:', e);
     }
 }
 

@@ -316,7 +316,7 @@ async function createPurchase({
 
   const { error } = await supabase.from("purchases").insert([payload]);
   if (error) {
-    console.error("createPurchase failed:", error.message);
+    console.log("createPurchase failed:", error.message);
     throw error;
   }
 }
@@ -392,7 +392,7 @@ async function createReportForPurchase({ supabase, company, organisation, cartIt
     .select();
 
   if (insertError) {
-    console.error("createReportForPurchase insert failed:", insertError.message);
+    console.log("createReportForPurchase insert failed:", insertError.message);
     throw insertError;
   }
 

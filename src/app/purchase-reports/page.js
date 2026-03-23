@@ -332,7 +332,7 @@ function StorePageInner() {
   const companyId = userData?.organisation?.company_id || userData?.company_id;
   
   return (
-    <CartProvider companyId={companyId} userId={user?.id}>
+    <CartProvider companyId={companyId} userId={user?.id} isPurchaseReportsFlow={true}>
       <StoreContent />
     </CartProvider>
   );
