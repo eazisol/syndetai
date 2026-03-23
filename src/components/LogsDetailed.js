@@ -91,7 +91,7 @@ export default function LogsDetailed() {
     // Set up real-time subscription
     const supabase = getSupabase();
     const channel = supabase
-      .channel("event_logs_changes")
+      .channel("event_log_changes")
       .on(
         "postgres_changes",
         {

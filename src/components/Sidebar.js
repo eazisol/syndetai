@@ -48,8 +48,8 @@ const Sidebar = () => {
             id: 'Store',
             label: 'Store',
             href: '/store',
-            icon: '/library.svg',
-            inactiveIcon: '/library-inactive.svg',
+            icon: '/images/store_active.png',
+            inactiveIcon: '/images/store_inactive.png',
             visible: true,
           },
         ]
@@ -87,8 +87,8 @@ const Sidebar = () => {
             id: 'Purchase Reports',
             label: 'Purchase Reports',
             href: '/purchase-reports',
-            icon: '/library.svg',
-            inactiveIcon: '/library-inactive.svg',
+            icon: '/images/purchase_active.png',
+            inactiveIcon: '/images/purchase_inactive.png',
             visible: true,
           },
         ]
@@ -113,8 +113,8 @@ const Sidebar = () => {
             id: 'User',
             label: 'User',
             href: '/superadmin/submissions',
-            icon: '/new-request.svg',
-            inactiveIcon: '/new-request-inactive.svg',
+            icon: '/images/user_active.png',
+            inactiveIcon: '/images/user_inactive.png',
             visible: true,
           },
           {

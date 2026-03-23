@@ -23,7 +23,7 @@ const CustomInputField = ({
       <input
         type={type}
         placeholder={placeholder}
-        value={value}
+        value={value ?? ''}
         onChange={onChange}
         name={name}
         className={`custom-input-field ${hasRightIcon ? 'has-right-icon' : ''} ${className}`}
