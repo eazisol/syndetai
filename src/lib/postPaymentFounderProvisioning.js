@@ -370,14 +370,15 @@ async function createReportForPurchase({ supabase, company, organisation, cartIt
 
     const nextVersion = latest ? Number(latest.version || 0) + 1 : 1;
 
-    rows.push({
-      company_id: company.id,
-      organisation_id: organisation.id,
-      report_type_id: rt.id,
-      persona_variant: "company",
-      version: nextVersion,
-      source: "founder_checkout",
-    });
+  rows.push({
+  company_id: company.id,
+  organisation_id: organisation.id,
+  report_type_id: rt.id,
+  title: `${rt.name} report for ${company.name}`,
+  persona_variant: "company",
+  version: nextVersion,
+  source: "founder_checkout",
+});
   }
 
   if (!rows.length) {
