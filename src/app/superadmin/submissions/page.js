@@ -23,7 +23,7 @@ function UserManagementContent() {
       
       const { data, error } = await supabase
         .from('new_submissions')
-        .select('id, full_name, email, persona_type, status, created_at')
+        .select('id, full_name, email, persona_type, status, created_at, target_company_name, target_company_url, own_company_name, own_company_url, company_fund_name ')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -127,9 +127,12 @@ function UserManagementContent() {
                       <tr>
                         <th>NAME</th>
                         <th>EMAIL</th>
+                         <th>COMPANY NAME</th>
+                        <th>COMPANY URL</th>
                         <th>PERSONA</th>
                         <th style={{ textAlign: 'center' }}>STATUS</th>
                         <th style={{ textAlign: 'center' }}>SUBMITTED AT</th>
+                       
                       </tr>
                     </thead>
                     <tbody>
@@ -151,7 +154,30 @@ function UserManagementContent() {
                           <tr key={s.id}>
                             <td className="fw-medium">{s.full_name}</td>
                             <td>{s.email}</td>
+                         
+                             <td>{s.target_company_name || '-'}</td>
+                            {/* <td>
+                              {s.target_company_url ? (
+                                <a href={s.target_company_url} target="_blank" rel="noopener noreferrer" className="text-link">
+                                  {s.target_company_url.replace(/(^\w+:|^)\/\//, '')}
+                                </a>
+                              ) : '-'}
+                            </td> */}
                             <td>
+                      {s.target_company_url && s.target_company_url !== '-' ? (
+                        <a
+                          href={s.target_company_url.startsWith('http') ? s.target_company_url : `https://${s.target_company_url}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="website-link"
+                        >
+                          {s.target_company_url}
+                        </a>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                       <td>
                               <span style={{ 
                                 textTransform: 'capitalize',
                                 padding: '4px 8px',
@@ -193,6 +219,7 @@ function UserManagementContent() {
                             <td style={{ textAlign: 'center', fontSize: '13px', color: '#666' }}>
                               {new Date(s.created_at).toLocaleDateString()}
                             </td>
+                           
                           </tr>
                         ))
                       )}
