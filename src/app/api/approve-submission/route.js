@@ -42,6 +42,16 @@ export async function POST(req) {
     const body = await req.json();
     console.log("── approve-submission called, body:", body);
 
+    // ── Extract IP ───────────────────────────────────────────────────────────
+    const forwarded = req.headers.get("x-forwarded-for");
+    const resolvedIp = forwarded ? forwarded.split(',')[0].trim() : (
+      req.headers.get("cf-connecting-ip") ||
+      req.headers.get("x-real-ip") ||
+      req.headers.get("x-client-ip") ||
+      req.headers.get("true-client-ip") ||
+      null
+    );
+
     const submissionId = body.submissionId;
     // Default to "approved" if caller omits status (endpoint name implies it)
     const targetStatus = normalizeStatus(body.status ?? "approved");
@@ -108,7 +118,10 @@ export async function POST(req) {
             // It was waitlisted, now reactivated
             const reactivatedEvent = persona === "investor" ? EVENTS.INVESTOR.SUBMISSION_REACTIVATED : null;
             if (reactivatedEvent) {
-                await supabaseAdmin.schema("syndet").from("event_log").insert([{ event_type: reactivatedEvent }]);
+                await supabaseAdmin.schema("syndet").from("event_log").insert([{ 
+                    event_type: reactivatedEvent,
+                    ip_address: resolvedIp
+                }]);
             }
         }
         statusEventName = persona === "investor" ? EVENTS.INVESTOR.SUBMISSION_APPROVED : EVENTS.FOUNDER.SUBMISSION_APPROVED;
@@ -122,7 +135,8 @@ export async function POST(req) {
 
     if (statusEventName) {
         const { error: eventError } = await supabaseAdmin.schema("syndet").from("event_log").insert([{
-            event_type: statusEventName
+            event_type: statusEventName,
+            ip_address: resolvedIp
         }]);
         if (eventError) console.warn("Failed to log status change event:", eventError.message);
     }
@@ -162,7 +176,8 @@ export async function POST(req) {
     const result = await runApprovalProvisioningFlow(
       supabaseAdmin,
       submission,
-      submissionId
+      submissionId,
+      resolvedIp
     );
 
     return jsonResponse({

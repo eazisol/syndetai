@@ -341,7 +341,8 @@ export async function insertEventLog(
   supabaseAdmin,
   organisationId,
   appUserId,
-  submissionId
+  submissionId,
+  resolvedIp
 ) {
   const { error } = await supabaseAdmin
     .schema(SCHEMA)
@@ -351,6 +352,7 @@ export async function insertEventLog(
         event_type: "submission_approved",
         organisation_id: organisationId,
         user_id: appUserId,
+        ip_address: resolvedIp,
         metadata: {
           submission_id: submissionId,
           provisioned_at: new Date().toISOString(),
@@ -388,7 +390,8 @@ export async function updateSubmissionWithOrg(supabaseAdmin, submissionId, organ
 export async function runApprovalProvisioningFlow(
   supabaseAdmin,
   submission,
-  submissionId
+  submissionId,
+  resolvedIp
 ) {
   console.log("── Starting provisioning for submission:", submissionId, "Persona:", submission.persona_type);
 
@@ -456,6 +459,7 @@ export async function runApprovalProvisioningFlow(
   await supabaseAdmin.schema(SCHEMA).from("event_log").insert([{
     event_type: "investor.account.created",
     organisation_id: organisation.id,
+    ip_address: resolvedIp,
     metadata: { submission_id: submissionId }
   }]);
 
@@ -475,6 +479,7 @@ export async function runApprovalProvisioningFlow(
     event_type: "investor.user.created",
     user_id: appUser.id,
     organisation_id: organisation.id,
+    ip_address: resolvedIp,
   }]);
 
   // Step 7: (Investor Only) Create free report (non-fatal if it fails)
@@ -496,13 +501,14 @@ export async function runApprovalProvisioningFlow(
       user_id: appUser.id,
       organisation_id: organisation.id,
       report_id: report.id,
-      company_id: companyId
+      company_id: companyId,
+      ip_address: resolvedIp
     }]);
   }
 
   // Step 8: (Investor Only) Event log (non-fatal) - Default Submission Approved Log
   console.log("[Provisioning] Step 8: Inserting event log...");
-  await insertEventLog(supabaseAdmin, organisation.id, appUser.id, submissionId);
+  await insertEventLog(supabaseAdmin, organisation.id, appUser.id, submissionId, resolvedIp);
 
   // Step 9: Link submission to organisation
   await updateSubmissionWithOrg(supabaseAdmin, submissionId, organisation.id);
